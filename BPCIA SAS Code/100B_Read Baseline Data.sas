@@ -1,0 +1,785 @@
+*********************************************************
+*********************************************************
+BPCI Advanced: 100 - Read Raw BPCI Advanced Data
+Code to import raw DAT files into SAS
+Author: Placide Hiol
+Checker
+*********************************************************
+*********************************************************;
+OPTIONS LS=132 PS=70 ;
+options mprint;
+
+/****
+Durable Medical Equipment - Detail
+ *****/
+%macro DME(file, i);
+data temp_DME;
+infile "&file." dlm="," missover dsd lrecl=1000 firstobs = 2 ;
+input
+EPISODE_ID	:
+CURHIC_UNEQ	:$20.
+BENE_SK: $20.
+CLAIMNO: $50.
+LINEITEM: $9.
+LINE_STD_ALLOWED:
+LINE_ALLOWED :
+FROM_DT	:date9.
+THRU_DT :date9.
+PMT_AMT :
+SUP_NPI	:
+TAX_NUM :
+EXPNSDT1	:date9.
+EXPNSDT2	:date9.
+HCPCS_CD	: $9.
+LPRPDAMT : 
+;
+
+ format FROM_DT THRU_DT mmddyy10.;
+ format EXPNSDT1 EXPNSDT2 mmddyy10.;
+
+run;
+
+data DME_&sub2._&BPID._&i. ;
+ set temp_DME; 
+BENE_SK = compress(BENE_SK,",");
+CLAIMNO = compress(CLAIMNO,",");
+run ;
+
+
+%mend DME;
+
+/****
+Home Health Agency - Detail
+ *****/
+%macro HHA(file, i);
+
+data temp_HHA;
+infile "&file." dlm="," missover dsd lrecl=1000 firstobs = 2 ;
+input
+EPISODE_ID :
+CURHIC_UNEQ :$20.
+BENE_SK : $20.
+CLAIMNO : $50.
+STD_ALLOWED :
+CLM_ALLOWED :
+FROM_DT :date9.
+THRU_DT :date9.
+PROVIDER :
+SGMT_NUM :
+PMT_AMT :
+PRPAYAMT :
+PRCRRTRN :
+LUPAIND : $20.
+RVCNTR01 :
+RVCNTR02 :
+RVCNTR03 :
+RVCNTR04 :
+RVCNTR05 :
+RVCNTR06 :
+RVCNTR07 :
+RVCNTR08 :
+RVCNTR09 :
+RVCNTR10 :
+RVCNTR11 :
+RVCNTR12 :
+RVCNTR13 :
+RVCNTR14 :
+RVCNTR15 :
+RVCNTR16 :
+RVCNTR17 :
+RVCNTR18 :
+RVCNTR19 :
+RVCNTR20 :
+RVCNTR21 :
+RVCNTR22 :
+RVCNTR23 :
+RVCNTR24 :
+RVCNTR25 :
+RVCNTR26 :
+RVCNTR27 :
+RVCNTR28 :  
+RVCNTR29 :
+RVCNTR30 :
+RVCNTR31 :
+RVCNTR32 :
+RVCNTR33 :
+RVCNTR34 :
+RVCNTR35 :
+RVCNTR36 :
+RVCNTR37 :
+RVCNTR38 :
+RVCNTR39 :
+RVCNTR40 :
+RVCNTR41 :
+RVCNTR42 :
+RVCNTR43 :
+RVCNTR44 :
+RVCNTR45 :
+REV_DT01 :date9.
+REV_DT02 :date9.
+REV_DT03 :date9.
+REV_DT04 :date9.
+REV_DT05 :date9.
+REV_DT06 :date9.
+REV_DT07 :date9.
+REV_DT08 :date9.
+REV_DT09 :date9.
+REV_DT10 :date9.
+REV_DT11 :date9.
+REV_DT12 : date9.
+REV_DT13 :date9.
+REV_DT14 :date9.
+REV_DT15 :date9.
+REV_DT16 :date9.
+REV_DT17 :date9.
+REV_DT18 :date9.
+REV_DT19 :date9.
+REV_DT20 :date9.
+REV_DT21 :date9.
+REV_DT22 :date9.
+REV_DT23 :date9.
+REV_DT24 :date9.
+REV_DT25 :date9.
+REV_DT26 :date9.
+REV_DT27 :date9.
+REV_DT28 :date9.
+REV_DT29 :date9.
+REV_DT30 :date9.
+REV_DT31 :date9.
+REV_DT32 :date9.
+REV_DT33 :date9.
+REV_DT34 :date9.
+REV_DT35 :date9.
+REV_DT36 :date9.
+REV_DT37 :date9.
+REV_DT38 :date9.
+REV_DT39 :date9.
+REV_DT40 :date9.
+REV_DT41 :date9.
+REV_DT42 :date9.
+REV_DT43 :date9.
+REV_DT44 :date9.
+REV_DT45 :date9.
+HCPSCD01: $20.
+HCPSCD02: $20.
+HCPSCD03: $20.
+HCPSCD04: $20.
+HCPSCD05 :$20.
+HCPSCD06 :$20.
+HCPSCD07 :$20.
+HCPSCD08 :$20.
+HCPSCD09 :$20.
+HCPSCD10 :$20.
+HCPSCD11: $20.
+HCPSCD12: $20.
+HCPSCD13: $20.
+HCPSCD14 : $20.
+HCPSCD15 : $20.
+HCPSCD16 : $20.
+HCPSCD17 : $20.
+HCPSCD18 : $20.
+HCPSCD19 : $20.
+HCPSCD20 : $20.
+HCPSCD21: $20.
+HCPSCD22 : $20.
+HCPSCD23 : $20.
+HCPSCD24 : $20.
+HCPSCD25 : $20.
+HCPSCD26 : $20.
+HCPSCD27 : $20.
+HCPSCD28 : $20.
+HCPSCD29 : $20.
+HCPSCD30 : $20.
+HCPSCD31 : $20.
+HCPSCD32 : $20.
+HCPSCD33 : $20.
+HCPSCD34 : $20.
+HCPSCD35 : $20.
+HCPSCD36 : $20.
+HCPSCD37 : $20.
+HCPSCD38 :$20.
+HCPSCD39 :$20.
+HCPSCD40 :$20.
+HCPSCD41 :$20.
+HCPSCD42 : $20.
+HCPSCD43 : $20.
+HCPSCD44 : $20.
+HCPSCD45 : $20.
+RVUNT01 :
+RVUNT02 :
+RVUNT03 :
+RVUNT04 :
+RVUNT05 :
+RVUNT06 :
+RVUNT07 :
+RVUNT08 :
+RVUNT09 :
+RVUNT10:
+RVUNT11:
+RVUNT12:
+RVUNT13:
+RVUNT14:
+RVUNT15:
+RVUNT16:
+RVUNT17:
+RVUNT18:
+RVUNT19:
+RVUNT20:
+RVUNT21:
+RVUNT22:
+RVUNT23:
+RVUNT24:
+RVUNT25:
+RVUNT26:
+RVUNT27:
+RVUNT28:
+RVUNT29:
+RVUNT30:
+RVUNT31:
+RVUNT32:
+RVUNT33:
+RVUNT34:
+RVUNT35:
+RVUNT36:
+RVUNT37:
+RVUNT38 :
+RVUNT39 :
+RVUNT40 :
+RVUNT41 :
+RVUNT42 :
+RVUNT43 :
+RVUNT44 :
+RVUNT45 :
+RVCHRG01 :
+RVCHRG02 :
+RVCHRG03 :
+RVCHRG04 :
+RVCHRG05 :
+RVCHRG06 :
+RVCHRG07 :
+RVCHRG08 :
+RVCHRG09 :
+RVCHRG10 :
+RVCHRG11 :
+RVCHRG12 :
+RVCHRG13 :
+RVCHRG14 :
+RVCHRG15 : 
+RVCHRG16 :
+RVCHRG17 :
+RVCHRG18 :
+RVCHRG19 :
+RVCHRG20 :
+RVCHRG21 :
+RVCHRG22 :
+RVCHRG23 :
+RVCHRG24 :
+RVCHRG25 : 
+RVCHRG26 :
+RVCHRG27 :
+RVCHRG28 :
+RVCHRG29 :
+RVCHRG30 :
+RVCHRG31 :
+RVCHRG32 :
+RVCHRG33 :
+RVCHRG34 :
+RVCHRG35 :
+RVCHRG36 :
+RVCHRG37 :
+RVCHRG38 :
+RVCHRG39 :
+RVCHRG40 :
+RVCHRG41 :
+RVCHRG42 :
+RVCHRG43 :
+RVCHRG44 :
+RVCHRG45 :
+RVNCVR01 :
+RVNCVR02 :
+RVNCVR03 :
+RVNCVR04 :
+RVNCVR05 :
+RVNCVR06 :
+RVNCVR07 :
+RVNCVR08 :
+RVNCVR09 :
+RVNCVR10 :
+RVNCVR11:
+RVNCVR12 :
+RVNCVR13 :
+RVNCVR14 :
+RVNCVR15 :
+RVNCVR16 :
+RVNCVR17 :
+RVNCVR18 :
+RVNCVR19 :
+RVNCVR20 :
+RVNCVR21 :
+RVNCVR22 :
+RVNCVR23 :
+RVNCVR24 :
+RVNCVR25 :
+RVNCVR26 :
+RVNCVR27 :
+RVNCVR28 :
+RVNCVR29 :
+RVNCVR30 :
+RVNCVR31 :
+RVNCVR32 :
+RVNCVR33 :
+RVNCVR34 :
+RVNCVR35 :
+RVNCVR36 :
+RVNCVR37 :
+RVNCVR38 :
+RVNCVR39 :
+RVNCVR40 :
+RVNCVR41 :
+RVNCVR42 :
+RVNCVR43 :
+RVNCVR44 :
+RVNCVR45 :
+;
+
+format REV_DT01 -- REV_DT45 mmddyy10.;
+format FROM_DT  THRU_DT mmddyy10.;
+
+run;
+
+data HHA_&sub2._&BPID._&i. ;
+ set temp_HHA; 
+BENE_SK = compress(BENE_SK,",");
+CLAIMNO = compress(CLAIMNO,",");
+run ;
+%mend HHA;
+
+/****
+Hospice
+ *****/
+%macro HS(file, i);
+data temp_HS;
+infile "&file." dlm="," missover dsd lrecl=1000 firstobs = 2 ;
+input
+EPISODE_ID:
+CURHIC_UNEQ :$20.
+BENE_SK : $20.
+CLAIMNO : $50.
+STD_ALLOWED :
+CLM_ALLOWED :
+FROM_DT : date9.
+THRU_DT : date9.
+PROVIDER :
+FAC_TYPE :
+TYPESRVC :
+PMT_AMT :
+PRPAYAMT :
+DEMONUM01 :
+DEMONUM02 :
+DEMONUM03 :
+DEMONUM04 :
+DEMONUM05 : 
+
+;
+
+format FROM_DT  THRU_DT mmddyy10.;
+
+run;
+
+data HS_&sub2._&BPID._&i. ;
+ set temp_HS; 
+BENE_SK = compress(BENE_SK,",");
+CLAIMNO = compress(CLAIMNO,",");
+run ;
+%mend HS;
+
+/****
+Inpatient -Detail 
+ *****/
+%macro IP(file, i);
+data temp_IP;
+infile "&file." dlm="," missover dsd lrecl=1000 firstobs = 2 ;
+input
+EPISODE_ID:
+CURHIC_UNEQ : $20.
+PROVIDER : $20.
+STAY_DRG_CD :
+STAY_ADMSN_DT :date9.
+STAY_DSCHRGDT :date9.
+STAY_FROM_DT :date9.
+STAY_THRU_DT :date9.
+BENE_SK : $20.
+IP_STAY_ID :
+STAY_STD_ALLOWED :
+STAY_PMT_AMT :
+STAY_PRPAYAMT :
+STAY_ALLOWED :
+AT_NPI :
+OP_NPI :
+STUS_CD :
+DGNSCD01 :$20.
+PRCDRCD01 :$20.
+DGNSCD02 :$20.
+PRCDRCD02 :$20.
+DGNSCD03 :$20.
+PRCDRCD03 :$20.
+DGNSCD04 :$20.
+PRCDRCD04 :$20.
+DGNSCD05 :$20.
+PRCDRCD05 :$20.
+DGNSCD06 :$20.
+PRCDRCD06 :$20.
+DGNSCD07 :$20.
+PRCDRCD07 :$20.
+DGNSCD08 :$20.
+PRCDRCD08 :$20.
+DGNSCD09 :$20.
+PRCDRCD09 :$20.
+DGNSCD10 :$20.
+PRCDRCD10 :$20.
+DGNSCD11 :$20.
+PRCDRCD11 :$20.
+DGNSCD12 :$20.
+PRCDRCD12 :$20.
+DGNSCD13 :$20.
+PRCDRCD13 :$20.
+DGNSCD14 :$20.
+PRCDRCD14 :$20.
+DGNSCD15 :$20.
+PRCDRCD15 :$20.
+DGNSCD16 :$20.
+PRCDRCD16 :$20.
+DGNSCD17 :$20.
+PRCDRCD17 :$20.
+DGNSCD18 :$20.
+PRCDRCD18 :$20.
+DGNSCD19 :$20.
+PRCDRCD19 :$20.
+DGNSCD20 :$20.
+PRCDRCD20 :$20.
+DGNSCD21 :$20.
+PRCDRCD21 :$20.
+DGNSCD22 :$20.
+PRCDRCD22 :$20.
+DGNSCD23 :$20.
+PRCDRCD23 :$20.
+DGNSCD24 :$20.
+PRCDRCD24 :$20.
+DGNSCD25 :$20.
+PRCDRCD25 :$20.
+;
+format STAY_ADMSN_DT -- STAY_THRU_DT mmddyy10.;
+
+run;
+
+data IP_&sub2._&BPID._&i. ;
+ set temp_IP; 
+BENE_SK = compress(BENE_SK,",");
+run ;
+%mend IP;
+
+/****
+Outpatient - Detail 
+ *****/
+%macro OP(file, i);
+
+data temp_OP;
+infile "&file." dlm="," missover dsd lrecl=1000 firstobs = 2 ;
+input
+EPISODE_ID :
+CURHIC_UNEQ :$20.
+BENE_SK : $20.
+CLAIMNO : $50.
+LINEITEM :
+LINE_STD_ALLOWED :
+LINE_ALLOWED :
+AT_NPI :
+OP_NPI :
+FROM_DT :date9.
+THRU_DT :date9.
+PROVIDER : $20.
+REV_CNTR :
+REV_DT :date9.
+HCPCS_CD :$20.
+REV_MSP1 :
+REV_MSP2 :
+RSTUSIND : $20.
+LINEPMT :
+;
+
+format FROM_DT  THRU_DT REV_DT mmddyy10.;
+
+run;
+
+data OP_&sub2._&BPID._&i. ;
+ set temp_OP; 
+BENE_SK = compress(BENE_SK,",");
+CLAIMNO = compress(CLAIMNO,",");
+run ;
+%mend OP;
+
+/****
+Carrier (Physician/Supplier Part B) - Detail
+ *****/
+%macro PB(file, i);
+
+data temp_PB;
+infile "&file." dlm="," missover dsd lrecl=1000 firstobs = 2 ;
+input
+EPISODE_ID :
+CURHIC_UNEQ : $20.
+BENE_SK : $20.
+CLAIMNO : $50.
+LINEITEM :
+LINE_STD_ALLOWED :
+LINE_ALLOWED :
+FROM_DT :date9.
+THRU_DT :date9.
+PRFNPI :
+TAX_NUM :
+PLCSRVC :
+EXPNSDT1 :date9.
+EXPNSDT2 :date9.
+HCPCS_CD : $20.
+MDFR_CD1 : $20.
+MDFR_CD2 : $20.
+MDFR_CD3 : $20.
+MDFR_CD4 : $20.
+LINEPMT :
+LPRPDAMT :
+;
+
+ format FROM_DT THRU_DT mmddyy10.;
+ format EXPNSDT1 EXPNSDT2 mmddyy10.;
+
+run;
+
+data PB_&sub2._&BPID._&i. ;
+ set temp_PB; 
+BENE_SK = compress(BENE_SK,",");
+CLAIMNO = compress(CLAIMNO,",");
+run ;
+%mend PB;
+
+/****
+Skilled Nursing Facility - Detail 
+ *****/
+%macro SNF(file, i);
+
+data temp_SNF;
+infile "&file." dlm="," missover dsd lrecl=1000 firstobs = 2 ;
+input
+EPISODE_ID :
+CURHIC_UNEQ : $20.
+BENE_SK : $20.
+CLAIMNO : $50.
+STD_ALLOWED :
+CLM_ALLOWED :
+FROM_DT : date9.
+THRU_DT : date9.
+PROVIDER : $20.
+SGMT_NUM :
+PMT_AMT :
+PRPAYAMT :
+STUS_CD : 
+ADMSN_DT : date9.
+DSCHRGDT : date9.
+;
+
+ format FROM_DT THRU_DT mmddyy10.;
+ format ADMSN_DT DSCHRGDT mmddyy10.;
+
+run;
+
+data SNF_&sub2._&BPID._&i. ;
+ set temp_SNF; 
+BENE_SK = compress(BENE_SK,",");
+CLAIMNO = compress(CLAIMNO,",");
+run ;
+%mend SNF;
+
+/****
+Clinical Episode-Level File - Applicable for Baseline Period Only
+ *****/
+%macro EPI(file, i);
+
+data temp_EPI;
+infile "&file." dlm="," missover dsd lrecl=1000 firstobs = 2 ;
+input
+EPISODE_ID :
+ATTRIBUTED_PVDR_GROUP_ID :
+EPISODE_GROUP_NAME :  $225.
+BENE_SK : $20.
+CURHIC_UNEQ :  $20.
+BENE_AGE :
+ANCHOR_TYPE :  $20.
+ANCHOR_STAY_ID :
+ANCHOR_CLAIMNO : $50.
+ANCHOR_LINEITEM :
+ANCHOR_TRIGGER_CD : $20.
+DRG_2018 :
+ANCHOR_APC :
+ANCHOR_APC_PMT_RATE :
+ANCHOR_C_APC_FLAG :
+PERF_APC :
+PERF_APC_PMT_RATE :
+PERF_C_APC_FLAG :
+ANCHOR_PROVIDER :
+ANCHOR_AT_NPI :
+ANCHOR_OP_NPI :
+ANCHOR_BEG_DT :date9.
+ANCHOR_END_DT :date9.
+POST_DSCH_BEG_DT :date9.
+POST_DSCH_END_DT :date9.
+ANCHOR_STANDARD_ALLOWED_AMT :
+ANCHOR_ALLOWED_AMT :
+TRANSFER_STAY :
+TRANS_IP_STAY_1 :
+TRANS_IP_STAY_2 :
+TRANS_IP_STAY_3 :
+TRANS_IP_STAY_4 :
+TRANS_IP_STAY_5 :
+TRANS_IP_STAY_6 :
+TRANS_IP_STAY_7 :
+TRANS_IP_STAY_8 :
+TRANS_IP_STAY_9 :
+TRANS_IP_STAY_10 :
+TRANS_IP_STAY_11 :
+TRANS_IP_STAY_12 :
+TRANS_IP_STAY_13 :
+DROP_EPISODE :
+DROPFLAG_NOT_CONT_ENR_AB_NO_C :
+DROPFLAG_ESRD :
+DROPFLAG_OTHER_PRIMARY_PAYER :
+DROPFLAG_NO_BENE_ENR_INFO :
+DROPFLAG_LOS_GT_59 :
+DROPFLAG_NON_HIGHEST_J1 :
+DROPFLAG_TRANS_W_CAH_CANCER :
+DROPFLAG_DEATH_DUR_ANCHOR :
+DEATH_DUR_POSTDSCHRG :
+TOT_STD_ALLOWED :
+TOT_RAW_ALLOWED :
+TOT_STD_ALLOWED_OPL :
+TOT_STD_ALLOWED_IP :
+TOT_STD_ALLOWED_DM :
+TOT_STD_ALLOWED_PB :
+TOT_STD_ALLOWED_SN :
+TOT_STD_ALLOWED_HS :
+TOT_STD_ALLOWED_HH_NONRAP :
+ORIGDS :
+LTI :
+FRACTURE_FLAG :
+TKA_FLAG :
+TKA_FRACTURE_FLAG :
+ANY_DUAL :
+PRIOR_HOSP_W_ANY_IP_FLAG_90 :
+HCC1 :
+HCC2 :
+HCC6 :
+HCC8 :
+HCC9 :
+HCC10 :
+HCC11 :
+HCC12 :
+HCC17 :
+HCC18 :
+HCC19 :
+HCC21 :
+HCC22 :
+HCC23 :
+HCC27 :
+HCC28 :
+HCC29 :
+HCC33 :
+HCC34 :
+HCC35 :
+HCC39 :
+HCC40 :
+HCC46 :
+HCC47 :
+HCC48 :
+HCC54 :
+HCC55 :
+HCC57 :
+HCC58 :
+HCC70 :
+HCC71 :
+HCC72 :
+HCC73 :
+HCC74 :
+HCC75 :
+HCC76 :
+HCC77 :
+HCC78 :
+HCC79 :
+HCC80 :
+HCC82 :
+HCC83 :
+HCC84 :
+HCC85 :
+HCC86 :
+HCC87 :
+HCC88 :
+HCC96 :
+HCC99 :
+HCC100 :
+HCC103 :
+HCC104 :
+HCC106 :
+HCC107 :
+HCC108 :
+HCC110 :
+HCC111 :
+HCC112 :
+HCC114 :
+HCC115 :
+HCC122 :
+HCC124 :
+HCC134 :
+HCC135 :
+HCC136 :
+HCC137 :
+HCC157 :
+HCC158 :
+HCC161 :
+HCC162 :
+HCC166 :
+HCC167 :
+HCC169 :
+HCC170 :
+HCC173 :
+HCC176 :
+HCC186 :
+HCC188 :
+HCC189 :
+SEPSIS_CARD_RESP_FAIL :
+CANCER_IMMUNE :
+DIABETES_CHF :
+CHF_COPD :
+CHF_RENAL :
+COPD_CARD_RESP_FAIL :
+DISABLED_HCC6 :
+DISABLED_HCC34 :
+DISABLED_HCC46 :
+DISABLED_HCC54 :
+DISABLED_HCC55 :
+DISABLED_HCC110 :
+DISABLED_HCC176 :
+EPI_STD_PMT_FCTR :
+WINSORIZE_EPI_1_99 :
+EPI_STD_PMT_FCTR_WIN_1_99 :
+
+;
+
+format ANCHOR_BEG_DT -- POST_DSCH_END_DT mmddyy10.;
+
+run;
+
+data EPI_&sub2._&BPID._&i. ;
+ set temp_EPI; 
+BENE_SK = compress(BENE_SK,",");
+ANCHOR_CLAIMNO = compress(ANCHOR_CLAIMNO,",");
+run ;
+%mend EPI;
+
+
