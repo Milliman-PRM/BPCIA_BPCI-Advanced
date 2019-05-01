@@ -584,7 +584,7 @@ proc sql;
 quit;
 *** BASELINE BENCHMARKS ******;
 data benchmarks_base;
-	set out.baseline_final_benchmark;
+	set out.baseline_benchmark_:;
 run;
 
 proc sql;
