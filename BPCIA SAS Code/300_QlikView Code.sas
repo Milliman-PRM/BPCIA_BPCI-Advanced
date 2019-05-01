@@ -3437,6 +3437,57 @@ proc sql;
 quit;
 /*SD ADDITION END 20190304 - Mortality rates DURING episode*/
 
+*20190501 JL Update - calculate baseline benchmarks during baseline run only (join later);
+%if &label = ybase %then %do;
+proc sql;
+	create table baseline_util  as 
+		select distinct 	
+ 				BPID
+				,anchor_code
+				,timeframe
+				,timeframe2
+				,timeframe_id
+				,count(*) as epi_total
+				,sum(IP_UTIL) as base_fip_n
+				,sum(IRF_UTIL) as base_irf_n
+				,sum(SNF_UTIL) as base_snf_n
+				,sum(HH_UTIL) as base_hh_n
+				,sum(IP_DAYS) as base_ip_days
+				,sum(IRF_DAYS) as base_irf_days
+				,sum(SNF_DAYS) as base_snf_days
+				,sum(DOD_N) as base_dod_n
+		from out.perf_&label._&bpid1._&bpid2. as a
+		group by BPID
+				,anchor_code
+				,timeframe
+				,timeframe2
+				,timeframe_id
+;
+quit;
+
+proc sql;
+	create table out.baseline_benchmark_&bpid1._&bpid2.  as 
+		select distinct 	
+				*
+				,base_fip_n/epi_total as base_fip_freq
+				,base_irf_n/epi_total as base_irf_freq
+				,base_snf_n/epi_total as base_snf_freq
+				,base_hh_n/epi_total as base_hh_freq
+				,base_dod_n/epi_total as base_dod_freq
+				,base_ip_days/epi_total as base_fip_avg_days
+				,base_irf_days/epi_total as base_irf_avg_days
+				,base_snf_days/epi_total as base_snf_avg_days
+		from baseline_util as a
+		order by BPID
+				,anchor_code
+				,timeframe
+				,timeframe2
+				,timeframe_id
+;
+quit;
+%end;
+*20190501 JL update end;
+
 Proc sql ; 
 	create table episode_detail_10 as
 		select a.*
