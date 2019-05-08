@@ -1,4 +1,5 @@
 *this is a test change;
+*made the change Jared told me to;
 
 ******** Send Email when SAS is complete ********;
 *Enabling the SMTP e-mail interface;
