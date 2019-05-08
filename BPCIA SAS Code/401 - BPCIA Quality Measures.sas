@@ -206,12 +206,23 @@ quit;
 /**Macro to stack and out all the measures for all the CCNS that are present within the Source files */;
   %macro Quality_Measure_full(name);
 	data Quality_Measure_&name._0 ;
+	%if &type.=main %then %do ;
 	      set final_table_comp: (where = (Comp = '1' or Double = '1') )
-		  	   final_table_Heart: (where = ( AMI = '1') ) 
-			   final_table_Mort: (where = (CABG = '1') )
-				final_table_Readmit: (where = (All = '1') )
-				final_table_PSI: (where = (PSI = '1') ) ;
-				BPID_CCN_Key = BPID||"_"||CCN ; 
+		  	  final_table_Heart: (where = ( AMI = '1') ) 
+			  final_table_Mort: (where = (CABG = '1') )
+			  final_table_Readmit: (where = (All = '1') )
+			  final_table_PSI: (where = (PSI = '1') ) ;
+	%end ;
+
+	%else %if &type.=base %then %do ;
+			set final_table_comp: 
+		  	   final_table_Heart: 
+			   final_table_Mort: 
+			   final_table_Readmit: 
+		       final_table_PSI: ;
+	%end ;
+
+	BPID_CCN_Key = BPID||"_"||CCN ; 
 				
 	run ;
 
@@ -293,14 +304,24 @@ data bpcia.Quality_Measure_latest_&name. ;
 %macro Quality_Measure_demo(bpid1,bpid2,bpid3,bpid4,bpid5,bpid6,bpid7,bpid8,bpid9,bpid10);
 
 	data Quality_Measure_demo_0 ;
+	%if &type.=main %then %do ;
 	      set final_table_comp: (where = (Comp = '1' ) )
-		  	   final_table_Heart: (where = ( AMI = '1') ) 
-			   final_table_Mort: (where = (CABG = '1') )
-				final_table_Readmit: (where = (All = '1') )
-				final_table_PSI: (where = (PSI = '1') ) ;
+		  	  final_table_Heart: (where = ( AMI = '1') ) 
+			  final_table_Mort: (where = (CABG = '1') )
+			  final_table_Readmit: (where = (All = '1') )
+			  final_table_PSI: (where = (PSI = '1') ) ;
 
+	%end ;
 
-	 if BPID in ("&bpid1.-0000","&bpid2.-0000","&bpid3.-0000","&bpid4.-0000","&bpid5.-0000","&bpid6.-0000","&bpid7.-0000","&bpid8.-0034","&bpid9.-0064","&bpid10.-0002");
+	%else %if &type.=base %then %do ;
+			set final_table_comp: 
+		  	   final_table_Heart: 
+			   final_table_Mort: 
+			   final_table_Readmit: 
+		       final_table_PSI: ;
+	%end ;
+
+	if BPID in ("&bpid1.-0000","&bpid2.-0000","&bpid3.-0000","&bpid4.-0000","&bpid5.-0000","&bpid6.-0000","&bpid7.-0000","&bpid8.-0034","&bpid9.-0064","&bpid10.-0002");
 
 	*20180610 Update - Overwrite BPID;
 	if BPID ="&bpid1.-0000" then BPID = "1111-0000";
