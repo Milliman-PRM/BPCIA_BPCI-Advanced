@@ -1,3 +1,4 @@
+
 options minoperator mlogic;
 /***********************************************************/
 *********************************************************
@@ -8,6 +9,7 @@ Code to create the Qaulity Measure for the BPCI Advanced
 libname bpcia "H:\Nonclient\Medicare Bundled Payment Reference\Program - BPCIA\SAS Datasets";
 libname out "R:\data\HIPAA\BPCIA_BPCI Advanced\07 - Processed Data";
 %include "H:\Nonclient\Medicare Bundled Payment Reference\Program - BPCIA\SAS Code\000 - BPCIA_Interface_BPIDs.sas";
+%let type=main ; *Main=Main Interface, Base=Baseline Interface ;
 
 ****** REFERENCE PROGRAMS ***********************************************************************************;
 %include "H:\_HealthLibrary\SAS\000 - General SAS Macros.sas";
