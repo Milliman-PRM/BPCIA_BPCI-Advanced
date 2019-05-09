@@ -8,11 +8,6 @@ Code to calculate target prices
 options mprint;
 
 
-****** USER INPUTS ******************************************************************************************;
-*%let label = ybase; *Turn on for baseline data, turn off for quarterly data;
-*%let label = y201901; *Turn off for baseline data, turn on for quarterly data;
-
-
 proc printto;run;
 proc printto log="H:\BPCIA_BPCI Advanced\50 - BPCI Advanced Ongoing Reporting - 2019\Work Papers\SAS\logs\201_Demo - Target Prices_&sysdate..log" print=print new;
 run;
@@ -41,9 +36,7 @@ proc format; value $masked_bpid
 '2379-0000'='5555-0000'
 '2587-0000'='6666-0000'
 '2607-0000'='7777-0000'
-'5084-0034'='8888-0000'
-'5084-0064'='9999-0000'
-'5479-0002'='1010-0000'
+'5479-0002'='8888-0000'
 other='';
 run;
 
@@ -61,13 +54,7 @@ data out2.tp_&label._&bpid1._&bpid2.;
 	set out.tp_&label._&bpid1._&bpid2. (rename=(BPID=BPID_o));
 
 	BPID = put(BPID_o,$masked_bpid.);
-/*
-	if BPID = "1032-0000" then do; BPID = "1111-0000"; end;
-	if BPID = "1075-0000" then do; BPID = "2222-0000"; end;
-	if BPID = "1125-0000" then do; BPID = "3333-0000"; end;
-	if BPID = "1167-0000" then do; BPID = "4444-0000"; end;
-	if BPID = "1148-0000" then do; BPID = "5555-0000"; end;
-*/
+
 	if ORIGDS='Yes' then ORIGDS='C';
 	else ORIGDS='H';
 	if LTI='Yes' then LTI='B';
@@ -86,14 +73,12 @@ run;
 %runhosp(2379,0000);
 %runhosp(2587,0000);
 %runhosp(2607,0000);
-%runhosp(5084,0034);
-%runhosp(5084,0064);
 %runhosp(5479,0002);
 
 %mend;
 
 %Period(ybase);
-%Period(y201902);
+%Period(y201903);
 
 
 data All_Target_Prices;
@@ -102,6 +87,17 @@ run;
 
 proc export data= All_Target_Prices
             outfile= "R:\data\HIPAA\BPCIA_BPCI Advanced\08 - Target Price Data\Demo\Target Prices Demo_&sysdate..csv"
+            dbms=csv replace; 
+run;
+
+
+data All_Target_Prices_Baseline;
+	set All_Target_Prices;
+	if substr(EPI_ID_MILLIMAN,11,1) = 'B';
+run;
+
+proc export data= All_Target_Prices_Baseline
+            outfile= "R:\data\HIPAA\BPCIA_BPCI Advanced\08 - Target Price Data\Demo\Target Prices Base Demo_&sysdate..csv"
             dbms=csv replace; 
 run;
 
