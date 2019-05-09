@@ -3519,10 +3519,8 @@ proc sql;
 		from episode_detail_11 as a
 			left join bpcia_performance_episodes as b
 			on	a.BPID = b.BPID
-				and
-				a.Clinical_Episode = b.EPISODE_GROUP_NAME_USE
-				and
-				a.ANCHOR_TYPE=b.ANCHOR_TYPE
+				and a.Clinical_Episode = b.EPISODE_GROUP_NAME_USE
+				and	a.ANCHOR_TYPE=b.ANCHOR_TYPE
 ;
 
 *EDAC: Sum final excess days to episode level ;
@@ -3537,9 +3535,17 @@ proc sql;
 	where type in ('IP_Idx')
 ;
 
+*READMISSIONS: Sum readmissions to episode level;
+	create table epi_level_readm_flag as
+		select EPI_ID_MILLIMAN
+			 , sum(HAS_READMISSION) as unplanned_readmit_flag
+		from out.ipr_&label._&bpid1._&bpid2.
+		where HAS_READMISSION ^=9
+		group by EPI_ID_MILLIMAN
+;
 *COMPLICATIONS: Add final complications flag to episode detail table ;
 
-	create table episode_detail_12a as
+	create table episode_detail_13 as
 		select distinct a.*
 			,b.cc_denom
 			,c.cc_flag
@@ -3556,12 +3562,11 @@ proc sql;
 		on a.epi_id_milliman = b.epi_id_milliman
 		left join out.comp_&label._&bpid1._&bpid2. as c
 		on a.epi_id_milliman = c.epi_id_milliman
-		left join op_prov as d
 ;
 
-*20181113 SD: Add final excess days and complications flags to episode detail table ;
+*20181113 SD: Add EDAC and Readmit flags and create final QM flags to episode detail table ;
 
-	create table episode_detail_13 as
+	create table episode_detail_14 as
 		select distinct a.*
 			,b.edac_flag
 			,b.excess_ip_readmit_days
@@ -3570,50 +3575,38 @@ proc sql;
 			,b.total_excess_days
 
 			,case when perf_period_epi_flag=. then '-'
-			when clinical_episode_abbr2 not in('AMI') then '-'
-			when b.total_excess_days >0 then "Yes"
-			when b.total_excess_days =0 then "No" else "N/A"
-			end as excess_days_status2
+				when clinical_episode_abbr2 not in('AMI') then '-'
+				when b.total_excess_days >0 then "Yes"
+				when b.total_excess_days =0 then "No" else "N/A"
+				end as excess_days_status2
+
+			,case when perf_period_epi_flag=. then "-"
+				when c.unplanned_readmit_flag>0 then "Yes"
+				when c.unplanned_readmit_flag=0 then "No"
+				else "N/A" end as unplanned_readmit_status
 
 			,case when perf_period_epi_flag=. then'-'
-			when clinical_episode_abbr2 not in('MJRLE','DJRLE') then '-'
+				when clinical_episode_abbr2 not in('MJRLE','DJRLE') then '-'
 				else complication_status end as complication_status2
-		from episode_detail_12a as a
+		from episode_detail_13 as a
 			left join all_cause_days as b
 			on a.epi_id_milliman = b.epi_id_milliman
+			left join epi_level_readm_flag as c
+			on a.epi_id_milliman = c.epi_id_milliman
 ;
 
-*READMISSIONS Add final unplanned readmission flag to episode detail table ;
-	create table epi_level_readm_flag as
-		select EPI_ID_MILLIMAN
-			 , sum(HAS_READMISSION) as unplanned_readmit_flag
-		from out.ipr_&label._&bpid1._&bpid2.
-		where HAS_READMISSION ^=9
-		group by EPI_ID_MILLIMAN;
-;
-		create table episode_detail_14 as
-		select distinct a.*
-			,case when perf_period_epi_flag=. then "-"
-				when b.unplanned_readmit_flag>0 then "Yes"
-				when b.unplanned_readmit_flag=0 then "No"
-				else "N/A" end as unplanned_readmit_status
-		from episode_detail_13 as a
-			left join epi_level_readm_flag as b
-			on a.epi_id_milliman = b.epi_id_milliman
-;
-
-*EDAC and READMISSIONS: Use performance period flag on epi_detail file to limit readmissions on patient detail file*;
+*EDAC and READMISSIONS: Flag the claims that are supposed to be included in the Claims-Based Detail tables*;
 proc sql;
 	create table out.pat_detail_&label._&bpid1._&bpid2. as
 		select distinct a.*
 						,b.perf_period_epi_flag
 						,case when b.perf_period_epi_flag=. then 0
-						else a.readm_cand end as readm_cand2
+							else a.readm_cand end as readm_cand2
 						,case when b.perf_period_epi_flag^=. and a.readm_cand=1 and b.unplanned_readmit_status='Yes' and
-						((caretype_long='Anchor Hospital Stay' and msdrg^='') or caretype_long='Readmit') then 1
-						else 0 end as elig_readm_cand_with_unplanned
+							((caretype_long='Anchor Hospital Stay' and anchor_code="ip") or caretype_long='Readmit') then 1
+							else 0 end as elig_readm_cand_with_unplanned
 						,case when b.perf_period_epi_flag^=. and a.edac_flag='Yes' and excess_days_status2='Yes' then 1
-						else 0 end as elig_edac_cand_with_edac
+							else 0 end as elig_edac_cand_with_edac
 		from patient_detail5 as a
 		left join episode_detail_14 as b
 		on a.epi_id_milliman = b.epi_id_milliman
