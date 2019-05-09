@@ -750,15 +750,6 @@ data data1_&label._&bpid1._&bpid2. ;
 		else episode_initiator1 = strip(episode_initiator);
 run ;
 
-/*Identify performance period episodes*/ 
-data bpcia_performance_episodes;
-	set bpciaref.bpcia_performance_episodes;
-
-	perf_period_epi_flag=1;
-
-run;
-
-
 /*create unique identifiers, metatdata, and other column modifications for output*/ 
 proc sql;
 create table Episode_Detail_1 as 
@@ -3025,15 +3016,11 @@ proc sql;
 	order by BPID, epi_id_milliman, timeframe, transfer_stay, begin_date, end_date desc;
 quit;
 
-
-
-
 data patient_detail3 (drop=counter);
 	set patient_detail2;
 	by BPID epi_id_Milliman ;
 	length claimid $12 caretype_long $50.;
 	format begin_date end_date mmddyy10.;
-
 
 	retain counter;
 
@@ -3076,6 +3063,7 @@ data patient_detail3 (drop=counter);
 	/*20180625 MK Addition*/
 run;
 
+*READMISSION LOGIC;
 data patient_detail4;
 	set patient_detail3;
 	format UNPLANNED_READMIT_FLAG_USE HAS_READMISSION_USE service_provider_ccn $12.;
@@ -3083,7 +3071,6 @@ data patient_detail4;
 /*	EPISODE_UNPLANNED_READMIT=0;*/
 /*	if UNPLANNED_READMIT_FLAG = 1 then EPISODE_UNPLANNED_READMIT=1;*/
 /*	if HAS_READMISSION = 1 then EPISODE_UNPLANNED_READMIT=1;*/
-
 
 	if UNPLANNED_READMIT_FLAG = 9 then UNPLANNED_READMIT_FLAG_USE = 'Transfer';
             else if UNPLANNED_READMIT_FLAG = 1 then UNPLANNED_READMIT_FLAG_USE = 'Yes';
@@ -3108,9 +3095,8 @@ data patient_detail4;
 	else if service_provider_ccn in ('050146','050660','100079','100271','220162','330154','330354','360242','390196','450076','500138') then readm_cand=0;  
 run;
 
-
 proc sql;
-	create table out.pat_detail_&label._&bpid1._&bpid2. as
+	create table patient_detail5 as
 		select distinct
 			a.*
 			,b.ALL as All_Flag
@@ -3123,8 +3109,7 @@ proc sql;
 ;
 quit;
 
-
-proc sort data=out.pat_detail_&label._&bpid1._&bpid2.; by BPID epi_id_milliman timeframe begin_date end_date; run;
+proc sort data=patient_detail5; by BPID epi_id_milliman timeframe begin_date end_date; run;
 
 
 /*********************************************************************************************/
@@ -3502,9 +3487,59 @@ Proc sql ;
 		where b.physician_role in ('Attending MD','Attending & Operating MD')
 		;
 
-*20170606 JL: Add final complications flag to episode detail table ;
-
 	create table episode_detail_11 as
+		select distinct a.*
+			,case when a.operating_npi in ("",".") then "N/A"	
+					when d.provider_npi ne '' then 'Yes' else 'No' end as op_prov_flag
+			,case when a.attending_npi in ("",".") then "N/A"
+					when e.provider_npi ne '' then 'Yes' else 'No' end as at_prov_flag
+		from episode_detail_10 as a
+		left join op_prov as d
+		on a.epi_id_milliman = d.epi_id_milliman
+		left join at_prov as e
+		on a.epi_id_milliman = e.epi_id_milliman
+		group by a.epi_id_milliman
+;
+quit;
+
+
+*** Join final QM flags onto epi_detail and pat_detail tables based on performance period participation ***;
+
+*Identify performance period episodes*;
+data bpcia_performance_episodes;
+	set bpciaref.bpcia_performance_episodes;
+	perf_period_epi_flag=1;
+run;
+
+*SD: Add performance period episode flag to episode detail table ;
+proc sql;
+	create table episode_detail_12 as
+		select distinct a.*
+			,b.perf_period_epi_flag
+		from episode_detail_11 as a
+			left join bpcia_performance_episodes as b
+			on	a.BPID = b.BPID
+				and
+				a.Clinical_Episode = b.EPISODE_GROUP_NAME_USE
+				and
+				a.ANCHOR_TYPE=b.ANCHOR_TYPE
+;
+
+*EDAC: Sum final excess days to episode level ;
+	create table all_cause_days as
+			select distinct epi_id_milliman
+			,edac_flag
+			,excess_ip_readmit_days
+			,excess_op_ed_days
+			,sum(excess_op_obs_days,excess_pb_obs_days) as excess_obs_days
+			,total_excess_days
+	from out.ipr_&label._&bpid1._&bpid2.
+	where type in ('IP_Idx')
+;
+
+*COMPLICATIONS: Add final complications flag to episode detail table ;
+
+	create table episode_detail_12a as
 		select distinct a.*
 			,b.cc_denom
 			,c.cc_flag
@@ -3516,47 +3551,14 @@ Proc sql ;
 			,case when c.cc_flag = 1 then "Yes"
 			when b.cc_denom = 1 then "No"
 			else "N/A" end as complication_status 
-			,case when a.operating_npi in ("",".") then "N/A"	
-					when d.provider_npi ne '' then 'Yes' else 'No' end as op_prov_flag
-			,case when a.attending_npi in ("",".") then "N/A"
-					when e.provider_npi ne '' then 'Yes' else 'No' end as at_prov_flag
-		from episode_detail_10 as a
+		from episode_detail_12 as a
 		left join out.Cc_sum_&label._&bpid1._&bpid2. as b
 		on a.epi_id_milliman = b.epi_id_milliman
 		left join out.comp_&label._&bpid1._&bpid2. as c
 		on a.epi_id_milliman = c.epi_id_milliman
 		left join op_prov as d
-		on a.epi_id_milliman = d.epi_id_milliman
-		left join at_prov as e
-		on a.epi_id_milliman = e.epi_id_milliman
-		group by a.epi_id_milliman
 ;
 
-*SD: Add performance period episode flag to table ;
-create table episode_detail_12 as
-		select distinct a.*
-			,b.perf_period_epi_flag
-		from episode_detail_11 as a
-			left join bpcia_performance_episodes as b
-			on	a.BPID = b.BPID
-				and
-				a.Clinical_Episode = b.EPISODE_GROUP_NAME_USE
-				and
-				a.ANCHOR_TYPE=b.ANCHOR_TYPE
-
-;
-
-*20181113 SD: Sum final excess days to episode level ;
-	create table all_cause_days as
-			select distinct epi_id_milliman
-			,edac_flag
-			,excess_ip_readmit_days
-			,excess_op_ed_days
-			,sum(excess_op_obs_days,excess_pb_obs_days) as excess_obs_days
-			,total_excess_days
-	from out.ipr_&label._&bpid1._&bpid2.
-	where type in ('IP_Idx')
-;
 *20181113 SD: Add final excess days and complications flags to episode detail table ;
 
 	create table episode_detail_13 as
@@ -3566,20 +3568,22 @@ create table episode_detail_12 as
 			,b.excess_op_ed_days
 			,b.excess_obs_days
 			,b.total_excess_days
+
 			,case when perf_period_epi_flag=. then '-'
 			when clinical_episode_abbr2 not in('AMI') then '-'
 			when b.total_excess_days >0 then "Yes"
 			when b.total_excess_days =0 then "No" else "N/A"
 			end as excess_days_status2
+
 			,case when perf_period_epi_flag=. then'-'
 			when clinical_episode_abbr2 not in('MJRLE','DJRLE') then '-'
 				else complication_status end as complication_status2
-		from episode_detail_12 as a
+		from episode_detail_12a as a
 			left join all_cause_days as b
 			on a.epi_id_milliman = b.epi_id_milliman
 ;
 
-*20181113 SD: Add final unplanned readmission flag to episode detail table ;
+*READMISSIONS Add final unplanned readmission flag to episode detail table ;
 	create table epi_level_readm_flag as
 		select EPI_ID_MILLIMAN
 			 , sum(HAS_READMISSION) as unplanned_readmit_flag
@@ -3587,7 +3591,6 @@ create table episode_detail_12 as
 		where HAS_READMISSION ^=9
 		group by EPI_ID_MILLIMAN;
 ;
-
 		create table episode_detail_14 as
 		select distinct a.*
 			,case when perf_period_epi_flag=. then "-"
@@ -3597,10 +3600,9 @@ create table episode_detail_12 as
 		from episode_detail_13 as a
 			left join epi_level_readm_flag as b
 			on a.epi_id_milliman = b.epi_id_milliman
-
 ;
 
-*Use performance period flag on epi_detail file to limit readmissions on patient detail file*;
+*EDAC and READMISSIONS: Use performance period flag on epi_detail file to limit readmissions on patient detail file*;
 proc sql;
 	create table out.pat_detail_&label._&bpid1._&bpid2. as
 		select distinct a.*
@@ -3612,7 +3614,7 @@ proc sql;
 						else 0 end as elig_readm_cand_with_unplanned
 						,case when b.perf_period_epi_flag^=. and a.edac_flag='Yes' and excess_days_status2='Yes' then 1
 						else 0 end as elig_edac_cand_with_edac
-		from out.pat_detail_&label._&bpid1._&bpid2. as a
+		from patient_detail5 as a
 		left join episode_detail_14 as b
 		on a.epi_id_milliman = b.epi_id_milliman
 ;
@@ -3732,12 +3734,6 @@ quit;
 
 /*********************************************************************************************/
 /*********************************************************************************************/
-
-
-
-
-
-
 
 /*********************************************************************************************/
 /*Code to create exclusions dataset********************************************/
