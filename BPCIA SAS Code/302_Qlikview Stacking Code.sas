@@ -360,7 +360,7 @@ run;
 			out.&file._ybase_&bpid5._0000
 			out.&file._ybase_&bpid6._0000
 			out.&file._ybase_&bpid7._0000
-			out.&file._ybase_&bpid8._0002
+			out.&file._ybase_&bpid8._0002 ;
 
 		%end ;
 
@@ -477,13 +477,10 @@ run;
 
 
 *performance file (needs to be rerun outside of macro to incorporate PMR benchmark variables;
+%if &type.=main %then %do ;
 data out.all_perf_demo;
 	set out.all_perf;
 	if BPID in ("&bpid1.-0000","&bpid2.-0000","&bpid3.-0000","&bpid4.-0000","&bpid5.-0000","&bpid6.-0000","&bpid7.-0000","&bpid8.-0002");
-
-%if &type.=base %then %do ;
-	if substr(EPI_ID_MILLIMAN,11,1)="B" ;
-%end ;
 
 	*20180610 Update - Overwrite BPID;
 	if BPID ="&bpid1.-0000" then BPID = "1111-0000";
@@ -494,7 +491,65 @@ data out.all_perf_demo;
 	else if BPID = "&bpid6.-0000" then BPID = "6666-0000";
 	else if BPID = "&bpid7.-0000" then BPID = "7777-0000";
 	else if BPID = "&bpid8.-0002" then BPID = "8888-0000";
+
 run;
+%end ;
+
+%else %if &type.=base %then %do ;
+data perf_demo ;
+	set		out.perf_ybase_&bpid1._0000
+			out.perf_ybase_&bpid2._0000
+			out.perf_ybase_&bpid3._0000
+			out.perf_ybase_&bpid4._0000
+			out.perf_ybase_&bpid5._0000
+			out.perf_ybase_&bpid6._0000
+			out.perf_ybase_&bpid7._0000
+			out.perf_ybase_&bpid8._0002 ;
+run ;
+*** PREMIER BENCHMARKS ******;
+data benchmarks_pmr;
+	set bench.benchmarks_bpcia_pmr_17;
+	where fracture = "N/A";
+run;
+
+proc sql;
+	create table p1 as
+	select a.*
+		,b.*
+	from perf_demo as a
+	left join benchmarks_pmr as b
+	on a.Anchor_code = b.drg
+	and timeframe_id = b._id 
+	and client_type = 1
+	order by epi_id_milliman, timeframe
+;
+quit;
+*** BASELINE BENCHMARKS ******;
+data benchmarks_base;
+	set out.baseline_benchmark_:;
+run;
+
+proc sql;
+	create table b1 as
+	select a.*
+		,b.*
+	from p1 as a
+	left join benchmarks_base as b
+	on  a.BPID=b.BPID
+	and a.Anchor_code = b.Anchor_code
+	and a.timeframe_id = b.timeframe_id 
+	order by epi_id_milliman, timeframe
+;
+quit;
+
+
+data out.all_perf_demo;
+	set b1;
+run;
+%end ;
+
+
+
 
 ******* EXPORT QVW_FILES *******;
 %sas_2_csv(out.all_epi_detail_demo,epi_detail_demo.csv);
