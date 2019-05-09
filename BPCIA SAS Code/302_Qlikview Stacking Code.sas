@@ -4,8 +4,8 @@ options emailsys = SMTP;
 *Specifying a single SMTP server;
 options emailhost = smtp.milliman.com;
 * Add to and from email addresses;
-%let to_email = sumudu.dehipawala@milliman.com;
-%let from_email = sumudu.dehipawala@milliman.com;
+%let to_email = shachi.mistry@milliman.com;
+%let from_email = shachi.mistry@milliman.com;
 
 %let _sdtm=%sysfunc(datetime());
 options mprint nospool;
@@ -28,6 +28,7 @@ Setup
 ****** USER INPUTS ******************************************************************************************;
 /*%let label = ybase; *Baseline/Performance data label;*/
 %let label = y201902;
+%let type=base; *Base=Baseline Interface, Main=Main Interface;
 
 %let mode=FULL; *DEV or FULL;
 
@@ -41,14 +42,14 @@ Setup
 %let dataDir = R:\data\HIPAA\BPCIA_BPCI Advanced;
 
 %macro modesetup;
-%if &mode.=DEV %then %do;
-libname out "&dataDir.\07 - Processed Data\Testing";
-proc printto log="H:\BPCIA_BPCI Advanced\50 - BPCI Advanced Ongoing Reporting - 2019\Work Papers\SAS\logs\302 - DEV Qlikview Stacking Code_&label._&sysdate..log";
+%if &type.=main %then %do;
+libname out "&dataDir.\07 - Processed Data";
+proc printto log="H:\BPCIA_BPCI Advanced\50 - BPCI Advanced Ongoing Reporting - 2019\Work Papers\SAS\logs\302 - Qlikview Stacking Code_&label._&sysdate..log";
 run;
 %end;
 %else %do;
-libname out "&dataDir.\07 - Processed Data\";
-proc printto log="H:\BPCIA_BPCI Advanced\50 - BPCI Advanced Ongoing Reporting - 2019\Work Papers\SAS\logs\302 - Qlikview Stacking Code2_&label._&sysdate..log";
+libname out "&dataDir.\07 - Processed Data\Baseline Interface Demo";
+/*proc printto log="H:\BPCIA_BPCI Advanced\50 - BPCI Advanced Ongoing Reporting - 2019\Work Papers\SAS\logs\302 - Baseline Interface Qlikview Stacking Code_&label._&sysdate..log";*/
 run;
 %end;
 %mend modesetup;
@@ -310,27 +311,48 @@ run;
 
 
 /********** 20170118 - CREATE FILES FOR DEMO ***************************************************************;*/
-%macro stackingdemo(exportDir,bpid1,bpid2,bpid3,bpid4,bpid5,bpid6,bpid7,bpid8,bpid9,bpid10);
+%macro stackingdemo(exportDir,bpid1,bpid2,bpid3,bpid4,bpid5,bpid6,bpid7,bpid8);
 
 *Stack Output files - Files with baseline and perf data use output, files with perf data only use the perf data;
 %macro stack_output_demo(file,file2);
 
 	data out.all_&file._demo;
 		set 
-		%if &file = exclusions %then %do;
-			out.&file._&file2._&bpid1._0000
-			out.&file._&file2._&bpid2._0000
-			out.&file._&file2._&bpid3._0000
-			out.&file._&file2._&bpid4._0000
-			out.&file._&file2._&bpid5._0000
-			out.&file._&file2._&bpid6._0000
-			out.&file._&file2._&bpid7._0000
-/*			out.&file._&file2._&bpid8._0034*/
-/*			out.&file._&file2._&bpid9._0064*/
-			out.&file._&file2._&bpid10._0002
-		;
-		%end;
-		%else %do;
+		%if &type.=main %then %do ;
+
+			%if &file = exclusions %then %do;
+				out.&file._&file2._&bpid1._0000
+				out.&file._&file2._&bpid2._0000
+				out.&file._&file2._&bpid3._0000
+				out.&file._&file2._&bpid4._0000
+				out.&file._&file2._&bpid5._0000
+				out.&file._&file2._&bpid6._0000
+				out.&file._&file2._&bpid7._0000
+				out.&file._&file2._&bpid8._0002
+			;
+			%end;
+			%else %do;
+				out.&file._ybase_&bpid1._0000
+				out.&file._ybase_&bpid2._0000
+				out.&file._ybase_&bpid3._0000
+				out.&file._ybase_&bpid4._0000
+				out.&file._ybase_&bpid5._0000
+				out.&file._ybase_&bpid6._0000
+				out.&file._ybase_&bpid7._0000
+				out.&file._ybase_&bpid8._0002
+				out.&file._&file2._&bpid1._0000
+				out.&file._&file2._&bpid2._0000
+				out.&file._&file2._&bpid3._0000
+				out.&file._&file2._&bpid4._0000
+				out.&file._&file2._&bpid5._0000
+				out.&file._&file2._&bpid6._0000
+				out.&file._&file2._&bpid7._0000
+				out.&file._&file2._&bpid8._0002;
+			%end;
+		%end ;
+
+		%else %if &type.=base %then %do ;
+
 			out.&file._ybase_&bpid1._0000
 			out.&file._ybase_&bpid2._0000
 			out.&file._ybase_&bpid3._0000
@@ -338,20 +360,9 @@ run;
 			out.&file._ybase_&bpid5._0000
 			out.&file._ybase_&bpid6._0000
 			out.&file._ybase_&bpid7._0000
-/*			out.&file._ybase_&bpid8._0034*/
-/*			out.&file._ybase_&bpid9._0064*/
-			out.&file._ybase_&bpid10._0002
-			out.&file._&file2._&bpid1._0000
-			out.&file._&file2._&bpid2._0000
-			out.&file._&file2._&bpid3._0000
-			out.&file._&file2._&bpid4._0000
-			out.&file._&file2._&bpid5._0000
-			out.&file._&file2._&bpid6._0000
-			out.&file._&file2._&bpid7._0000
-/*			out.&file._&file2._&bpid8._0034*/
-/*			out.&file._&file2._&bpid9._0064*/
-			out.&file._&file2._&bpid10._0002;
-		%end;
+			out.&file._ybase_&bpid8._0002
+
+		%end ;
 
 		*20180610 Update - Overwrite BPID;
 		if BPID ="&bpid1.-0000" then BPID = "1111-0000";
@@ -361,9 +372,7 @@ run;
 		else if BPID = "&bpid5.-0000" then BPID = "5555-0000";
 		else if BPID = "&bpid6.-0000" then BPID = "6666-0000";
 		else if BPID = "&bpid7.-0000" then BPID = "7777-0000";
-/*		else if BPID = "&bpid8.-0034" then BPID = "8888-0000";*/
-/*		else if BPID = "&bpid9.-0064" then BPID = "9999-0000";*/
-		else if BPID = "&bpid10.-0002" then BPID = "1010-0000";
+		else if BPID = "&bpid8.-0002" then BPID = "8888-0000";
 
 
 
@@ -447,9 +456,12 @@ run;
 %stack_output_demo(prov_detail,&label.);
 %stack_output_demo(util,&label.);
 %stack_output_demo(phys_summ,&label.);
-%stack_output_demo(exclusions,&label.);
 %stack_output_demo(comp,&label.);
 
+*ONLY RUN EXCLUSIONS FOR MAIN DEMOS;
+%if &type.=main %then %do ;
+%stack_output_demo(exclusions,&label.);
+%end ;
 
 *NOT FOR QLIKVIEW;
 /*%stack_output_demo(provider,&label.);*/
@@ -467,7 +479,11 @@ run;
 *performance file (needs to be rerun outside of macro to incorporate PMR benchmark variables;
 data out.all_perf_demo;
 	set out.all_perf;
-	if BPID in ("&bpid1.-0000","&bpid2.-0000","&bpid3.-0000","&bpid4.-0000","&bpid5.-0000","&bpid6.-0000","&bpid7.-0000","&bpid10.-0002");
+	if BPID in ("&bpid1.-0000","&bpid2.-0000","&bpid3.-0000","&bpid4.-0000","&bpid5.-0000","&bpid6.-0000","&bpid7.-0000","&bpid8.-0002");
+
+%if &type.=base %then %do ;
+	if substr(EPI_ID_MILLIMAN,11,1)="B" ;
+%end ;
 
 	*20180610 Update - Overwrite BPID;
 	if BPID ="&bpid1.-0000" then BPID = "1111-0000";
@@ -477,9 +493,7 @@ data out.all_perf_demo;
 	else if BPID = "&bpid5.-0000" then BPID = "5555-0000";
 	else if BPID = "&bpid6.-0000" then BPID = "6666-0000";
 	else if BPID = "&bpid7.-0000" then BPID = "7777-0000";
-/*	else if BPID = "&bpid8.-0034" then BPID = "8888-0000";*/
-/*	else if BPID = "&bpid9.-0064" then BPID = "9999-0000";*/
-	else if BPID = "&bpid10.-0002" then BPID = "1010-0000";
+	else if BPID = "&bpid8.-0002" then BPID = "8888-0000";
 run;
 
 ******* EXPORT QVW_FILES *******;
@@ -491,8 +505,12 @@ run;
 %sas_2_csv(out.all_util_demo,utilization_demo.csv);
 %sas_2_csv(out.all_perf_demo,performance_demo.csv);
 %sas_2_csv(out.all_phys_summ_demo,phys_summary_demo.csv);
-%sas_2_csv(out.all_exclusions_demo,exclusions_demo.csv);
 %sas_2_csv(out.all_comp_demo,comp_demo.csv);
+
+*ONLY EXPORT FOR MAIN INTERFACE DEMO;
+%if &type.=main %then %do ;
+%sas_2_csv(out.all_exclusions_demo,exclusions_demo.csv);
+%end ;
 
 *NOT FOR QLIKVIEW;
 /*%sas_2_csv(out.all_provider_demo,provider_demo.csv);*/
@@ -727,7 +745,10 @@ run;
 /*%stacking(R:\data\HIPAA\BPCIA_BPCI Advanced\80 - Qlikview\Outfiles);*/
 
 *** DEMO RUN ***;
-%stackingdemo(R:\data\HIPAA\BPCIA_BPCI Advanced\80 - Qlikview\Outfiles,1148,1167,1343,1368,2379,2587,2607,5084,5084,5479);
+/*%stackingdemo(R:\data\HIPAA\BPCIA_BPCI Advanced\80 - Qlikview\Outfiles,1148,1167,1343,1368,2379,2587,2607,5479);*/
+*** BASELINE DEMO RUN ***;
+%stackingdemo(R:\data\HIPAA\BPCIA_BPCI Advanced\80 - Qlikview\Outfiles\Baseline Demo,1148,1167,1343,1368,2379,2587,2607,5479);
+
 
 *** DEVELOPMENT RUN ***;
 /*%stacking(R:\data\HIPAA\BPCIA_BPCI Advanced\80 - Qlikview\Outfiles\Development);*/
