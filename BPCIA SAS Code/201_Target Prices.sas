@@ -47,8 +47,12 @@ data Peer_Group_pre Peer_Group_pre_baseline;
 	if epi_dropped_flag = 1 then output Peer_Group_pre_baseline;
 run; 
 
+proc sort data=Peer_Group_pre;
+	by ccn_join descending rel_dt descending epi_start descending epi_end;
+run;
+
 proc sort nodupkey data=Peer_Group_pre out=Peer_Group;
-	by ccn_join epi_start epi_end;
+	by ccn_join rel_dt epi_start epi_end;
 run;
 
 proc sort nodupkey data=Peer_Group_pre out=Peer_Group_forBase;
@@ -56,7 +60,7 @@ proc sort nodupkey data=Peer_Group_pre out=Peer_Group_forBase;
 run;
 
 proc sort nodupkey data=Peer_Group_pre_baseline out=Peer_Group_baseline;
-	by ccn_join epi_start epi_end;
+	by ccn_join rel_dt epi_start epi_end;
 run;
 
 data PAT_Factors;
@@ -148,6 +152,7 @@ data temp0;
 	else if ANCHOR_TYPE = 'op' then anchor_type_upper = 'OP';
 	else anchor_type_upper = ANCHOR_TYPE;
 
+	drop EPI_DROPPED_FLAG;
 run;
 
 proc sql;
@@ -1706,8 +1711,10 @@ data out.tp_&label._&bpid1._&bpid2.;
 run;
 
 data out2.tp_&label._&bpid1._&bpid2.;
-	set out.tp_&label._&bpid1._&bpid2. (rename=(/*DRG_2019=DRG_2018*/ ORIGDS=ORIGDS_orig LTI=LTI_orig FRACTURE_FLAG=FRACTURE_FLAG_orig ANY_DUAL=ANY_DUAL_orig TKA_FLAG=TKA_FLAG_orig PRIOR_HOSP_W_ANY_IP_FLAG_90=PRIOR_HOSP_W_ANY_IP_FLAG_90_orig));
-	format ORIGDS LTI FRACTURE_FLAG ANY_DUAL TKA_FLAG PRIOR_HOSP_W_ANY_IP_FLAG_90 $3. ;
+	set out.tp_&label._&bpid1._&bpid2. (rename=(ORIGDS=ORIGDS_orig LTI=LTI_orig FRACTURE_FLAG=FRACTURE_FLAG_orig ANY_DUAL=ANY_DUAL_orig TKA_FLAG=TKA_FLAG_orig PRIOR_HOSP_W_ANY_IP_FLAG_90=PRIOR_HOSP_W_ANY_IP_FLAG_90_orig
+											HCC18=HCC18_orig HCC19=HCC19_orig HCC40=HCC40_orig HCC58=HCC58_orig HCC84=HCC84_orig HCC85=HCC85_orig HCC86=HCC86_orig HCC88=HCC88_orig HCC96=HCC96_orig HCC108=HCC108_orig HCC111=HCC111_orig));
+	format ORIGDS LTI FRACTURE_FLAG ANY_DUAL TKA_FLAG PRIOR_HOSP_W_ANY_IP_FLAG_90 
+			HCC_COUNT HCC18 HCC19 HCC40 HCC58 HCC84 HCC85 HCC86 HCC88 HCC96 HCC108 HCC111 $3. ;
 
 	if ORIGDS_orig=1 then ORIGDS='Yes'; else ORIGDS='No';
 	if LTI_orig=1 then LTI='Yes'; else LTI='No';
@@ -1716,11 +1723,30 @@ data out2.tp_&label._&bpid1._&bpid2.;
 	if TKA_FLAG_orig=1 then TKA_FLAG='Yes'; else TKA_FLAG='No';
 	if PRIOR_HOSP_W_ANY_IP_FLAG_90_orig=1 then PRIOR_HOSP_W_ANY_IP_FLAG_90='Yes'; else PRIOR_HOSP_W_ANY_IP_FLAG_90='No';
 
+	if HCC_CNT=0 then HCC_COUNT='0';
+	else if HCC_CNT<=3 then HCC_COUNT='1-3';
+	else if HCC_CNT<=6 then HCC_COUNT='4-6';
+	else if HCC_CNT>=7 then HCC_COUNT='7+';
+
+	if HCC18_orig=1 then HCC18='Yes'; else HCC18='No';
+	if HCC19_orig=1 then HCC19='Yes'; else HCC19='No';
+	if HCC40_orig=1 then HCC40='Yes'; else HCC40='No';
+	if HCC58_orig=1 then HCC58='Yes'; else HCC58='No';
+	if HCC84_orig=1 then HCC84='Yes'; else HCC84='No';
+	if HCC85_orig=1 then HCC85='Yes'; else HCC85='No';
+	if HCC86_orig=1 then HCC86='Yes'; else HCC86='No';
+	if HCC88_orig=1 then HCC88='Yes'; else HCC88='No';
+	if HCC96_orig=1 then HCC96='Yes'; else HCC96='No';
+	if HCC108_orig=1 then HCC108='Yes'; else HCC108='No';
+	if HCC111_orig=1 then HCC111='Yes'; else HCC111='No';
+
+
 	keep BPID EPI_ID_MILLIMAN EPISODE_ID EPISODE_INITIATOR EPISODE_GROUP_NAME ANCHOR_TYPE ANCHOR_CODE ANCHOR_CCN
 		 DRG_CODE PERF_APC ORIGDS LTI FRACTURE_FLAG ANY_DUAL TKA_FLAG TKA_FRACTURE_FLAG PRIOR_HOSP_W_ANY_IP_FLAG_90
 		 EPI_STD_PMT_FCTR_WIN_1_99_Real Adjusted_TP_Real Discount_Real PGP_Offset_Amt_Real PAT_Amt_Real 
 		 PAT PAT_Adj PCMA PCMA_Adj PGP_ACH_PCMA PGP_PCMA_Adj CASE_MIX PGP_ACH_Ratio PGP_Offset PGP_Offset_Adj PAYMENT_RATIO 
 		 HAS_TP PERFORMANCE_PERIOD
+		 HCC_COUNT HCC18 HCC19 HCC40 HCC58 HCC84 HCC85 HCC86 HCC88 HCC96 HCC108 HCC111
 		;
 run;
 
@@ -1774,7 +1800,6 @@ run;
 %runhosp(2586_0001,2586_0001,2586,0005,360082);
 %runhosp(2586_0001,2586_0001,2586,0006,360077);
 %runhosp(2586_0001,2586_0001,2586,0007,360230);
-%runhosp(1032_0000,1032_0000,1032,0000,260886056);
 %runhosp(1075_0000,1075_0000,1075,0000,360133);
 %runhosp(2586_0001,2586_0001,2586,0009,360087);
 %runhosp(2586_0001,2586_0001,2586,0010,360143);
@@ -1842,7 +1867,6 @@ run;
 %runhosp(5424_0001,6057_0001,6057,0002,330221);
 %runhosp(5424_0001,6058_0001,6058,0002,330233);
 %runhosp(5424_0001,6059_0001,6059,0002,330397);
-%runhosp(1252_0000,1252_0000,1252,0000,340002);
 %runhosp(1907_0000,5746_0001,5746,0002,100007);
 
 
@@ -1856,7 +1880,9 @@ data All_Target_Prices;
 		 DRG_CODE PERF_APC ORIGDS LTI FRACTURE_FLAG ANY_DUAL TKA_FLAG TKA_FRACTURE_FLAG PRIOR_HOSP_W_ANY_IP_FLAG_90
 		 EPI_STD_PMT_FCTR_WIN_1_99_Real Adjusted_TP_Real Discount_Real PGP_Offset_Amt_Real PAT_Amt_Real 
 		 PAT PAT_Adj PCMA PCMA_Adj PGP_ACH_PCMA PGP_PCMA_Adj CASE_MIX PGP_ACH_Ratio PGP_Offset PGP_Offset_Adj PAYMENT_RATIO 
-		 HAS_TP PERFORMANCE_PERIOD ;
+		 HAS_TP PERFORMANCE_PERIOD 
+		 HCC_COUNT HCC18 HCC19 HCC40 HCC58 HCC84 HCC85 HCC86 HCC88 HCC96 HCC108 HCC111
+		 ;
 	set out2.tp_: ;
 	if EPISODE_GROUP_NAME = "Disorders Of Liver Except Malignancy, Cirrhosis Or Alcoholic Hepatitis" then 
 		EPISODE_GROUP_NAME = "Disorders of liver except malignancy, cirrhosis or alcoholic hepatitis";

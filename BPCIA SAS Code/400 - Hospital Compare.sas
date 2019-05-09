@@ -94,16 +94,4 @@ PROC IMPORT
 		 GETNAMES= YES;
 RUN;
 
-/* Importing The Internal BPCIA Data Tracker to get a dataset with CCN, BPID and Clicical Episodes
-Ingoring Cleveland Clinic and where Baseline is not equal to missing */
-proc import DATAFILE="&Episodes.\INTERNAL BPCIA Data Tracker.xlsx" 
-		OUT=BPCIA_Clinical_Episodes
-		dbms=xlsx replace;
-		getnames=yes;
-		range='Clincial_Episodes';
-run;
 
-data bpcia.BPCIA_Clinical_Episodes ; 
-		set BPCIA_Clinical_Episodes ; 
-		where Client ^= 'Cleveland Clinic'  and __ETA_for_Baseline_Upload ^= . ;
-run ;
