@@ -1,6 +1,3 @@
-*this is a test change;
-*made the change Jared told me to;
-
 ******** Send Email when SAS is complete ********;
 *Enabling the SMTP e-mail interface;
 options emailsys = SMTP;
@@ -23,7 +20,9 @@ Code to create tables for dashboard
 ******************************************************************************
 RUN THIS PROGRAM IN ITS OWN SAS SESSION TO PREVENT ANY DATA ROLLUP ISSUES
 ******************************************************************************
-
+*****************
+SET UP
+*****************;
 
 ****** USER INPUTS ******************************************************************************************;
 * TURN ON FOR BASELINE / TURN OFF FOR PERFORMANCE *****;
