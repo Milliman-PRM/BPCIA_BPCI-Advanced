@@ -123,8 +123,7 @@ proc sql;
 quit;
 
 data benchmarks_base;
-	set out.baseline_final_benchmark;
-	where fracture = "N/A";
+	set out.baseline_benchmark_:;
 run;
 
 proc sql;
@@ -133,9 +132,9 @@ proc sql;
 			b.*
 	from p1 as a
 	left join benchmarks_base as b
-	on a.Anchor_code = b.drg
-	and timeframe_id = b._id 
-	and client_type = 1
+	on  a.BPID=b.BPID
+	and a.Anchor_code = b.Anchor_code
+	and a.timeframe_id = b.timeframe_id 
 	order by epi_id_milliman, timeframe
 ;
 quit;
