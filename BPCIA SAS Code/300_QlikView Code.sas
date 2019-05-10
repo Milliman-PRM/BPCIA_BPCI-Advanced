@@ -6,6 +6,7 @@ options emailhost = smtp.milliman.com;
 * Add to and from email addresses;
 %let to_email = sumudu.dehipawala@milliman.com;
 %let from_email = sumudu.dehipawala@milliman.com;
+%let from_email = jocelyn.lau@milliman.com;
 
 %let _sdtm=%sysfunc(datetime());
 options minoperator mprint nospool;
@@ -26,17 +27,20 @@ SET UP
 
 ****** USER INPUTS ******************************************************************************************;
 * TURN ON FOR BASELINE / TURN OFF FOR PERFORMANCE *****;
-/*%let label = ybase; *Update with change in period;*/
-/*%let prevlabel = ybase;*/
-/*%let reporting_period=201806;*Change for every Update*; */
+%let label = ybase; *Update with change in period;
+%let prevlabel = ybase;
+%let reporting_period=201806;*Change for every Update*; 
 
 * TURN ON FOR PERFORMANCE / TURN OFF FOR BASELINE *****;
-%let label = y201903; *Update with change in period;
-%let prevlabel = y201902; *Update with the prior period;
-%let reporting_period=201903;*Change for every Update*; 
+/*%let label = y201903; *Update with change in period;*/
+/*%let prevlabel = y201902; *Update with the prior period;*/
+/*%let reporting_period=201903;*Change for every Update*; */
 
 * UPDATE WITH EVERY PERF UPDATE *****;
 %let transmit_date = '12APR2019'd;*Change for every Update*; 
+
+* MAIN VS BASELINE INTERFACE *****;
+%let type = base; *main=main interface, base = baseline interface;
 
 proc printto;run;
 %let mode=FULL; *DEV or FULL;
@@ -57,21 +61,14 @@ proc printto;run;
 libname in "&dataDir.\06 - Imported Raw Data\";
 
 %macro modesetup;
-/*%if &label = ybase %then %do;*/
-/*libname in "&dataDir.\06 - Imported Raw Data\";*/
-/*%end;*/
-/*%else %do;*/
-/*libname in "&dataDir.\06 - Imported Raw Data\Performance";*/
-/*%end;*/
-
-%if &mode.=DEV %then %do;
-libname out "&dataDir.\07 - Processed Data\Testing";
-proc printto log="H:\BPCIA_BPCI Advanced\50 - BPCI Advanced Ongoing Reporting - 2019\Work Papers\SAS\logs\300 - DEV Qlikview Code_&label._&sysdate..log";
-run;
-%end;
-%else %do;
+%if &type.=main %then %do;
 libname out "&dataDir.\07 - Processed Data\";
 proc printto log="H:\BPCIA_BPCI Advanced\50 - BPCI Advanced Ongoing Reporting - 2019\Work Papers\SAS\logs\300 - Qlikview Code_&label._&sysdate..log";
+run;
+%end;
+%else %if &type.=base %then %do;
+libname out "&dataDir.\07 - Processed Data\Baseline Interface Demo";
+proc printto log="H:\BPCIA_BPCI Advanced\50 - BPCI Advanced Ongoing Reporting - 2019\Work Papers\SAS\logs\300 - Baseline Qlikview Code_&label._&sysdate..log";
 run;
 %end;
 %mend modesetup;
@@ -3753,6 +3750,7 @@ create table episode_detail_12 as
 			,b.excess_op_ed_days
 			,b.excess_obs_days
 			,b.total_excess_days
+		%if &type. = main %then %do;
 			,case when perf_period_epi_flag=. then '-'
 			when clinical_episode_abbr2 not in('AMI') then '-'
 			when b.total_excess_days >0 then "Yes"
@@ -3761,6 +3759,15 @@ create table episode_detail_12 as
 			,case when perf_period_epi_flag=. then'-'
 			when clinical_episode_abbr2 not in('MJRLE','DJRLE') then '-'
 				else complication_status end as complication_status2
+		%end;
+		%else %if &type.=base %then %do;
+			,case when clinical_episode_abbr2 not in('AMI') then '-'
+			when b.total_excess_days >0 then "Yes"
+			when b.total_excess_days =0 then "No" else "N/A"
+			end as excess_days_status2
+			,case when clinical_episode_abbr2 not in('MJRLE','DJRLE') then '-'
+				else complication_status end as complication_status2
+		%end;
 		from episode_detail_12 as a
 			left join all_cause_days as b
 			on a.epi_id_milliman = b.epi_id_milliman
@@ -3777,10 +3784,17 @@ create table episode_detail_12 as
 
 		create table episode_detail_14 as
 		select distinct a.*
+		%if &type.=main %then %do;
 			,case when perf_period_epi_flag=. then "-"
 				when b.unplanned_readmit_flag>0 then "Yes"
 				when b.unplanned_readmit_flag=0 then "No"
 				else "N/A" end as unplanned_readmit_status
+		%end;
+		%else %if &type.=base %then %do;
+			,case when b.unplanned_readmit_flag>0 then "Yes"
+				when b.unplanned_readmit_flag=0 then "No"
+				else "N/A" end as unplanned_readmit_status
+		%end;
 		from episode_detail_13 as a
 			left join epi_level_readm_flag as b
 			on a.epi_id_milliman = b.epi_id_milliman
@@ -3792,13 +3806,23 @@ proc sql;
 	create table out.pat_detail_&label._&bpid1._&bpid2. as
 		select distinct a.*
 						,b.perf_period_epi_flag
+						%if &type.=main %then %do;
 						,case when b.perf_period_epi_flag=. then 0
-						else a.readm_cand end as readm_cand2
+							else a.readm_cand end as readm_cand2
 						,case when b.perf_period_epi_flag^=. and a.readm_cand=1 and b.unplanned_readmit_status='Yes' and
-						((caretype_long='Anchor Hospital Stay' and msdrg^='') or caretype_long='Readmit') then 1
-						else 0 end as elig_readm_cand_with_unplanned
+							((caretype_long='Anchor Hospital Stay' and msdrg^='') or caretype_long='Readmit') then 1
+							else 0 end as elig_readm_cand_with_unplanned
 						,case when b.perf_period_epi_flag^=. and a.edac_flag='Yes' and excess_days_status2='Yes' then 1
-						else 0 end as elig_edac_cand_with_edac
+							else 0 end as elig_edac_cand_with_edac
+						%end;
+						%else %if &type.=base %then %do;
+						,a.readm_cand as readm_cand2
+						,case when a.readm_cand=1 and b.unplanned_readmit_status='Yes' and
+							((caretype_long='Anchor Hospital Stay' and msdrg^='') or caretype_long='Readmit') then 1
+							else 0 end as elig_readm_cand_with_unplanned
+						,case when a.edac_flag='Yes' and excess_days_status2='Yes' then 1
+							else 0 end as elig_edac_cand_with_edac
+						%end;
 		from out.pat_detail_&label._&bpid1._&bpid2. as a
 		left join episode_detail_14 as b
 		on a.epi_id_milliman = b.epi_id_milliman
@@ -4170,9 +4194,6 @@ quit;
 /*%Dashboard(2607,0000,0);*/
 /*%Dashboard(5038,0000,0);*/
 /*%Dashboard(5050,0000,0);*/
-%Dashboard(5084,0034,0);
-%Dashboard(5084,0042,0);
-%Dashboard(5084,0064,0);
 /*%Dashboard(2587,0000,0);*/
 /*%Dashboard(2589,0000,0);*/
 /*%Dashboard(5154,0000,0);*/
@@ -4245,16 +4266,14 @@ quit;
 
 
 *DEMO ONLY;
-/*%Dashboard(1148,0000,0);*/
-/*%Dashboard(1167,0000,0);*/
-/*%Dashboard(1343,0000,0);*/
-/*%Dashboard(1368,0000,0);*/
-/*%Dashboard(2379,0000,0);*/
-/*%Dashboard(2587,0000,0);*/
-/*%Dashboard(2607,0000,0);*/
-/*%Dashboard(5084,0034,0);*/
-/*%Dashboard(5084,0064,0);*/
-/*%Dashboard(5479,0002,0);*/
+%Dashboard(1148,0000,0);
+%Dashboard(1167,0000,0);
+%Dashboard(1343,0000,0);
+%Dashboard(1368,0000,0);
+%Dashboard(2379,0000,0);
+%Dashboard(2587,0000,0);
+%Dashboard(2607,0000,0);
+%Dashboard(5479,0002,0);
 
 *DEV RUN;
 /*%Dashboard(1032,0000,0);*/
