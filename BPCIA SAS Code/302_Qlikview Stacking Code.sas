@@ -123,7 +123,7 @@ proc sql;
 quit;
 
 data benchmarks_base;
-	set out.baseline_final_benchmark;
+	set out.baseline_benchmark_:;
 run;
 
 proc sql;
@@ -132,9 +132,9 @@ proc sql;
 			b.*
 	from p1 as a
 	left join benchmarks_base as b
-	on a.Anchor_code = b.Anchor_code
-	and a.timeframe = b.timeframe
-	and a.BPID = b.BPID 
+	on  a.BPID=b.BPID
+	and a.Anchor_code = b.Anchor_code
+	and a.timeframe_id = b.timeframe_id 
 	order by epi_id_milliman, timeframe
 ;
 quit;
@@ -583,7 +583,7 @@ proc sql;
 quit;
 *** BASELINE BENCHMARKS ******;
 data benchmarks_base;
-	set out.baseline_final_benchmark;
+	set out.baseline_benchmark_:;
 run;
 
 proc sql;
