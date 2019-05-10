@@ -373,7 +373,7 @@ Step 3 - out tables, limit TP_Components to BPIDs in the Data Tracker, and expor
 /****************************************************************************************************************
 Step 4 - Create de-identified DEMO version
 ****************************************************************************************************************/
-%macro create_demo(bpid1,bpid2,bpid3,bpid4,bpid5,bpid6,bpid7,bpid8,bpid9,bpid10);
+%macro create_demo(bpid1,bpid2,bpid3,bpid4,bpid5,bpid6,bpid7,bpid8);
 
 * create format to mask CCN and TIN;
 proc format; value $masked_id
@@ -421,9 +421,7 @@ proc format; value $masked_bpid
 	'2379-0000'='5555-0000'
 	'2587-0000'='6666-0000'
 	'2607-0000'='7777-0000'
-	'5084-0034'='8888-0000'
-	'5084-0064'='9999-0000'
-	'5479-0002'='1010-0000'
+	'5479-0002'='8888-0000'
 	other='';
 run;
 
@@ -432,7 +430,7 @@ data Demo.TP_Components_demo;
 	set out.TP_Components_pmr (rename=(CCN_TIN=CCN_TIN_o ASSOC_ACH_CCN=ASSOC_ACH_CCN_o 
 									   INITIATOR_BPID=INITIATOR_BPID_o CONVENER_ID=CONVENER_ID_o
 									   EPI_INDEX=EPI_INDEX_o EPI_INDEX_2=EPI_INDEX_2_o));
-	if INITIATOR_BPID_o in ("&bpid1.","&bpid2.","&bpid3.","&bpid4.","&bpid5.","&bpid6.","&bpid7.","&bpid8.","&bpid9.","&bpid10.");
+	if INITIATOR_BPID_o in ("&bpid1.","&bpid2.","&bpid3.","&bpid4.","&bpid5.","&bpid6.","&bpid7.","&bpid8.");
 
 	INITIATOR_BPID = put(INITIATOR_BPID_o, $MASKED_BPID.); 
 	CONVENER_ID = TRANWRD(INITIATOR_BPID,"-","_");
@@ -457,6 +455,19 @@ proc export
 	replace;
 run;
 
+data Demo.TP_Components_Base_demo;
+	set Demo.TP_Components_demo;
+	if time_period='Baseline';
+run; 
+
+proc export
+	data=Demo.TP_Components_Base_demo
+	outfile="R:\data\HIPAA\BPCIA_BPCI Advanced\08 - Target Price Data\Demo\TP_Components_Base_DEMO.csv"
+	dbms=CSV 
+	replace;
+run;
+
 %mend create_demo;
 
-%create_demo(1148-0000,1167-0000,1343-0000,1368-0000,2379-0000,2587-0000,2607-0000,5084-0034,5084-0064,5479-0002);  
+%create_demo(1148-0000,1167-0000,1343-0000,1368-0000,2379-0000,2587-0000,2607-0000,5479-0002);  
+

@@ -153,7 +153,7 @@ quit ;
 %end; 
 
 	from Table_&type. as a
-	left join bpcia.BPCIA_Clinical_Episodes as b
+	left join bpcia.bpcia_episode_initiator_info as b
 	on a.BPID = b.BPCI_Advanced_ID_Number_2
 
 ;
@@ -288,7 +288,7 @@ data bpcia.Quality_Measure_latest_&name. ;
 %sas_2_csv(bpcia.Quality_Measure_latest_date,BPCIA_Quality_Measures_Latest_Date.csv) ; 
 
 
-%macro Quality_Measure_demo(bpid1,bpid2,bpid3,bpid4,bpid5,bpid6,bpid7,bpid8,bpid9,bpid10);
+%macro Quality_Measure_demo(bpid1,bpid2,bpid3,bpid4,bpid5);
 
 	data Quality_Measure_demo_0 ;
 	      set final_table_comp: (where = (Comp = '1' ) )
@@ -296,9 +296,9 @@ data bpcia.Quality_Measure_latest_&name. ;
 			   final_table_Mort: (where = (CABG = '1') )
 				final_table_Readmit: (where = (All = '1') )
 				final_table_PSI: (where = (PSI = '1') ) ;
+				BPID_CCN_Key = BPID||"_"||CCN ; 
 
-
-	 if BPID in ("&bpid1.-0000","&bpid2.-0000","&bpid3.-0000","&bpid4.-0000","&bpid5.-0000","&bpid6.-0000","&bpid7.-0000","&bpid8.-0034","&bpid9.-0064","&bpid10.-0002");
+	 if BPID in ("&bpid1.-0000","&bpid2.-0000","&bpid3.-0000","&bpid4.-0000","&bpid5.-0000");
 
 	*20180610 Update - Overwrite BPID;
 	if BPID ="&bpid1.-0000" then BPID = "1111-0000";
@@ -306,14 +306,6 @@ data bpcia.Quality_Measure_latest_&name. ;
 	else if BPID = "&bpid3.-0000" then BPID = "3333-0000";
 	else if BPID = "&bpid4.-0000" then BPID = "4444-0000";
 	else if BPID = "&bpid5.-0000" then BPID = "5555-0000";
-	else if BPID = "&bpid6.-0000" then BPID = "6666-0000";
-	else if BPID = "&bpid7.-0000" then BPID = "7777-0000";
-	else if BPID = "&bpid8.-0034" then BPID = "8888-0000";
-	else if BPID = "&bpid9.-0064" then BPID = "9999-0000";
-	else if BPID = "&bpid10.-0002" then BPID = "1010-0000";
-
-	BPID_CCN_Key = BPID||"_"||CCN ; 
-
 	run ;
 
 	proc sort data = Quality_Measure_demo_0 
@@ -326,7 +318,7 @@ data bpcia.Quality_Measure_latest_&name. ;
 
 %mend Quality_Measure_demo;
 
-%Quality_Measure_demo(1148,1167,1343,1368,2379,2587,2607,5084,5084,5479) ; 
+%Quality_Measure_demo(1032,1075,1125,1167,1148) ; 
 
 
   %macro Quality_Measure_latest_demo(name);
@@ -359,6 +351,6 @@ data bpcia.Quality_Measure_latest_&name. ;
 
 %mend Quality_Measure_latest;
 
-%Quality_Measure_latest_demo(demo) ; 
+%Quality_Measure_latest(Demo) ; 
  
 

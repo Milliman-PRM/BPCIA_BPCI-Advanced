@@ -14,11 +14,11 @@ options mprint;
 */
 
 ***** USER INPUTS ******************************************************************************************;
-*%let label = ybase; *Turn on for baseline data, turn off for quarterly data;
-%let label = y201903; *Turn off for baseline data, turn on for quarterly data;
+%let label = ybase; *Turn on for baseline data, turn off for quarterly data;
+*%let label = y201903; *Turn off for baseline data, turn on for quarterly data;
 
 
-%let vers = P; *B for baseline, P for Performance;
+%let vers = B; *B for baseline, P for Performance;
 
 
 *%let type = recon; *Turn on for recon;
@@ -124,6 +124,13 @@ data epi0_pre;
 	BPID = "&BPID1." || "-" || "&BPID2.";
 	ConvenerID = tranwrd("&id2.","_","-");
 	EPI_ID_MILLIMAN = BPID || "-&vers.-" || compress(EPISODE_ID);
+
+	if ANCHOR_TYPE = 'ip' then anchor_type_upper = 'IP';
+	else if ANCHOR_TYPE = 'op' then anchor_type_upper = 'OP';
+	else anchor_type_upper = ANCHOR_TYPE;
+
+	if EPISODE_GROUP_NAME = "Disorders Of Liver Except Malignancy, Cirrhosis Or Alcoholic Hepatitis" then
+		EPISODE_GROUP_NAME = "Disorders of liver except malignancy, cirrhosis or alcoholic hepatitis" ;
 run;
 
 proc sql;
@@ -159,7 +166,7 @@ data epi0 out.epiexc_&label._&bpid1._&bpid2. perf_epis0;
 			else ANCHOR_CODE = '0' || compress(DRG_2018);
 		end;
 
-		format FLAG_OVERLAP BEST12. MULT_ATTR_PROVS BEST12. MBI_ID $20. BENE_GENDER $6. BENE_BIRTH_DT MMDDYY10. BENE_DEATH_DT MMDDYY10. ;
+		format FLAG_OVERLAP BEST12. MULT_ATTR_PROVS BEST12. MBI_ID $20. BENE_GENDER $6. BENE_BIRTH_DT MMDDYY10. BENE_DEATH_DT MMDDYY10. CNT_ATTR_PGP BEST12. ;
 		FLAG_OVERLAP = .;
 		MULT_ATTR_PROVS = .;
 		MBI_ID = '.';
@@ -167,6 +174,8 @@ data epi0 out.epiexc_&label._&bpid1._&bpid2. perf_epis0;
 		BENE_BIRTH_DT = .;
 		BENE_DEATH_DT = .;
 		if POST_DSCH_END_DT <= (ANCHOR_END_DT + 89) and DEATH_DUR_POSTDSCHRG = 1 then BENE_DEATH_DT = POST_DSCH_END_DT;
+
+		CNT_ATTR_PGP = .;
 	%end;
 
 	format anc_ccn $6.;
@@ -184,8 +193,6 @@ data epi0 out.epiexc_&label._&bpid1._&bpid2. perf_epis0;
 	else if DROPFLAG_NON_PERF_EPI=1 then output perf_epis0;
 	else output epi0;
 run;
-
-proc sort data=epi0 ; by bene_sk ANCHOR_BEG_DT ANCHOR_TYPE ANCHOR_END_DT POST_DSCH_BEG_DT POST_DSCH_END_DT; run;
 
 %EXCLUSIONFILE;
 
@@ -208,7 +215,7 @@ run;
 %if &label. ^= ybase %then %do;
 	proc sql;
 		create table tempepi_prea2 as
-		select a.*, b.PAYMENT_RATIO as wage_index 
+		select a.*, b.TARGET_PRICE_REAL, b.TARGET_PRICE 
 		from tempepi_prea as a left join TP_Components as b
 			on a.BPID = b.INITIATOR_BPID
 			and a.EPISODE_GROUP_NAME = b.EPI_CAT
@@ -220,7 +227,7 @@ run;
 %else %do;
 	proc sql;
 		create table tempepi_prea2 as
-		select a.*, b.PAYMENT_RATIO as wage_index
+		select a.*, b.TARGET_PRICE_REAL, b.TARGET_PRICE 
 		from tempepi_prea as a left join TP_Components_forBase as b
 			on a.BPID = b.INITIATOR_BPID
 			and a.EPISODE_GROUP_NAME = b.EPI_CAT
@@ -231,7 +238,7 @@ run;
 
 proc sql;
 	create table tempepi_preb2 as
-	select a.*, b.PAYMENT_RATIO as wage_index
+	select a.*, b.TARGET_PRICE_REAL, b.TARGET_PRICE 
 	from tempepi_preb as a left join TP_Components as b
 		on a.BPID = b.INITIATOR_BPID
 		and a.EPISODE_GROUP_NAME = b.EPI_CAT
@@ -239,14 +246,12 @@ proc sql;
 		and a.anc_ccn = b.ccn_join;
 quit;
 
-data epi;
+data epi_pre;
 	set tempepi_prea2 tempepi_preb2;
-	if wage_index = . then wage_index=1;
+	format wage_index 8.4;
+	wage_index = TARGET_PRICE_REAL / TARGET_PRICE ;
+	if wage_index = . then wage_index = 1;
 	proc sort; by EPI_ID_MILLIMAN;
-run;
-
-data epi_&label._&bpid1._&bpid2.;
-	set epi;
 run;
 
 
@@ -295,7 +300,7 @@ run;
 
 *** capturing admissions only for analyzed CCN by merging with screened episode file *** ;
 data ip2 noipccn;
-	merge ip1(in=a) epi(in=b) ; by EPI_ID_MILLIMAN ;
+	merge ip1(in=a) epi_pre(in=b) ; by EPI_ID_MILLIMAN ;
 	if a and b=0 then output noipccn ;
 	if a and b;
 	
@@ -394,7 +399,7 @@ data ip_&label._&bpid1._&bpid2. out.FrChk_&label._&bpid1._&bpid2. readexc_&label
 	%end;
 	if std_allowed <= 0 then delete;
 
-	std_allowed_wage = std_allowed*(.7*wage_index  + .3);
+	std_allowed_wage = std_allowed*wage_index;
 
 	if Exclude ='1' then output readexc_&label._&bpid1._&bpid2.;
 	else output ip_&label._&bpid1._&bpid2.;
@@ -471,7 +476,7 @@ data snf3 ;
 	%end;
 	if std_allowed <= 0 then delete;
 
-	std_allowed_wage = std_allowed*(.7*wage_index  + .3);
+	std_allowed_wage = std_allowed*wage_index;
 
 	proc sort; by costgrp type EPI_ID_MILLIMAN admsn_dt dos provider;
 run;
@@ -504,6 +509,10 @@ data out.snf_&label._&bpid1._&bpid2. ;
 	else if dos - ANCHOR_END_DT le 30 then timeframe = 1 ;
 	else if dos - ANCHOR_END_DT le 60 then timeframe = 2 ;
 	else if dos - ANCHOR_END_DT le 90 then timeframe = 3 ;
+
+	else if FROM_DT - ANCHOR_END_DT le 30 then timeframe = 1 ;
+	else if FROM_DT - ANCHOR_END_DT le 60 then timeframe = 2 ;
+	else if FROM_DT - ANCHOR_END_DT le 90 then timeframe = 3 ;
 
 	if dschrgdt=. then util_day = max(1,thru_dt-admsn_dt);
 	else util_day = max(1,dschrgdt-admsn_dt);
@@ -618,7 +627,7 @@ data out.hha_&label._&bpid1._&bpid2. nohhaccn;
 	%end;
 	if std_allowed <= 0 then delete;
 
-	std_allowed_wage = std_allowed*(.7*wage_index  + .3);
+	std_allowed_wage = std_allowed*wage_index;
 
 	output out.hha_&label._&bpid1._&bpid2.;
 run;
@@ -706,7 +715,7 @@ data 	op_pre_&label._&bpid1._&bpid2.
 	%end;
 	if std_allowed <= 0 then delete;
 
-	std_allowed_wage = std_allowed*(.7*wage_index  + .3);
+	std_allowed_wage = std_allowed*wage_index;
 
 	if RSTUSIND in ('H') then output partbexc1_&label._&bpid1._&bpid2.;
 	else output op_pre_&label._&bpid1._&bpid2.;
@@ -799,7 +808,7 @@ data out.pb_&label._&bpid1._&bpid2.
 	%end;
 	if std_allowed <= 0 then delete;
 
-	std_allowed_wage = std_allowed*(.7*wage_index  + .3);
+	std_allowed_wage = std_allowed*wage_index;
 
 	*if dos = ANCHOR_END_DT and PLCSRVC ^= 21 then output partbexc2_&label._&bpid1._&bpid2.;
 	*if dos lt ANCHOR_BEG_DT then output partbdt2_&label._&bpid1._&bpid2. ; 
@@ -871,7 +880,7 @@ data out.dme_&label._&bpid1._&bpid2.
 	%end;
 	if std_allowed <= 0 then delete;
 
-	std_allowed_wage = std_allowed*(.7*wage_index  + .3);
+	std_allowed_wage = std_allowed*wage_index;
 
 	output out.dme_&label._&bpid1._&bpid2.;
 run;
@@ -950,7 +959,7 @@ data out.hs_&label._&bpid1._&bpid2. hsexcl_&label._&bpid1._&bpid2. ;
 	%end;
 	if std_allowed <= 0 then delete;
 
-	std_allowed_wage = std_allowed*(.7*wage_index  + .3);
+	std_allowed_wage = std_allowed*wage_index;
 
 	format bill_type $2.;
 	bill_type = fac_type || typesrvc;
@@ -1566,6 +1575,7 @@ run;
 quit;
 
 %mend;
+
 
 /*
 %runhosp(1148_0000,1148_0000,1148,0000,310008);

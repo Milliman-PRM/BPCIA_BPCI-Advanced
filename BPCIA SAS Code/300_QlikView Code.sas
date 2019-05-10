@@ -31,12 +31,12 @@ SET UP
 /*%let reporting_period=201806;*Change for every Update*; */
 
 * TURN ON FOR PERFORMANCE / TURN OFF FOR BASELINE *****;
-%let label = y201902; *Update with change in period;
-%let prevlabel = y201901; *Update with the prior period;
-%let reporting_period=201902;*Change for every Update*; 
+%let label = y201903; *Update with change in period;
+%let prevlabel = y201902; *Update with the prior period;
+%let reporting_period=201903;*Change for every Update*; 
 
 * UPDATE WITH EVERY PERF UPDATE *****;
-%let transmit_date = '15MAR2019'd;*Change for every Update*; 
+%let transmit_date = '12APR2019'd;*Change for every Update*; 
 
 proc printto;run;
 %let mode=FULL; *DEV or FULL;
@@ -1175,6 +1175,7 @@ create table Episode_Detail_7 as
 			else propcase(STRIP(b.BENE_SRNM_NAME)||", "||STRIP(b.BENE_GVN_NAME)) 
 			end as PATIENT_NAME format = $255. length=255
 			%end;
+			,b.CNT_ATTR_PGP
 			from episode_detail_7 as a 
 			left join out.epi_&label._&bpid1._&bpid2. as b
 			on a.epi_id_milliman = b.epi_id_milliman
@@ -1533,7 +1534,7 @@ create table ccn_enc10 as
 					when type in ('OP_Ambulance','OP_Other','OP_PartBRx','OP_PartBRx-Chemotherapy','OP_Pathology'
 								 ,'OP_Radiology-CT','OP_Radiology-Gen','OP_Radiology-MRI','OP_Radiology-PET'
 								 ,'OP_Surgery-ASC','OP_Surgery-OP') then 'Outpatient'
-					end as CareType
+					end as CareType length =50
 			  ,case when type in ('OP_ER') and a.at_npi = . and b.Provider_Last_Name__Legal_Name_ = "" then "Unknown ()"
 			   	  when type in ('OP_ER') and a.at_npi ^= . and b.Provider_Last_Name__Legal_Name_ = ""  and Provider_Organization_Name__Leg ^="" then strip(propcase(Provider_Organization_Name__Leg))||" ("||strip(put(a.at_npi,best12.))||")"
 			      when type in ('OP_ER') and a.at_npi ^= . and b.Provider_Last_Name__Legal_Name_ = ""  then "Unknown"||" ("||strip(put(a.at_npi,best12.))||")" 
@@ -1545,7 +1546,38 @@ create table ccn_enc10 as
 ;
 quit ; 
 
+*20190422 SD Update : Identify stand-alone ER visits;
+*Output file that just includes the ER visits with overlapping IP admissions;
+proc sql;
+create table ccn_enc_ER as
+			select distinct a.*
+					,1 as IP_visit_flag
+			from ccn_enc10 as a
+			left join ccn_enc10 as b
+			on a.epi_id_milliman = b.epi_id_milliman and (a.startdate = b.startdate or sum(a.startdate,1) = b.startdate)
+			where a.caretype = "Emergency" and b.type in ("IP_d","IP_s","IP_Idx")
+ ; 
 
+ *Merge flags for overlapping admissions to original dataset;
+create table ccn_enc10a as
+		  select distinct 
+				 a.*
+				,b.IP_visit_flag
+		    from ccn_enc10 as a
+			left join ccn_enc_ER as b
+			on a.epi_id_milliman = b.epi_id_milliman and a.startdate = b.startdate and a.caretype = b.caretype
+   ;
+
+quit; 
+
+*Change ER visits to ER - stand alone or ER - preceding admit based on overlap with inpatient admissions on the same day;
+data ccn_enc10b;
+set ccn_enc10a;
+	if caretype = "Emergency" then do;
+    	if IP_visit_flag = 1 then caretype = "Emergency - Preceding Admit";
+		 else caretype = "Emergency - Stand Alone";
+	end;
+run;
 
 /*********************************************************************************************/
 /*Make Complications detail*/
@@ -1555,7 +1587,7 @@ proc sql;
 	create table ccn_enc11 as 
 		select a.*
 			,b.cc_denom as cc_elig
-			from ccn_enc10 as a
+			from ccn_enc10b as a
 			left join out.Cc_sum_&label._&bpid1._&bpid2. as b
 			on a.EPI_ID_MILLIMAN = b.EPI_ID_MILLIMAN
 			;
@@ -1868,7 +1900,7 @@ quit ;
 
 
 proc sql;
-create table out.provider_&label._&bpid1._&bpid2. as	
+create table npi_level3 as	
 		select a.*
 			,case when a.hcpcs_cd = "" then "" 
 			 else lowcase(b.proc_desc) 
@@ -1893,7 +1925,40 @@ create table out.provider_&label._&bpid1._&bpid2. as
 		on strip(a.provider_npi)=strip(c.provider_npi)
 		and a.EncounterID = c.EncounterID
 ;
-quit;
+
+
+*20190422 SD Update : Identify stand-alone ER visits;
+*Output file that just includes the ER visits with overlapping IP admissions;
+
+create table npi_level_ER_0 as
+			select distinct a.*
+					,1 as IP_visit_flag
+			from npi_level3 as a
+			left join ccn_enc11 as b
+			on a.epi_id_milliman = b.epi_id_milliman and (a.service_date = b.startdate or sum(a.service_date,1) = b.startdate)
+			where a.type = "Prof_ER" and b.type in ("IP_d","IP_s","IP_Idx")
+ ; 
+
+ *Merge flags for overlapping admissions to original dataset;
+create table npi_level4 as
+		  select distinct 
+				 a.*
+				,b.IP_visit_flag
+		    from npi_level3 as a
+			left join npi_level_ER_0 as b
+			on a.epi_id_milliman = b.epi_id_milliman and a.service_date = b.service_date and a.type = b.type
+   ;
+
+quit; 
+
+*Change ER visits to ER - stand alone or ER - preceding admit based on overlap with inpatient admissions on the same day;
+data out.provider_&label._&bpid1._&bpid2.;
+set npi_level4;
+	if type = "Prof_ER" then do;
+    	if IP_visit_flag = 1 then type = "Prof_ER_P";
+		 else type = "Prof_ER_S";
+	end;
+run;
 
 
 /*********************************************************************************************/
@@ -2347,15 +2412,80 @@ if type in ('Other Readmit','Anchor Readmit') then output;
 
 run;
 
+*20190422 - SD Update: Adding emergency Information;
+data ccn_enc_er_claims ; 
+set ccn_enc11  ;
+where substr(caretype,1,9) = "Emergency" ; 
+run ; 
+
+proc sort data= ccn_enc_er_claims nodupkey;
+	by  epi_id_milliman startdate enddate;
+run;  
+
+data prov_er_claims ; 
+set out.provider_&label._&bpid1._&bpid2.;
+where substr(type,1,7) = "Prof_ER" ; 
+run ; 
+
+proc sort data= prov_er_claims nodupkey;
+	by  epi_id_milliman service_date;
+run;  
+
+proc sql ; 
+create table readmit_source1 as
+			select distinct a.*
+					 ,b.startdate as er_admsn_dt
+					 ,b.enddate as er_dschrgdt
+					 ,b.CCN_Name_Desc
+					 ,b.caretype as er_type
+					 ,c.service_date as prov_service_date
+					 ,c.Physician as prov_Provider
+					 ,c.type as prov_type
+			from readmit_source as a
+			left join ccn_enc_er_claims as b
+			on a.epi_id_milliman = b.epi_id_milliman and  (a.admsn_dt = b.enddate or a.admsn_dt = sum(b.enddate,1) )
+			left join prov_er_claims as c
+			on a.epi_id_milliman = c.epi_id_milliman and  (a.admsn_dt = c.service_date or a.admsn_dt = sum(c.service_date,1))
+;
+quit ; 
+
+data readmit_source2 ;
+set readmit_source1 ;
+if readmit_source_type not in ( 'SNF', 'IRF', 'LTCH') then do ;
+		if er_type ^= '' then do;
+			readmit_days = intck('day',er_dschrgdt,admsn_dt);
+			readmit_source = CCN_Name_Desc;
+			readmit_source_type = er_type;
+		end;
+		else if er_type = '' and prov_type ^= '' then do;
+			readmit_days = intck('day',prov_service_date,admsn_dt);
+			readmit_source = prov_Provider;
+			readmit_source_type = prov_type;
+		end;
+end ; 
+	run ; 
+
+*This sorting is done to remove duplicates in instances where there are mutliple ER providers on the same day.;
+
+proc sort data=readmit_source2 out=readmit_source3 ; 
+by epi_id_milliman type provider_ccn  admsn_dt dschrgdt std_allowed_wage er_admsn_dt er_dschrgdt er_type ;
+run ; 
+
+proc sort data=readmit_source3 out=readmit_source4 nodupkey ; 
+by epi_id_milliman type provider_ccn  admsn_dt dschrgdt std_allowed_wage ;
+run ;
+
+
 proc sql;
 create table ccn_enc12 as 
 	select a.*
 		  ,b.readmit_source as source_of_admit
 		  ,case when b.readmit_source_type = "Other Readmit" then "Other Facility" /* 20180126 Updated the naming */ 
 				when b.readmit_source_type = "Anchor Readmit" then "Anchor Facility"
-				else b.readmit_source_type end as source_of_admit_type
+				when b.readmit_source_type = "Prof_ER_P" then "Emergency - Preceding Admit"
+				else b.readmit_source_type end as source_of_admit_type length =50
 	from ccn_enc11 as a
-		left join readmit_source as b
+		left join readmit_source4 as b
 	on a.epi_id_milliman = b.epi_id_milliman
 	and a.startdate=admsn_dt
 	and a.enddate=dschrgdt
@@ -2883,7 +3013,7 @@ union all
 		,prim_diag_with_desc as primary_diag 
 		,prof_hcpcs_code_desc as primary_proc
 		,'' as msdrg
-		,case when (timeframe = 0 and type = 'Prof_ER') then -2 else timeframe end as timeframe
+		,case when (timeframe = 0 and type in ('Prof_ER_P','Prof_ER_S')) then -2 else timeframe end as timeframe
 		,timeframe2
 		,case when timeframe2 = 'Anchor' then 'Anchor' else 'Post-Acute' end as timeframe3
 		,std_allowed_wage
@@ -2956,7 +3086,7 @@ union all
 		,prim_diag_with_desc as primary_diag
 		,case when substr(caretype,1,3) in ('Eme','Out','Pro','Reh') then hcpcs_with_desc else prim_proc_with_desc end as primary_proc
 		,drg_with_desc as msdrg
-		,case when (timeframe = 0 and caretype = 'Emergency') then -2 else timeframe end as timeframe
+		,case when (timeframe = 0 and caretype in ('Emergency - Preceding Admit','Emergency - Stand Alone')) then -2 else timeframe end as timeframe
 /*		,a.timeframe2 as timeframe*/
 		,a.timeframe2
 		,case when a.timeframe2 = 'Anchor' then 'Anchor' else 'Post-Acute' end as timeframe3
@@ -2994,7 +3124,7 @@ union all
 		,'' as provider_specialty
 		,case when TRANSFER_STAY=. then 0 else TRANSFER_STAY end as TRANSFER_STAY
 	from out.ccn_enc_&label._&bpid1._&bpid2. as a
-	where timeframe2 ^= 'Anchor' or (timeframe2 = 'Anchor' and caretype in ('Emergency','Rehab','Outpatient','Home Health','Hospice','LTCH','SNF','IRF'))
+	where timeframe2 ^= 'Anchor' or (timeframe2 = 'Anchor' and caretype in ('Emergency - Preceding Admit','Emergency - Stand Alone','Rehab','Outpatient','Home Health','Hospice','LTCH','SNF','IRF'))
 
 	order by BPID, epi_id_milliman, begin_date;
 
@@ -3018,11 +3148,15 @@ proc sql;
 /*	,EPI_ID*/
 	,b.*
 	,case when (b.timeframe = 0 and b.end_date <= a.anchor_end_dt and b.begin_date <= a.anchor_beg_dt  and b.end_date^=. ) then -3 else b.timeframe end as timeframe
+	,case when timeframe ^= 0 and Caretype = 'Outpatient'  then 0/*Create a Rank variable to rank Outpatient before  and Prof emergency Claims before Readmit claims if they occur on the same day*/
+			when timeframe ^= 0 and substr(Caretype,1,7) = 'Prof_ER' or substr(Caretype,1,2) = 'Em'  then 1 
+		 	when Caretype = 'Readmit' then 2
+			else 3 end as rank3
 	from out.epi_detail_&label._&bpid1._&bpid2. as a
 	,patient_detail1 as b
 	where a.epi_id_milliman = b.epi_id_milliman
 	and a.BPID = b.BPID
-	order by BPID, epi_id_milliman, timeframe, transfer_stay, begin_date, end_date desc;
+	order by BPID, epi_id_milliman, timeframe, transfer_stay, begin_date, rank3, end_date desc;
 quit;
 
 
@@ -3064,14 +3198,16 @@ data patient_detail3 (drop=counter);
 	else if substr(caretype,1,9)='Prof_Path' then caretype_long= 'Professional - Pathology';
 	else if substr(caretype,1,7)='Prof_Am' then caretype_long= 'Professional - Ambulance';
 	else if substr(caretype,1,7)='Prof_Re' then caretype_long= 'Professional - Rehab';
-	else if substr(caretype,1,7)='Prof_ER' then caretype_long= 'Professional - Emergency';
+	else if substr(caretype,1,9)='Prof_ER_P' then caretype_long= 'Professional - Emergency Preceding Admit';
+	else if substr(caretype,1,9)='Prof_ER_S' then caretype_long= 'Professional - Emergency Stand Alone';
 	else if substr(caretype,1,9)='Prof_Part' then caretype_long= 'Part B Pharmacy';
 	else if substr(caretype,1,4)='Radi' then caretype_long= 'Radiology';
 	else if substr(caretype,1,5)='Rehab' then caretype_long= 'Outpatient - Rehab';
 	else if substr(caretype,1,4)='Anch' then caretype_long= 'Anchor Hospital Stay';
 	else if substr(caretype,1,2)='OP' then caretype_long= 'Outpatient';
 	else if substr(caretype,1,3)='DME' then caretype_long= 'DME';
-	else if substr(caretype,1,2)='Em' then caretype_long= 'Emergency';
+	else if substr(caretype,1,13)='Emergency - P' then caretype_long= 'Emergency - Preceding Admit';
+	else if substr(caretype,1,13)='Emergency - S' then caretype_long= 'Emergency - Stand Alone';
 	else caretype_long=caretype;
 	/*20180625 MK Addition*/
 run;
@@ -3118,7 +3254,7 @@ proc sql;
 			,b.Coronary_artery_bypass_graft as CABG_Flag
 			,b.Acute_myocardial_infarction as AMI_Flag
 		from patient_detail4 as a left join 
-			bpciaref.BPCIA_Clinical_Episodes as b
+			bpciaref.bpcia_episode_initiator_info as b
 			on a.BPID = b.BPCI_Advanced_ID_Number_2
 ;
 quit;
@@ -3762,7 +3898,7 @@ proc sort data = epi_list2 nodupkey out=out.epi_idx_&label._&bpid1._&bpid2.; by 
 
 * Join the episode index to the episode file;
 proc sql;
-	create table out.epi_detail_&label._&bpid1._&bpid2. as
+	create table episode_detail_15 as
 	select a.*
 		,b.counter
 		,b.episode_index
@@ -3783,10 +3919,49 @@ quit;
 
 /*********************************************************************************************/
 /*********************************************************************************************/
+*20190422 SD: Adding Emergency claims from Provider and Facility Reports to get ER Utilization for the Episode Detail Report;
 
+* Isolating EPI_IDS within the provider table;
+proc sql ;
+create table er_prov as
+	select distinct
+	     epi_id_milliman
+		,'Yes' as Er_start_flag
+	from out.provider_&label._&bpid1._&bpid2. a
+	where substr(type,1,7)= 'Prof_ER'  and service_date ^= . 
+;
 
+*Isolating EPI_IDS within the Facility table;
+create table er_ccn as
+	select distinct
+	     epi_id_milliman
+		,'Yes' as Er_start_flag
+	from out.ccn_enc_&label._&bpid1._&bpid2. as a
+	where substr(caretype,1,2)= 'Em' and startdate ^= . 
+;
+quit;
 
+*Stacking and deduping Epi_ids;
+data Er_prov_ccn ;
+set er_prov er_ccn ; 
+run ;
 
+proc sort data = Er_prov_ccn nodupkey;
+by epi_id_milliman ; 
+run ; 
+
+proc sql ;
+	create table out.epi_detail_&label._&bpid1._&bpid2. as
+	select distinct a.*
+					, case when b.Er_start_flag ^= '' then 'Yes'
+						else 'No'
+						end as Er_Flag4
+	from 	episode_detail_15 as a
+				left join Er_prov_ccn as b
+				on a.epi_id_milliman = b.epi_id_milliman
+;
+
+quit;
 
 
 
@@ -3962,88 +4137,88 @@ run;
 *delete work datasets;
 proc datasets lib=work memtype=data kill;
 run;
-/*quit;*/
+quit;
 
 %mend dashboard;
 
 *MACRO RUNS;
 
 
-%Dashboard(1125,0000,0);
-%Dashboard(1148,0000,0);
-%Dashboard(1167,0000,0);
-%Dashboard(1209,0000,0);
-%Dashboard(1343,0000,0);
-%Dashboard(1368,0000,0);
-%Dashboard(1374,0004,0);
-%Dashboard(1374,0008,0);
-%Dashboard(1374,0009,0);
-%Dashboard(1686,0002,0);
-%Dashboard(1688,0002,0);
-%Dashboard(1696,0002,0);
-%Dashboard(1710,0002,0);
-%Dashboard(1958,0000,0);
-%Dashboard(2070,0000,0);
-%Dashboard(2374,0000,0);
-%Dashboard(2376,0000,0);
-%Dashboard(2378,0000,0);
-%Dashboard(2379,0000,0);
-%Dashboard(1075,0000,0);
-%Dashboard(2594,0000,0);
-%Dashboard(2048,0000,0);
-%Dashboard(2049,0000,0);
-%Dashboard(2607,0000,0);
-%Dashboard(5038,0000,0);
-%Dashboard(5050,0000,0);
+/*%Dashboard(1125,0000,0);*/
+/*%Dashboard(1148,0000,0);*/
+/*%Dashboard(1167,0000,0);*/
+/*%Dashboard(1209,0000,0);*/
+/*%Dashboard(1343,0000,0);*/
+/*%Dashboard(1368,0000,0);*/
+/*%Dashboard(1374,0004,0);*/
+/*%Dashboard(1374,0008,0);*/
+/*%Dashboard(1374,0009,0);*/
+/*%Dashboard(1686,0002,0);*/
+/*%Dashboard(1688,0002,0);*/
+/*%Dashboard(1696,0002,0);*/
+/*%Dashboard(1710,0002,0);*/
+/*%Dashboard(1958,0000,0);*/
+/*%Dashboard(2070,0000,0);*/
+/*%Dashboard(2374,0000,0);*/
+/*%Dashboard(2376,0000,0);*/
+/*%Dashboard(2378,0000,0);*/
+/*%Dashboard(2379,0000,0);*/
+/*%Dashboard(1075,0000,0);*/
+/*%Dashboard(2594,0000,0);*/
+/*%Dashboard(2048,0000,0);*/
+/*%Dashboard(2049,0000,0);*/
+/*%Dashboard(2607,0000,0);*/
+/*%Dashboard(5038,0000,0);*/
+/*%Dashboard(5050,0000,0);*/
 %Dashboard(5084,0034,0);
 %Dashboard(5084,0042,0);
 %Dashboard(5084,0064,0);
-%Dashboard(2587,0000,0);
-%Dashboard(2589,0000,0);
-%Dashboard(5154,0000,0);
-%Dashboard(5282,0000,0);
-%Dashboard(2631,0000,0);
-%Dashboard(5037,0000,0);
-%Dashboard(5478,0002,0);
-%Dashboard(5043,0000,0);
-%Dashboard(5479,0002,0);
-%Dashboard(5480,0002,0);
-%Dashboard(5215,0003,0);
-%Dashboard(5215,0002,0);
-%Dashboard(5229,0000,0);
-%Dashboard(5263,0000,0);
-%Dashboard(5264,0000,0);
-%Dashboard(5481,0002,0);
-%Dashboard(5394,0000,0);
-%Dashboard(5395,0000,0);
-%Dashboard(5397,0002,0);
-%Dashboard(5397,0005,0);
-%Dashboard(5397,0004,0);
-%Dashboard(5397,0008,0);
-%Dashboard(5397,0003,0);
-%Dashboard(5397,0006,0);
-%Dashboard(5397,0009,0);
-%Dashboard(5397,0010,0);
-%Dashboard(5916,0002,0);
-%Dashboard(6049,0002,0);
-%Dashboard(6050,0002,0);
-%Dashboard(6051,0002,0);
-%Dashboard(6052,0002,0);
-%Dashboard(6053,0002,0);
-%Dashboard(5397,0007,0);
-%Dashboard(1102,0000,0);
-%Dashboard(1105,0000,0);
-%Dashboard(1106,0000,0);
-%Dashboard(1103,0000,0);
-%Dashboard(1104,0000,0);
-%Dashboard(5392,0004,0);
-%Dashboard(6054,0002,0);
-%Dashboard(6055,0002,0);
-%Dashboard(6056,0002,0);
-%Dashboard(6057,0002,0);
-%Dashboard(6058,0002,0);
-%Dashboard(6059,0002,0);
-%Dashboard(5746,0002,0);
+/*%Dashboard(2587,0000,0);*/
+/*%Dashboard(2589,0000,0);*/
+/*%Dashboard(5154,0000,0);*/
+/*%Dashboard(5282,0000,0);*/
+/*%Dashboard(2631,0000,0);*/
+/*%Dashboard(5037,0000,0);*/
+/*%Dashboard(5478,0002,0);*/
+/*%Dashboard(5043,0000,0);*/
+/*%Dashboard(5479,0002,0);*/
+/*%Dashboard(5480,0002,0);*/
+/*%Dashboard(5215,0003,0);*/
+/*%Dashboard(5215,0002,0);*/
+/*%Dashboard(5229,0000,0);*/
+/*%Dashboard(5263,0000,0);*/
+/*%Dashboard(5264,0000,0);*/
+/*%Dashboard(5481,0002,0);*/
+/*%Dashboard(5394,0000,0);*/
+/*%Dashboard(5395,0000,0);*/
+/*%Dashboard(5397,0002,0);*/
+/*%Dashboard(5397,0005,0);*/
+/*%Dashboard(5397,0004,0);*/
+/*%Dashboard(5397,0008,0);*/
+/*%Dashboard(5397,0003,0);*/
+/*%Dashboard(5397,0006,0);*/
+/*%Dashboard(5397,0009,0);*/
+/*%Dashboard(5397,0010,0);*/
+/*%Dashboard(5916,0002,0);*/
+/*%Dashboard(6049,0002,0);*/
+/*%Dashboard(6050,0002,0);*/
+/*%Dashboard(6051,0002,0);*/
+/*%Dashboard(6052,0002,0);*/
+/*%Dashboard(6053,0002,0);*/
+/*%Dashboard(5397,0007,0);*/
+/*%Dashboard(1102,0000,0);*/
+/*%Dashboard(1105,0000,0);*/
+/*%Dashboard(1106,0000,0);*/
+/*%Dashboard(1103,0000,0);*/
+/*%Dashboard(1104,0000,0);*/
+/*%Dashboard(5392,0004,0);*/
+/*%Dashboard(6054,0002,0);*/
+/*%Dashboard(6055,0002,0);*/
+/*%Dashboard(6056,0002,0);*/
+/*%Dashboard(6057,0002,0);*/
+/*%Dashboard(6058,0002,0);*/
+/*%Dashboard(6059,0002,0);*/
+/*%Dashboard(5746,0002,0);*/
 
 
 
