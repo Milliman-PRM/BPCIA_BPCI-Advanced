@@ -3758,6 +3758,8 @@ create table episode_detail_12 as
 			,case when perf_period_epi_flag=. then'-'
 			when clinical_episode_abbr2 not in('MJRLE','DJRLE') then '-'
 				else complication_status end as complication_status2
+			,case when perf_period_epi_flag=. then '-'
+				else mortality_CABG end as mortality_CABG2
 		%end;
 		%else %if &type.=base %then %do;
 			,case when clinical_episode_abbr2 not in('AMI') then '-'
@@ -3766,6 +3768,7 @@ create table episode_detail_12 as
 			end as excess_days_status2
 			,case when clinical_episode_abbr2 not in('MJRLE','DJRLE') then '-'
 				else complication_status end as complication_status2
+			,mortality_CABG as mortality_CABG2
 		%end;
 		from episode_detail_12 as a
 			left join all_cause_days as b
