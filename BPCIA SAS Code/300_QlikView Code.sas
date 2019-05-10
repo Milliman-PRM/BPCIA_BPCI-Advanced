@@ -39,10 +39,9 @@ SET UP
 %let transmit_date = '12APR2019'd;*Change for every Update*; 
 
 * MAIN VS BASELINE INTERFACE *****;
-%let type = base; *main=main interface, base = baseline interface;
+%let mode = base; *main=main interface, base = baseline interface;
 
 proc printto;run;
-%let mode=FULL; *DEV or FULL;
 
 ****** REFERENCE PROGRAMS ***********************************************************************************;
 %include "H:\_HealthLibrary\SAS\000 - General SAS Macros.sas";
@@ -60,12 +59,12 @@ proc printto;run;
 libname in "&dataDir.\06 - Imported Raw Data\";
 
 %macro modesetup;
-%if &type.=main %then %do;
+%if &mode.=main %then %do;
 libname out "&dataDir.\07 - Processed Data\";
 proc printto log="H:\BPCIA_BPCI Advanced\50 - BPCI Advanced Ongoing Reporting - 2019\Work Papers\SAS\logs\300 - Qlikview Code_&label._&sysdate..log";
 run;
 %end;
-%else %if &type.=base %then %do;
+%else %if &mode.=base %then %do;
 libname out "&dataDir.\07 - Processed Data\Baseline Interface Demo";
 proc printto log="H:\BPCIA_BPCI Advanced\50 - BPCI Advanced Ongoing Reporting - 2019\Work Papers\SAS\logs\300 - Baseline Qlikview Code_&label._&sysdate..log";
 run;
@@ -3749,7 +3748,7 @@ create table episode_detail_12 as
 			,b.excess_op_ed_days
 			,b.excess_obs_days
 			,b.total_excess_days
-		%if &type. = main %then %do;
+		%if &mode. = main %then %do;
 			,case when perf_period_epi_flag=. then '-'
 			when clinical_episode_abbr2 not in('AMI') then '-'
 			when b.total_excess_days >0 then "Yes"
@@ -3761,7 +3760,7 @@ create table episode_detail_12 as
 			,case when perf_period_epi_flag=. then '-'
 				else mortality_CABG end as mortality_CABG2
 		%end;
-		%else %if &type.=base %then %do;
+		%else %if &mode.=base %then %do;
 			,case when clinical_episode_abbr2 not in('AMI') then '-'
 			when b.total_excess_days >0 then "Yes"
 			when b.total_excess_days =0 then "No" else "N/A"
@@ -3786,13 +3785,13 @@ create table episode_detail_12 as
 
 		create table episode_detail_14 as
 		select distinct a.*
-		%if &type.=main %then %do;
+		%if &mode.=main %then %do;
 			,case when perf_period_epi_flag=. then "-"
 				when b.unplanned_readmit_flag>0 then "Yes"
 				when b.unplanned_readmit_flag=0 then "No"
 				else "N/A" end as unplanned_readmit_status
 		%end;
-		%else %if &type.=base %then %do;
+		%else %if &mode.=base %then %do;
 			,case when b.unplanned_readmit_flag>0 then "Yes"
 				when b.unplanned_readmit_flag=0 then "No"
 				else "N/A" end as unplanned_readmit_status
@@ -3808,7 +3807,7 @@ proc sql;
 	create table out.pat_detail_&label._&bpid1._&bpid2. as
 		select distinct a.*
 						,b.perf_period_epi_flag
-						%if &type.=main %then %do;
+						%if &mode.=main %then %do;
 						,case when b.perf_period_epi_flag=. then 0
 							else a.readm_cand end as readm_cand2
 						,case when b.perf_period_epi_flag^=. and a.readm_cand=1 and b.unplanned_readmit_status='Yes' and
@@ -3817,7 +3816,7 @@ proc sql;
 						,case when b.perf_period_epi_flag^=. and a.edac_flag='Yes' and excess_days_status2='Yes' then 1
 							else 0 end as elig_edac_cand_with_edac
 						%end;
-						%else %if &type.=base %then %do;
+						%else %if &mode.=base %then %do;
 						,a.readm_cand as readm_cand2
 						,case when a.readm_cand=1 and b.unplanned_readmit_status='Yes' and
 							((caretype_long='Anchor Hospital Stay' and msdrg^='') or caretype_long='Readmit') then 1
