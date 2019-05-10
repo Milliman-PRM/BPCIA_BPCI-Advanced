@@ -20,18 +20,14 @@ Code to stack the created tables for Qlik View interface
 ******************************************************************************
 RUN THIS PROGRAM IN ITS OWN SAS SESSION TO PREVENT ANY DATA ROLLUP ISSUES
 ******************************************************************************
-
 ********************
 Setup 
 ********************;
-
 ****** USER INPUTS ******************************************************************************************;
 /*%let label = ybase; *Baseline/Performance data label;*/
 %let label = y201902;
-%let type=base; *Base=Baseline Interface, Main=Main Interface;
 
-%let mode=FULL; *DEV or FULL;
-
+%let mode=base; *Base=Baseline Interface, Main=Main Interface;
 
 ****** REFERENCE PROGRAMS ***********************************************************************************;
 %include "H:\_HealthLibrary\SAS\000 - General SAS Macros.sas";
@@ -42,7 +38,7 @@ Setup
 %let dataDir = R:\data\HIPAA\BPCIA_BPCI Advanced;
 
 %macro modesetup;
-%if &type.=main %then %do;
+%if &mode.=main %then %do;
 libname out "&dataDir.\07 - Processed Data";
 proc printto log="H:\BPCIA_BPCI Advanced\50 - BPCI Advanced Ongoing Reporting - 2019\Work Papers\SAS\logs\302 - Qlikview Stacking Code_&label._&sysdate..log";
 run;
@@ -60,7 +56,6 @@ libname bench "R:\client work\CMS_PAC_Bundle_Processing\Benchmark Releases\v.201
 
 ****** EXPORT INFO *****************************************************************************************;
 /*%let exportDir = R:\data\HIPAA\BPCIA_BPCI Advanced\80 - Qlikview\Outfiles;*/
-
 
 * * * * * * * * * * * * * * ONLY RUN WHEN BASELINE AND PERFORMANCE ARE RUN * * * * * * * * * * * * * * ;
 %macro stacking(exportDir);
@@ -80,7 +75,6 @@ libname bench "R:\client work\CMS_PAC_Bundle_Processing\Benchmark Releases\v.201
 
 %mend stack_output;
 
-
 %stack_output(epi_detail);
 %stack_output(pjourney);
 %stack_output(pjourneyagg);
@@ -91,7 +85,6 @@ libname bench "R:\client work\CMS_PAC_Bundle_Processing\Benchmark Releases\v.201
 %stack_output(pat_detail);
 %stack_output(exclusions);
 %stack_output(comp);
-
 
 *not for qlikview;
 /*%stack_output(provider);*/
@@ -104,7 +97,7 @@ libname bench "R:\client work\CMS_PAC_Bundle_Processing\Benchmark Releases\v.201
 /*%stack_output(tp_variability,&label.); *20170831 Update: Add new target price variability;*/
 /*%stack_output(tff_detail_output); *All episodes;*/
 
-*** ADDING PREMIER BENCHMARKS *****;
+*** ADDING PREMIER BENCHMARKS TO PERF FILE *****;
 data benchmarks_pmr;
 	set bench.benchmarks_bpcia_pmr_17;
 	where fracture = "N/A";
@@ -123,6 +116,7 @@ proc sql;
 ;
 quit;
 
+*** ADDING BASELINE BENCHMARKS TO PERF FILE *****;
 data benchmarks_base;
 	set out.baseline_final_benchmark;
 	where fracture = "N/A";
@@ -141,104 +135,11 @@ proc sql;
 ;
 quit;
 
-
 data out.all_perf;
 	set b1;
 run;
 
-
-/********** CALCULATE AND ADD PREMIER PERFORMANCE PAC BENCHMARKS ************;*/
-/*proc sql;*/
-/*	create table p1 as*/
-/*	select	b.anchor_yearmo*/
-/*		,	b.anchor_yearqtr*/
-/*		,	b.anchor_year*/
-/*		,	a.*	*/
-/*	from out.all_perf as a left join out.all_epi_detail as b*/
-/*	on a.epi_id_milliman = b.epi_id_Milliman*/
-/*;*/
-/*quit;*/
-/**/
-/*%macro timeview(time);*/
-/**/
-/*%if &time = All %then %do;*/
-/*proc sql;*/
-/*	create table p_&time. as*/
-/*	select 	anchor_code*/
-/*		,	timeframe*/
-/*		,	sum(count) as PMR_anchor_n_&time.*/
-/*		,	sum(IP_UTIL) as PMR_IP_UTIL_&time.*/
-/*		,	sum(IP_DAYS) as PMR_IP_DAYS_&time.*/
-/*		,	sum(IRF_UTIL) as PMR_IRF_UTIL_&time.*/
-/*		,	sum(IRF_DAYS) as PMR_IRF_DAYS_&time.*/
-/*		,	sum(SNF_UTIL) as PMR_SNF_UTIL_&time.*/
-/*		,	sum(SNF_DAYS) as PMR_SNF_DAYS_&time.*/
-/*		,	sum(HH_UTIL) as PMR_HH_UTIL_&time.*/
-/*		,	client_type*/
-/*	from p1*/
-/*	where client_type = 1*/
-/*	group by anchor_code*/
-/*		,	timeframe*/
-/*		,	client_type*/
-/*%end;*/
-/**/
-/*%else %do;*/
-/*proc sql;*/
-/*	create table p_&time. as*/
-/*	select 	anchor_&time.*/
-/*		,	anchor_code*/
-/*		,	timeframe*/
-/*		,	sum(count) as PMR_anchor_n_&time.*/
-/*		,	sum(IP_UTIL) as PMR_IP_UTIL_&time.*/
-/*		,	sum(IP_DAYS) as PMR_IP_DAYS_&time.*/
-/*		,	sum(IRF_UTIL) as PMR_IRF_UTIL_&time.*/
-/*		,	sum(IRF_DAYS) as PMR_IRF_DAYS_&time.*/
-/*		,	sum(SNF_UTIL) as PMR_SNF_UTIL_&time.*/
-/*		,	sum(SNF_DAYS) as PMR_SNF_DAYS_&time.*/
-/*		,	sum(HH_UTIL) as PMR_HH_UTIL_&time.*/
-/*		,	client_type*/
-/*	from p1*/
-/*	where client_type = 1*/
-/*	group by anchor_&time.*/
-/*		,	anchor_code*/
-/*		,	timeframe*/
-/*		,	client_type*/
-/*	*/
-/*%end;*/
-/*;*/
-/*quit;*/
-/**/
-/*%mend timeview;*/
-/**/
-/*%timeview(YearMo);*/
-/*%timeview(YearQtr);*/
-/*%timeview(Year);*/
-/*%timeview(All);*/
-/**/
-/*proc sql;*/
-/*	create table out.all_perf as*/
-/*	select 	a.**/
-/*		,	b.**/
-/*		,	c.**/
-/*		,	d.**/
-/*		,	e.**/
-/*	from p1 as a*/
-/*		left join p_yearmo as b*/
-/*		on a.anchor_yearmo = b.anchor_yearmo and a.anchor_code = b.anchor_code and a.timeframe = b.timeframe and a.client_type = b.client_type*/
-/*		left join p_yearqtr as c*/
-/*		on a.anchor_yearqtr = c.anchor_yearqtr and a.anchor_code = c.anchor_code and a.timeframe = c.timeframe and a.client_type = c.client_type*/
-/*		left join p_year as d*/
-/*		on a.anchor_year = d.anchor_year and a.anchor_code = d.anchor_code and a.timeframe = d.timeframe and a.client_type = d.client_type*/
-/*		left join p_all as e*/
-/*		on a.anchor_code = e.anchor_code and a.timeframe = e.timeframe and a.client_type = e.client_type*/
-/*		order by anchor_yearmo, anchor_yearqtr, anchor_year, anchor_code, epi_id_milliman, timeframe*/
-/*;*/
-/*quit;*/
-
-
-
-
-%if &mode.^=DEV %then %do;
+/*%if &mode.^=DEV %then %do;*/
 ******** SEPARATE FILES INTO TWO SEPARATE INTERFACE OUTPUT FILES *************;
 %macro separate(file);
 
@@ -262,7 +163,6 @@ run;
 %separate(pat_detail);
 %separate(comp);
 
-
 ******* EXPORT QVW_FILES *******;
 %macro exp(num);
 %sas_2_csv(out.all_epi_detail_&num.,epi_detail_&num..csv);
@@ -281,19 +181,19 @@ run;
 %exp(1);
 /*%exp(2);*/
 
-%end;
-%else %do;
-******* EXPORT QVW_FILES *******;
-%sas_2_csv(out.all_epi_detail,epi_detail.csv);
-%sas_2_csv(out.all_pjourney,pjourney.csv);
-%sas_2_csv(out.all_pjourneyagg,pjourneyagg.csv);
-%sas_2_csv(out.all_prov_detail,prov_detail.csv);
-%sas_2_csv(out.all_util,utilization.csv);
-%sas_2_csv(out.all_perf,performance.csv);
-%sas_2_csv(out.all_phys_summ,phys_summary.csv);
-%sas_2_csv(out.all_exclusions,exclusions.csv);
-%sas_2_csv(out.all_pat_detail,patient_detail.csv);
-%sas_2_csv(out.all_comp,comp.csv);
+/*%end;*/
+/*%else %do;*/
+/******** EXPORT QVW_FILES FOR ALL BPIDS COMBINED*******;*/
+/*%sas_2_csv(out.all_epi_detail,epi_detail.csv);*/
+/*%sas_2_csv(out.all_pjourney,pjourney.csv);*/
+/*%sas_2_csv(out.all_pjourneyagg,pjourneyagg.csv);*/
+/*%sas_2_csv(out.all_prov_detail,prov_detail.csv);*/
+/*%sas_2_csv(out.all_util,utilization.csv);*/
+/*%sas_2_csv(out.all_perf,performance.csv);*/
+/*%sas_2_csv(out.all_phys_summ,phys_summary.csv);*/
+/*%sas_2_csv(out.all_exclusions,exclusions.csv);*/
+/*%sas_2_csv(out.all_pat_detail,patient_detail.csv);*/
+/*%sas_2_csv(out.all_comp,comp.csv);*/
 
 *not for qlikview;
 /*%sas_2_csv(out.all_provider,provider.csv);*/
@@ -305,7 +205,7 @@ run;
 /*%sas_2_csv(out.all_claims_lag,claims_lag.csv);*/
 /*%sas_2_csv(out.all_tp_variability,tp_variability.csv);*/
 /*%sas_2_csv(out.all_tff_detail_output,timeframe_filter.csv);*/
-%end;
+/*%end;*/
 
 %mend stacking;
 
@@ -318,7 +218,7 @@ run;
 
 	data out.all_&file._demo;
 		set 
-		%if &type.=main %then %do ;
+		%if &mode.=main %then %do ;
 
 			%if &file = exclusions %then %do;
 				out.&file._&file2._&bpid1._0000
@@ -351,8 +251,7 @@ run;
 			%end;
 		%end ;
 
-		%else %if &type.=base %then %do ;
-
+		%else %if &mode.=base %then %do ;
 			out.&file._ybase_&bpid1._0000
 			out.&file._ybase_&bpid2._0000
 			out.&file._ybase_&bpid3._0000
@@ -361,7 +260,6 @@ run;
 			out.&file._ybase_&bpid6._0000
 			out.&file._ybase_&bpid7._0000
 			out.&file._ybase_&bpid8._0002 ;
-
 		%end ;
 
 		*20180610 Update - Overwrite BPID;
@@ -373,9 +271,6 @@ run;
 		else if BPID = "&bpid6.-0000" then BPID = "6666-0000";
 		else if BPID = "&bpid7.-0000" then BPID = "7777-0000";
 		else if BPID = "&bpid8.-0002" then BPID = "8888-0000";
-
-
-
 
 	%if &file = epi_detail %then %do;
 		/*	*20170821 Update: Mask identifiable variables;*/
@@ -445,7 +340,6 @@ run;
 	%end;
 	run;
 
-
 %mend stack_output_demo;
 
 *&file2 will change to "output" once the performance data is available;
@@ -458,8 +352,8 @@ run;
 %stack_output_demo(phys_summ,&label.);
 %stack_output_demo(comp,&label.);
 
-*ONLY RUN EXCLUSIONS FOR MAIN DEMOS;
-%if &type.=main %then %do ;
+*ONLY RUN EXCLUSIONS FOR MAIN DEMOS, NOT BASELINE;
+%if &mode.=main %then %do ;
 %stack_output_demo(exclusions,&label.);
 %end ;
 
@@ -475,9 +369,8 @@ run;
 /*%stack_output_demo(claims_lag,&label.);*/
 /*%stack_output_demo(tp_variability,&label.); *20170831 Update: Add new target price variability*;*/
 
-
-*performance file (needs to be rerun outside of macro to incorporate PMR benchmark variables;
-%if &type.=main %then %do ;
+*performance file (needs to be rerun outside of macro to incorporate PMR and baseline benchmark variables;
+%if &mode.=main %then %do ;
 data out.all_perf_demo;
 	set out.all_perf;
 	if BPID in ("&bpid1.-0000","&bpid2.-0000","&bpid3.-0000","&bpid4.-0000","&bpid5.-0000","&bpid6.-0000","&bpid7.-0000","&bpid8.-0002");
@@ -495,7 +388,7 @@ data out.all_perf_demo;
 run;
 %end ;
 
-%else %if &type.=base %then %do ;
+%else %if &mode.=base %then %do ;
 data perf_demo ;
 	set		out.perf_ybase_&bpid1._0000
 			out.perf_ybase_&bpid2._0000
@@ -542,14 +435,10 @@ proc sql;
 ;
 quit;
 
-
 data out.all_perf_demo;
 	set b1;
 run;
 %end ;
-
-
-
 
 ******* EXPORT QVW_FILES *******;
 %sas_2_csv(out.all_epi_detail_demo,epi_detail_demo.csv);
@@ -563,7 +452,7 @@ run;
 %sas_2_csv(out.all_comp_demo,comp_demo.csv);
 
 *ONLY EXPORT FOR MAIN INTERFACE DEMO;
-%if &type.=main %then %do ;
+%if &mode.=main %then %do ;
 %sas_2_csv(out.all_exclusions_demo,exclusions_demo.csv);
 %end ;
 
@@ -578,9 +467,7 @@ run;
 /*%sas_2_csv(out.all_claims_lag_demo,claims_lag_demo.csv);*/
 /*%sas_2_csv(out.all_tp_variability_demo,tp_variability_demo.csv);*/
 
-
 %mend stackingdemo;
-
 
 * * * * * * * * * * * * * * ONLY RUN WHEN SPILITTING PREMIER AND OTHER * * * * * * * * * * * * * * ;
 %macro stacking_pre_other(exportDir,name);
@@ -611,7 +498,6 @@ run;
 
 %mend stack_output;
 
-
 %stack_output(epi_detail);
 %stack_output(pjourney);
 %stack_output(pjourneyagg);
@@ -622,7 +508,6 @@ run;
 %stack_output(pat_detail);
 %stack_output(exclusions);
 %stack_output(comp);
-
 
 *not for qlikview;
 /*%stack_output(provider);*/
@@ -673,99 +558,9 @@ proc sql;
 ;
 quit;
 
-
 data out.all_perf_&name.;
 	set b1;
 run;
-
-/********** CALCULATE AND ADD PREMIER PERFORMANCE PAC BENCHMARKS ************;*/
-/*proc sql;*/
-/*	create table p1 as*/
-/*	select	b.anchor_yearmo*/
-/*		,	b.anchor_yearqtr*/
-/*		,	b.anchor_year*/
-/*		,	a.*	*/
-/*	from out.all_perf_&name. as a left join out.all_epi_detail_&name. as b*/
-/*	on a.epi_id_milliman = b.epi_id_Milliman*/
-/*;*/
-/*quit;*/
-/**/
-/*%macro timeview(time);*/
-/**/
-/*%if &time = All %then %do;*/
-/*proc sql;*/
-/*	create table p_&time. as*/
-/*	select 	anchor_code*/
-/*		,	timeframe*/
-/*		,	sum(count) as PMR_anchor_n_&time.*/
-/*		,	sum(IP_UTIL) as PMR_IP_UTIL_&time.*/
-/*		,	sum(IP_DAYS) as PMR_IP_DAYS_&time.*/
-/*		,	sum(IRF_UTIL) as PMR_IRF_UTIL_&time.*/
-/*		,	sum(IRF_DAYS) as PMR_IRF_DAYS_&time.*/
-/*		,	sum(SNF_UTIL) as PMR_SNF_UTIL_&time.*/
-/*		,	sum(SNF_DAYS) as PMR_SNF_DAYS_&time.*/
-/*		,	sum(HH_UTIL) as PMR_HH_UTIL_&time.*/
-/*		,	client_type*/
-/*	from p1*/
-/*	where client_type = 1*/
-/*	group by anchor_code*/
-/*		,	timeframe*/
-/*		,	client_type*/
-/*%end;*/
-/**/
-/*%else %do;*/
-/*proc sql;*/
-/*	create table p_&time. as*/
-/*	select 	anchor_&time.*/
-/*		,	anchor_code*/
-/*		,	timeframe*/
-/*		,	sum(count) as PMR_anchor_n_&time.*/
-/*		,	sum(IP_UTIL) as PMR_IP_UTIL_&time.*/
-/*		,	sum(IP_DAYS) as PMR_IP_DAYS_&time.*/
-/*		,	sum(IRF_UTIL) as PMR_IRF_UTIL_&time.*/
-/*		,	sum(IRF_DAYS) as PMR_IRF_DAYS_&time.*/
-/*		,	sum(SNF_UTIL) as PMR_SNF_UTIL_&time.*/
-/*		,	sum(SNF_DAYS) as PMR_SNF_DAYS_&time.*/
-/*		,	sum(HH_UTIL) as PMR_HH_UTIL_&time.*/
-/*		,	client_type*/
-/*	from p1*/
-/*	where client_type = 1*/
-/*	group by anchor_&time.*/
-/*		,	anchor_code*/
-/*		,	timeframe*/
-/*		,	client_type*/
-/*	*/
-/*%end;*/
-/*;*/
-/*quit;*/
-/**/
-/*%mend timeview;*/
-/**/
-/*%timeview(YearMo);*/
-/*%timeview(YearQtr);*/
-/*%timeview(Year);*/
-/*%timeview(All);*/
-/**/
-/*proc sql;*/
-/*	create table out.all_perf_&name. as*/
-/*	select 	a.**/
-/*		,	b.**/
-/*		,	c.**/
-/*		,	d.**/
-/*		,	e.**/
-/*	from p1 as a*/
-/*		left join p_yearmo as b*/
-/*		on a.anchor_yearmo = b.anchor_yearmo and a.anchor_code = b.anchor_code and a.timeframe = b.timeframe and a.client_type = b.client_type*/
-/*		left join p_yearqtr as c*/
-/*		on a.anchor_yearqtr = c.anchor_yearqtr and a.anchor_code = c.anchor_code and a.timeframe = c.timeframe and a.client_type = c.client_type*/
-/*		left join p_year as d*/
-/*		on a.anchor_year = d.anchor_year and a.anchor_code = d.anchor_code and a.timeframe = d.timeframe and a.client_type = d.client_type*/
-/*		left join p_all as e*/
-/*		on a.anchor_code = e.anchor_code and a.timeframe = e.timeframe and a.client_type = e.client_type*/
-/*		order by anchor_yearmo, anchor_yearqtr, anchor_year, anchor_code, epi_id_milliman, timeframe*/
-/*;*/
-/*quit;*/
-
 
 ******* EXPORT QVW_FILES *******;
 %sas_2_csv(out.all_epi_detail_&name.,epi_detail.csv);
@@ -791,7 +586,6 @@ run;
 /*%sas_2_csv(out.all_tp_variability,tp_variability.csv);*/
 /*%sas_2_csv(out.all_tff_detail_output,timeframe_filter.csv);*/
 
-
 %mend stacking_pre_other;
 
 /*************;*/
@@ -803,7 +597,6 @@ run;
 /*%stackingdemo(R:\data\HIPAA\BPCIA_BPCI Advanced\80 - Qlikview\Outfiles,1148,1167,1343,1368,2379,2587,2607,5479);*/
 *** BASELINE DEMO RUN ***;
 %stackingdemo(R:\data\HIPAA\BPCIA_BPCI Advanced\80 - Qlikview\Outfiles\Baseline Demo,1148,1167,1343,1368,2379,2587,2607,5479);
-
 
 *** DEVELOPMENT RUN ***;
 /*%stacking(R:\data\HIPAA\BPCIA_BPCI Advanced\80 - Qlikview\Outfiles\Development);*/
