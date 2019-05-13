@@ -259,7 +259,7 @@ quit;
 
 /*%sas_2_csv(bpcia.Quality_Measure_full,BPCIA Quality Measures Full.csv) ; */
 /**/
-  %macro Quality_Measure_latest(name, type);
+  %macro Quality_Measure_latest(name);
 data Quality_Measure_latest_date (keep=CCN BPID Measure Anchor_Facility Measure_Pcnt_RAW_Not_Rounded ); 
 set bpcia.Quality_Measure_full ; 
 where max_date_flag = 1 ;
@@ -301,7 +301,7 @@ data bpcia.Quality_Measure_latest_&name. ;
 /*%sas_2_csv(bpcia.Quality_Measure_latest_date,BPCIA_Quality_Measures_Latest_Date.csv) ; */
 
 
-%macro Quality_Measure_demo(filename,bpid1,bpid2,bpid3,bpid4,bpid5,bpid6,bpid7,bpid8);
+%macro Quality_Measure_demo(type,bpid1,bpid2,bpid3,bpid4,bpid5,bpid6,bpid7,bpid8);
 
 	data Quality_Measure_&filename._0 ;
 	%if &filename.=Demo %then %do ;
@@ -321,7 +321,7 @@ data bpcia.Quality_Measure_latest_&name. ;
 		       final_table_PSI: ;
 	%end ;
 
-	if BPID in ("&bpid1.-0000","&bpid2.-0000","&bpid3.-0000","&bpid4.-0000","&bpid5.-0000","&bpid6.-0000","&bpid7.-0000","&bpid8.-0002");
+	where BPID in ("&bpid1.-0000","&bpid2.-0000","&bpid3.-0000","&bpid4.-0000","&bpid5.-0000","&bpid6.-0000","&bpid7.-0000","&bpid8.-0002");
 
 	*20180610 Update - Overwrite BPID;
 	if BPID ="&bpid1.-0000" then BPID = "1111-0000";
