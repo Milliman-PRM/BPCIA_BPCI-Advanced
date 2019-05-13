@@ -9,7 +9,13 @@ Code to create the Qaulity Measure for the BPCI Advanced
 libname bpcia "H:\Nonclient\Medicare Bundled Payment Reference\Program - BPCIA\SAS Datasets";
 libname out "R:\data\HIPAA\BPCIA_BPCI Advanced\07 - Processed Data";
 %include "H:\Nonclient\Medicare Bundled Payment Reference\Program - BPCIA\SAS Code\000 - BPCIA_Interface_BPIDs.sas";
-%let mode=main ; *Main=Main Interface, Base=Baseline Interface ;
+%let mode=base ; *Main=Main Interface, Base=Baseline Interface ;
+
+*********************************************************;
+*Baseline Out Library;
+*********************************************************;
+libname outbase "R:\data\HIPAA\BPCIA_BPCI Advanced\07 - Processed Data\Baseline Interface Demo";
+ 
 
 ****** REFERENCE PROGRAMS ***********************************************************************************;
 %include "H:\_HealthLibrary\SAS\000 - General SAS Macros.sas";
@@ -322,7 +328,7 @@ data bpcia.Quality_Measure_latest_&name. ;
 	%end ;
 
 	where BPID in ("&bpid1.-0000","&bpid2.-0000","&bpid3.-0000","&bpid4.-0000","&bpid5.-0000","&bpid6.-0000","&bpid7.-0000","&bpid8.-0002");
-
+ 	
 	*20180610 Update - Overwrite BPID;
 	if BPID ="&bpid1.-0000" then BPID = "1111-0000";
 	else if BPID = "&bpid2.-0000" then BPID = "2222-0000";
@@ -337,7 +343,17 @@ data bpcia.Quality_Measure_latest_&name. ;
 
 	run ;
 
-	proc sort data = Quality_Measure_&mode._demo_0 
+	proc sql ;
+		create table Quality_Measure_&mode._demo_1 as
+		select distinct a.*
+		from Quality_Measure_&mode._demo_0 as a
+		inner join outbase.all_epi_detail_demo as b
+		on a.CCN = b.anchor_ccn 
+		;
+	quit ; 
+		
+	
+	proc sort data = Quality_Measure_&mode._demo_1 
 							out= bpcia.Quality_Measure_&mode._demo ;
 	by  BPID CCN Measure Measure_Period_Start  ;
 	run ; 
@@ -378,11 +394,11 @@ run ;
 /*		set bpcia.Quality_Measure_latest_&mode. ; */
 /*		run ; */
 
-%sas_2_csv(bpcia.Quality_Measure_latest_&mode.,BPCIA_Quality_Measures_Latest_Date_&mode..csv) ; 
+%sas_2_csv(bpcia.Quality_Measure_latest_&mode._demo,BPCIA_Quality_Measures_Latest_Date_&mode._demo.csv) ; 
 
 %mend Quality_Measure_latest_demo;
 
-/*%Quality_Measure_latest_demo() ; */
-%Quality_Measure_latest_demo() ; 
+/*%Quality_Measure_latest_demo ; */
+%Quality_Measure_latest_demo ; 
 
 
