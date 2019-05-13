@@ -9,7 +9,7 @@ Code to create the Qaulity Measure for the BPCI Advanced
 libname bpcia "H:\Nonclient\Medicare Bundled Payment Reference\Program - BPCIA\SAS Datasets";
 libname out "R:\data\HIPAA\BPCIA_BPCI Advanced\07 - Processed Data";
 %include "H:\Nonclient\Medicare Bundled Payment Reference\Program - BPCIA\SAS Code\000 - BPCIA_Interface_BPIDs.sas";
-%let type=main ; *Main=Main Interface, Base=Baseline Interface ;
+%let mode=main ; *Main=Main Interface, Base=Baseline Interface ;
 
 ****** REFERENCE PROGRAMS ***********************************************************************************;
 %include "H:\_HealthLibrary\SAS\000 - General SAS Macros.sas";
@@ -206,7 +206,7 @@ quit;
 /**Macro to stack and out all the measures for all the CCNS that are present within the Source files */;
   %macro Quality_Measure_full(name);
 	data Quality_Measure_&name._0 ;
-	%if &type.=main %then %do ;
+	%if &mode.=main %then %do ;
 	      set final_table_comp: (where = (Comp = '1' or Double = '1') )
 		  	  final_table_Heart: (where = ( AMI = '1') ) 
 			  final_table_Mort: (where = (CABG = '1') )
@@ -214,7 +214,7 @@ quit;
 			  final_table_PSI: (where = (PSI = '1') ) ;
 	%end ;
 
-	%else %if &type.=base %then %do ;
+	%else %if &mode.=base %then %do ;
 			set final_table_comp: 
 		  	   final_table_Heart: 
 			   final_table_Mort: 
@@ -301,10 +301,10 @@ data bpcia.Quality_Measure_latest_&name. ;
 /*%sas_2_csv(bpcia.Quality_Measure_latest_date,BPCIA_Quality_Measures_Latest_Date.csv) ; */
 
 
-%macro Quality_Measure_demo(type,bpid1,bpid2,bpid3,bpid4,bpid5,bpid6,bpid7,bpid8);
+%macro Quality_Measure_demo(bpid1,bpid2,bpid3,bpid4,bpid5,bpid6,bpid7,bpid8);
 
-	data Quality_Measure_&filename._0 ;
-	%if &filename.=Demo %then %do ;
+	data Quality_Measure_&mode._demo_0 ;
+	%if &mode.=main %then %do ;
 	      set final_table_comp: (where = (Comp = '1' ) )
 		  	  final_table_Heart: (where = ( AMI = '1') ) 
 			  final_table_Mort: (where = (CABG = '1') )
@@ -313,7 +313,7 @@ data bpcia.Quality_Measure_latest_&name. ;
 
 	%end ;
 
-	%else %if &filename.=Base_Demo %then %do ;
+	%else %if &mode.=base %then %do ;
 			set final_table_comp: 
 		  	   final_table_Heart: 
 			   final_table_Mort: 
@@ -337,13 +337,13 @@ data bpcia.Quality_Measure_latest_&name. ;
 
 	run ;
 
-	proc sort data = Quality_Measure_&filename._0 
-							out= bpcia.Quality_Measure_&filename. ;
+	proc sort data = Quality_Measure_&demo._0 
+							out= bpcia.Quality_Measure_&mode._demo ;
 	by  BPID CCN Measure Measure_Period_Start  ;
 	run ; 
 
 	
-%sas_2_csv(bpcia.Quality_Measure_&filename.,BPCIA_Quality_Measures_&filename..csv) ; 
+%sas_2_csv(bpcia.Quality_Measure_&mode._demo,BPCIA_Quality_Measures_&mode._demo.csv) ; 
 
 %mend Quality_Measure_demo;
 
@@ -353,8 +353,8 @@ data bpcia.Quality_Measure_latest_&name. ;
 
 
   %macro Quality_Measure_latest_demo(name);
-data Quality_Measure_latest_&name. (keep=CCN BPID Measure Anchor_Facility Measure_Pcnt_RAW_Not_Rounded ); 
-set bpcia.Quality_Measure_&name. ; 
+data Quality_Measure_latest_&mode._demo (keep=CCN BPID Measure Anchor_Facility Measure_Pcnt_RAW_Not_Rounded ); 
+set bpcia.Quality_Measure_&mode._demo ; 
 where max_date_flag = 1 ;
 run ; 
 
