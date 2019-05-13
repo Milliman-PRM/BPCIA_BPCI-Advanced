@@ -337,7 +337,7 @@ data bpcia.Quality_Measure_latest_&name. ;
 
 	run ;
 
-	proc sort data = Quality_Measure_&demo._0 
+	proc sort data = Quality_Measure_&mode._demo_0 
 							out= bpcia.Quality_Measure_&mode._demo ;
 	by  BPID CCN Measure Measure_Period_Start  ;
 	run ; 
@@ -347,42 +347,42 @@ data bpcia.Quality_Measure_latest_&name. ;
 
 %mend Quality_Measure_demo;
 
-/*%Quality_Measure_demo(Demo,1148,1167,1343,1368,2379,2587,2607,5479) ; */
-%Quality_Measure_demo(Base_Demo,1148,1167,1343,1368,2379,2587,2607,5479) ; 
+/*%Quality_Measure_demo(1148,1167,1343,1368,2379,2587,2607,5479) ; */
+%Quality_Measure_demo(1148,1167,1343,1368,2379,2587,2607,5479) ; 
 
 
 
-  %macro Quality_Measure_latest_demo(name);
+  %macro Quality_Measure_latest_demo;
 data Quality_Measure_latest_&mode._demo (keep=CCN BPID Measure Anchor_Facility Measure_Pcnt_RAW_Not_Rounded ); 
 set bpcia.Quality_Measure_&mode._demo ; 
 where max_date_flag = 1 ;
 run ; 
 
-proc sort data =Quality_Measure_latest_&name. ; 
+proc sort data =Quality_Measure_latest_&mode._demo ; 
 by  bpid ccn Anchor_Facility ; 
 run ; 
 
 
-proc transpose data=Quality_Measure_latest_&name. out=QM_latest_&name._0 ;
+proc transpose data=Quality_Measure_latest_&mode._demo out=QM_latest_&mode._demo_0 ;
   by bpid ccn Anchor_Facility;
   id measure;
   var Measure_Pcnt_RAW_Not_Rounded;
 run;
 
-data bpcia.Quality_Measure_latest_&name.;
-set QM_latest_&name._0;
+data bpcia.Quality_Measure_latest_&mode._demo;
+set QM_latest_&mode._demo_0;
 BPID_CCN_Key = BPID||"_"||CCN ; 
 run ;
 
-/*data bpcia.Quality_Measure_latest_&name. ;*/
-/*		set bpcia.Quality_Measure_latest_&name. ; */
+/*data bpcia.Quality_Measure_latest_&mode. ;*/
+/*		set bpcia.Quality_Measure_latest_&mode. ; */
 /*		run ; */
 
-%sas_2_csv(bpcia.Quality_Measure_latest_&name.,BPCIA_Quality_Measures_Latest_Date_&name..csv) ; 
+%sas_2_csv(bpcia.Quality_Measure_latest_&mode.,BPCIA_Quality_Measures_Latest_Date_&mode..csv) ; 
 
 %mend Quality_Measure_latest_demo;
 
-/*%Quality_Measure_latest_demo(demo) ; */
-%Quality_Measure_latest_demo(Base_Demo) ; 
+/*%Quality_Measure_latest_demo() ; */
+%Quality_Measure_latest_demo() ; 
 
 
