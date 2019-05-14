@@ -576,14 +576,14 @@ run;
 		if BENE_GENDER0 = 'Female' then BENE_GENDER = 'A' ;
 		if BENE_GENDER0 = '-'      then BENE_GENDER = 'L' ;
 
-		if  BPID = "1111-0000"  then do; Anchor_Fac_Code_Name = 'Facility 1 (BPID 1111)';
-		if  BPID = "2222-0000"  then do; Anchor_Fac_Code_Name = 'Facility 2 (BPID 2222)'; 
-		if  BPID = "3333-0000"  then do; Anchor_Fac_Code_Name = 'Facility 3 (BPID 3333)'; 
-		if  BPID = "4444-0000"  then do; Anchor_Fac_Code_Name = 'Facility 4 (BPID 4444)'; 
-		if  BPID = "5555-0000"  then do; Anchor_Fac_Code_Name = 'Facility 5 (BPID 5555)'; 
-		if  BPID = "6666-0000"  then do; Anchor_Fac_Code_Name = 'Facility 6 (BPID 6666)'; 
-		if  BPID = "7777-0000"  then do; Anchor_Fac_Code_Name = 'Facility 7 (BPID 7777)'; 
-		if  BPID = "8888-0000"  then do; Anchor_Fac_Code_Name = 'Facility 8 (BPID 8888)';
+		if  BPID = "1111-0000"  then do; Anchor_Fac_Code_Name = 'Facility 1 (BPID 1111)'; end ;
+		if  BPID = "2222-0000"  then do; Anchor_Fac_Code_Name = 'Facility 2 (BPID 2222)'; end ;
+		if  BPID = "3333-0000"  then do; Anchor_Fac_Code_Name = 'Facility 3 (BPID 3333)'; end ;
+		if  BPID = "4444-0000"  then do; Anchor_Fac_Code_Name = 'Facility 4 (BPID 4444)'; end ;
+		if  BPID = "5555-0000"  then do; Anchor_Fac_Code_Name = 'Facility 5 (BPID 5555)'; end ;
+		if  BPID = "6666-0000"  then do; Anchor_Fac_Code_Name = 'Facility 6 (BPID 6666)'; end ;
+		if  BPID = "7777-0000"  then do; Anchor_Fac_Code_Name = 'Facility 7 (BPID 7777)'; end ;
+		if  BPID = "8888-0000"  then do; Anchor_Fac_Code_Name = 'Facility 8 (BPID 8888)'; end ;
 
 		BPID_ClinicalEp = strip(BPID)||" - "||strip(clinical_episode_abbr);
 		BPID_ClinicalEp_ccn = strip(BPID)||" - "||strip(clinical_episode_abbr)||" - "||strip(anchor_ccn);
