@@ -39,7 +39,7 @@ SET UP
 %let transmit_date = '12APR2019'd;*Change for every Update*; 
 
 * MAIN VS BASELINE INTERFACE *****;
-%let mode = base; *main=main interface, base = baseline interface;
+%let mode = main; *main=main interface, base = baseline interface;
 
 proc printto;run;
 
