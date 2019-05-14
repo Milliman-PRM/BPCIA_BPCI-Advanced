@@ -1236,19 +1236,6 @@ proc sql;
 			  ,DGNSCD02,DGNSCD03,DGNSCD04,DGNSCD05,DGNSCD06,DGNSCD07,DGNSCD08,DGNSCD09,DGNSCD10,DGNSCD11,DGNSCD12,DGNSCD13,DGNSCD14,DGNSCD15,DGNSCD16,DGNSCD17,DGNSCD18,DGNSCD19,DGNSCD20,DGNSCD21,DGNSCD22,DGNSCD23,DGNSCD24,DGNSCD25
 			  ,edac_flag
 		; 
-
-/*create table ccn_enc_ip3 as*/
-/*		select distinct a.**/
-/*			  ,GEO_BENE_SK*/
-/*			  ,claimno*/
-/*/*			  ,CLM_DT_SGNTR_SK*/*/
-/*/*			  ,CLM_TYPE_CD*/*/
-/*/*			  ,CLM_NUM_SK*/*/
-/*		from ccn_enc_ip_a as a*/
-/*		left join ccn_enc_ip as b*/
-/*		on a.epi_id_milliman = b.epi_id_milliman and a.admsn_dt = b.admsn_dt and a.type = b.type and a.util_day = b.util_day*/
-/*		and a.anchor_ccn = b.anchor_ccn and a.DSCHRGDT = b.DSCHRGDT*/
-;
 quit; 
 
 *!! JL BPCIA update: Temporary - to fix formats and rename variables to get them all to stack;
@@ -1282,23 +1269,9 @@ set
 		ccn_enc_hha
 		ccn_enc_op
 		ccn_enc_hs
-/*		out.snf_&label._&bpid1._&bpid2. (keep= EPISODE_INITIATOR BPID epi_id_milliman type allowed std_allowed_wage PROVIDER admsn_dt DSCHRGDT THRU_DT util_day timeframe rename=(PROVIDER=provider_ccn)) */
-/*		out.hha_&label._&bpid1._&bpid2.(keep=BENE_SK  anchor_ccn EPISODE_INITIATOR BPID epi_id_milliman type allowed std_allowed_wage PROVIDER timeframe FROM_DT THRU_DT util_day*/
-/*											 rename=(BENE_SK=GEO_BENE_SK FROM_DT=admsn_dt THRU_DT=DSCHRGDT) in=d) */
-/*		out.op_&label._&bpid1._&bpid2. (keep= bene_sk anchor_ccn EPISODE_INITIATOR BPID epi_id_milliman type allowed std_allowed_wage PROVIDER dos timeframe HCPCS_CD  REV_CNTR at_npi  in=c rename=(PROVIDER=provider_ccn bene_sk = geo_bene_sk)) */
-/*		out.hs_&label._&bpid1._&bpid2. (keep= bene_sk anchor_ccn EPISODE_INITIATOR BPID epi_id_milliman type allowed std_allowed_wage PROVIDER dos timeframe in=c rename=(bene_sk=geo_bene_sk))*/
-/*		;*/
-/*/*where timeframe ^=0;*/
-/*/*if provider_ccn = '' then provider_ccn = CLM_PROVIDER;*/
-/**/
-/*if c then do;*/
-/*	ADMSN_DT = dos;*/
-/*	DSCHRGDT = dos;*/
-/*end;*/
 ;
 	if length(strip(provider_ccn0))<6 then provider_ccn = "0"||strip(provider_ccn0);
 	else provider_ccn = strip(provider_ccn0);
-
 run;
 
 proc sql;
@@ -1431,7 +1404,6 @@ proc sql;
 			  ,counter
 			  ,edac_flag
 ;
-
 quit; 
 
 proc sql;
@@ -1441,7 +1413,6 @@ create table ccn_enc5 as
 			,a.Anchor_YearQtr
 			,a.Anchor_YearMo
 			,a.Anchor_Year	
-/*			,a.PATIENT_NAME*/
 			,b.*
 			,case when b.timeframe = 0 then "Anchor"
 			  		when b.timeframe = 1 then "1 - 30 Days"
@@ -1453,7 +1424,6 @@ create table ccn_enc5 as
 		on a.epi_id_milliman = b.epi_id_milliman
 		and a.BPID = b.BPID
 	;
-
 
 /*add CCN Names to CCN post-acute episodes*/
 	create table ccn_enc6 as
@@ -1562,7 +1532,6 @@ create table ccn_enc10a as
 			left join ccn_enc_ER as b
 			on a.epi_id_milliman = b.epi_id_milliman and a.startdate = b.startdate and a.caretype = b.caretype
    ;
-
 quit; 
 
 *Change ER visits to ER - stand alone or ER - preceding admit based on overlap with inpatient admissions on the same day;
@@ -1684,19 +1653,12 @@ proc sql;
 		,a.epi_id_milliman
 		,a.provider_name as at_op_provider_name
 		,a.physician_type as at_op_role
-		/*20180615 MK UPDATE*/
 		,case when a.provider_npi in ("",".") then ""
 			when a.npi_last_nm = '' and substr(a.provider_name,1,7) = 'Unknown' then "Unknown - "||substr(a.provider_npi,7,4) 
 			when a.npi_last_nm = '' and a.provider_name ne '' then strip(upcase(substr(a.provider_name,1,10)))||" - "||substr(a.provider_npi,7,4)
 			else strip(upcase(a.npi_last_nm))||", "||strip(upcase(substr(a.npi_first_nm,1,1)))||". - "||substr(a.provider_npi,7,4) 
 		 end as at_op_abbr
-		 /*20180615 MK UPDATE*/
-/*%if &label = ybaseqq %then %do;*/
-/*		,strip(a.epi_id)||"-B-"||strip(a.anchor_ccn) as EPI_ID2*/
-/*%end;*/
 	from dataprov_d as a
-/*	left join ref.npi_data as b*/ /*20180615 MK UPDATE*/
-/*	on a.provider_npi=b.npi*/ /*20180615 MK UPDATE*/
 ;
 quit;
 *20180524 JL UPDATE END;
@@ -1714,16 +1676,6 @@ data npi_level;
 	counter + 1;
 run;
 
-*Update 12/3/18: commented out in.pb join - all lines seem to be populated with prfnpi and hcpcs;
-/*proc sort data=in.pb_&label._&bpid1._&bpid2. out=npi_diag_proc;*/
-/*	by BENE_SK CLAIMNO ;*/
-/*run;*/
-/**/
-/*proc sort data = npi_diag_proc out = npi_diag_proc2 nodupkey;*/
-/*	by BENE_SK CLAIMNO;*/
-/*run;*/
-
-
 proc sql;
 	create table npi_level_a as
 	select a.anchor_CCN
@@ -1734,19 +1686,12 @@ proc sql;
 		,sum(a.std_allowed_wage) as std_allowed_wage
 		,a.type
 		,a.timeframe
-/*	  	,a.BENE_SK*/
-/*		,counter*/
 		,edac_flag
 		,strip(put(a.PRFNPI,15.)) as PRFNPI_A
 		,a.HCPCS_CD as HCPCS_CD_A
 		,a.DGNSCD01 as primary_diag_cd
 		,a.DGNSCD02,a.DGNSCD03,a.DGNSCD04,a.DGNSCD05,a.DGNSCD06,a.DGNSCD07,a.DGNSCD08,a.DGNSCD09,a.DGNSCD10,a.DGNSCD11,a.DGNSCD12
-/*		,strip(put(coalesce(a.PRFNPI,b.PRFNPI),15.)) as PRFNPI_A*/
-/*		,coalesce(a.DGNS_CD,b.DGNS_CD) as DGNS_CD_A*/
-/*		,coalesce(a.HCPCS_CD,b.HCPCS_CD) as HCPCS_CD_A*/
 	from npi_level as a 
-/*	left join npi_diag_proc2 as b*/
-/*	on a.BENE_SK=b.BENE_SK and a.claimno = b.claimno*/
 	group by a.anchor_CCN
 			,a.epi_id_milliman
 			,a.BPID
@@ -1755,12 +1700,9 @@ proc sql;
 			,a.timeframe
 			,edac_flag
 			,PRFNPI_A
-/*			,DGNS_CD_A*/
 			,HCPCS_CD_A
 			,primary_diag_cd
 			,a.DGNSCD02,a.DGNSCD03,a.DGNSCD04,a.DGNSCD05,a.DGNSCD06,a.DGNSCD07,a.DGNSCD08,a.DGNSCD09,a.DGNSCD10,a.DGNSCD11,a.DGNSCD12
-/*			,counter*/
-/*		   ,a.BENE_SK*/
 	;
 quit ; 
 
@@ -1772,7 +1714,6 @@ proc sql ;
 		,a.Anchor_YearQtr
 		,a.Anchor_YearMo
 		,a.Anchor_Year	
-/*		,a.PATIENT_NAME*/
 		,b.*
 	from out.epi_detail_&label._&bpid1._&bpid2. as a
 	inner join npi_level_a as b
@@ -1789,7 +1730,6 @@ proc sql ;
 			  ,a.Anchor_YearQtr
 			  ,a.Anchor_YearMo
 			  ,a.Anchor_Year
-/*			  ,propcase(a.patient_name) as patient_name*/
 			  ,a.epi_id_milliman
 			  ,a.service_date
 			  ,a.allowed
@@ -1810,14 +1750,8 @@ proc sql ;
 				    when a.PRFNPI_A ^= "" and b.Provider_Last_Name__Legal_Name_ = ""  and Provider_Organization_Name__Leg ^= "" then strip(propcase(Provider_Organization_Name__Leg))||". - "||substr(a.PRFNPI_A,7,4)
 					when a.PRFNPI_A ^= "" and b.Provider_Last_Name__Legal_Name_ = "" and Provider_Organization_Name__Leg = "" then "("||strip(a.PRFNPI_A)||")"
 				    else "Unknown ()" end as physician_abbr
-
-/*				,case when a.PRFNPI_A in ("",".") then "Unknown ()"*/
-/*					when b.Provider_Last_Name__Legal_Name_ = '' then "Unknown"*/
-/*					else strip(propcase(b.Provider_Last_Name__Legal_Name_))||", "||strip(upcase(substr(b.Provider_First_Name,1,1)))||". - "||substr(a.PRFNPI_A,7,4)  end as physician_abbr */
 			  ,a.PRFNPI_A as provider_npi
-/*			  ,'' as provider_npi*/
 			  ,a.timeframe
-/*			  ,counter*/
 			  ,case when a.timeframe = 0 then "Anchor"
 			  		when a.timeframe = 1 then "1 - 30 Days"
 					when a.timeframe = 2 then "31 - 60 Days"
@@ -1841,7 +1775,7 @@ proc sql ;
 	left join ref.npi_data as b
 	on a.PRFNPI_A=b.npi
 	;
-quit;/*20180615 MK CHANGE*/
+quit;
 
 proc sql;
 create table npi_level1b as
@@ -2074,8 +2008,6 @@ data patientjourney_2 (drop = i start_date end_date provider_ccn type admsn_dt d
 	end;
 
 	retain start_date2 end_date2 type2 d1-d90 d_first d_first_name d_first_cost d_second d_second_name d_third d_third_name rank2 rank_lag;
-/*	format d1-d90 type2 provider type_lag $255.;*/
-/*	length d1-d90 d_first d_first_name d_second d_second_name d_third d_third_name type2 type_lag $255;*/
 
 	if first.epi_id_milliman then do;
 
@@ -2308,7 +2240,6 @@ create table patientjourney_3 as
 		,a.Anchor_YearQtr
 		,a.Anchor_YearMo
 		,a.Anchor_Year	
-/*		,a.PATIENT_NAME*/
 		,b.*
 		,case when d_first in ("Other Readmit","Anchor Readmit") then "Readmit" else d_first end as d_first_2
 	from out.epi_detail_&label._&bpid1._&bpid2. as a
@@ -2581,8 +2512,6 @@ quit;
 proc sql;
 	create table out.ccn_enc_&label._&bpid1._&bpid2. as
 		select 	distinct a.*
-/*			,	0 as UNPLANNED_READMIT_FLAG*/
-/*			,	0 as HAS_READMISSION*/
 			, 	b.UNPLANNED_READMIT_FLAG
 			,	b.HAS_READMISSION
 			,	b.transfer_stay
@@ -2623,7 +2552,6 @@ run;
 data hh_hdr1;
 	set out.ccn_enc_&label._&bpid1._&bpid2.  (keep=BPID GEO_BENE_SK claimno startdate Anchor_CCN Epi_id_Milliman type provider_ccn CCN_Name_Desc rename=(CCN_Name_Desc=Provider /*provider_ccn=provider_ccn1*/));
 	if substr(type,1,2) = "HH";
-/*	provider_ccn = strip(provider_ccn1);*/
 run;
 
 *20180720 - transpose dates, rev center, and hcpcs to set up long list of dates;
@@ -3082,12 +3010,8 @@ union all
 		,case when substr(caretype,1,3) in ('Eme','Out','Pro','Reh') then hcpcs_with_desc else prim_proc_with_desc end as primary_proc
 		,drg_with_desc as msdrg
 		,case when (timeframe = 0 and caretype in ('Emergency - Preceding Admit','Emergency - Stand Alone')) then -2 else timeframe end as timeframe
-/*		,a.timeframe2 as timeframe*/
 		,a.timeframe2
 		,case when a.timeframe2 = 'Anchor' then 'Anchor' else 'Post-Acute' end as timeframe3
-/*		,a.timeframe2 as timeframe_pd*/
-/*		,a.timeframe2 as timeframe*/
-/*		,case when timeframe2 = 'Anchor' then '0' else timeframe2 end as timeframe*/
 		,a.std_allowed_wage
 		,a.util_day		
 
@@ -3127,8 +3051,7 @@ quit;
 
 proc sql;
 	create table patient_Detail2 as 
-	select /*distinct*/ encounterid
-/*	, BPID  /*Dummy Variables for BPCIA */
+	select encounterid
 	,datayearmo
 	,anchor_yearqtr
 	,anchor_yearmo
@@ -3139,8 +3062,6 @@ proc sql;
 	,anchor_code 
 	,Anchor_Fac_Code_Name 
 	,Episode_Initiator
-/*	,patient_name*/
-/*	,EPI_ID*/
 	,b.*
 	,case when (b.timeframe = 0 and b.end_date <= a.anchor_end_dt and b.begin_date <= a.anchor_beg_dt  and b.end_date^=. ) then -3 else b.timeframe end as timeframe
 	,case when timeframe ^= 0 and Caretype = 'Outpatient'  then 0/*Create a Rank variable to rank Outpatient before  and Prof emergency Claims before Readmit claims if they occur on the same day*/
@@ -3211,11 +3132,6 @@ data patient_detail4;
 	set patient_detail3;
 	format UNPLANNED_READMIT_FLAG_USE HAS_READMISSION_USE service_provider_ccn $12.;
 
-/*	EPISODE_UNPLANNED_READMIT=0;*/
-/*	if UNPLANNED_READMIT_FLAG = 1 then EPISODE_UNPLANNED_READMIT=1;*/
-/*	if HAS_READMISSION = 1 then EPISODE_UNPLANNED_READMIT=1;*/
-
-
 	if UNPLANNED_READMIT_FLAG = 9 then UNPLANNED_READMIT_FLAG_USE = 'Transfer';
             else if UNPLANNED_READMIT_FLAG = 1 then UNPLANNED_READMIT_FLAG_USE = 'Yes';
             else if UNPLANNED_READMIT_FLAG = 0 then UNPLANNED_READMIT_FLAG_USE = 'No';
@@ -3279,8 +3195,6 @@ create table provider_sum1 as
 
 create table out.prov_detail_&label._&bpid1._&bpid2. as 
 	select distinct a.*
-/*			, a.BPID*/
-/*			,b.epi_id_milliman*/
 			,sum(T0_IP_IDX_ALLOWED) as prov_ancfac_allowed
 			,sum(T0_NONFACILITY_ALLOWED) as prov_nonfac_allowed
 			,sum(T4_IP_A_FAC_ALLOWED,T4_IP_A_PROF_ALLOWED,T4_IP_O_FAC_ALLOWED,T4_IP_O_PROF_ALLOWED) as prov_readmits_allowed
@@ -3290,7 +3204,6 @@ create table out.prov_detail_&label._&bpid1._&bpid2. as
 			,sum(T4_SNF_ALLOWED,T4_SNF_PROF_ALLOWED) as prov_snf_allowed
 			,sum(T4_AMBULANCE_ALLOWED,T4_PARTB_RX_ALLOWED,T4_PATHOLOGY_ALLOWED,T4_RADIOLOGY_ALLOWED,T4_OP_REHAB_ALLOWED,T4_OTHER_ALLOWED) as prov_other_allowed
 			,sum(T4_TOTAL_ALLOWED) as prov_total_allowed
-/*			,sum(capped_allowed) as prov_capped_allowed*/
 	from provider_sum1 as a
 	left join out.epi_detail_&label._&bpid1._&bpid2. as b
 	on a.epi_id_milliman = b.epi_id_milliman
