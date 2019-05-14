@@ -58,6 +58,7 @@ proc printto;run;
 %let dataDir = R:\data\HIPAA\BPCIA_BPCI Advanced;
 libname in "&dataDir.\06 - Imported Raw Data\";
 
+
 %macro modesetup;
 %if &mode.=main %then %do;
 libname out "&dataDir.\07 - Processed Data\";
@@ -1566,7 +1567,7 @@ create table ccn_enc10a as
 quit; 
 
 *Change ER visits to ER - stand alone or ER - preceding admit based on overlap with inpatient admissions on the same day;
-data ccn_enc10b;
+data ccn_enc11;
 set ccn_enc10a;
 	if caretype = "Emergency" then do;
     	if IP_visit_flag = 1 then caretype = "Emergency - Preceding Admit";
@@ -1578,24 +1579,12 @@ run;
 /*Make Complications detail*/
 /*********************************************************************************************/
 proc sql;
-
-	create table ccn_enc11 as 
-		select a.*
-			,b.cc_denom as cc_elig
-			from ccn_enc10b as a
-			left join out.Cc_sum_&label._&bpid1._&bpid2. as b
-			on a.EPI_ID_MILLIMAN = b.EPI_ID_MILLIMAN
-			;
-
 	create table out.comp_&label._&bpid1._&bpid2. as 
 		select a.anchor_ccn
 			  ,a.BPID
 			  ,a.EPI_ID_MILLIMAN
 			  ,a.provider_ccn
-			  ,a.cc_elig
-			  ,case when a.cc_elig = 0 then 'N/A'
-					when b.complication = '' then 'None'		  		
-			  		else b.complication end as complication
+			  ,b.complication
 			  ,startdate as complication_startdate format= mmddyy10.
 			  ,enddate as complication_enddate format= mmddyy10.
 			  ,allowed as complication_allowed
@@ -1603,15 +1592,15 @@ proc sql;
 			  ,ccn_name_desc as complication_ccn_name_desc
 			  ,caretype as complication_caretype
 			  ,timeframe2 as complication_timeframe2
-			  ,case when b.complication ^= '' then 1 else 0 end as cc_flag
+			  ,1 as cc_flag
 				/*20170905 - Complications timeframe update*/
-			  ,case when b.complication ^= '' and complication_timeframe2 = 'Anchor' then 1 
+			  ,case when complication_timeframe2 = 'Anchor' then 1 
 					else 0 end as cc_flag_anchor
-			  ,case when b.complication ^= '' and complication_timeframe2 = '1 - 30 Days' then 1 
+			  ,case when complication_timeframe2 = '1 - 30 Days' then 1 
 					else 0 end as cc_flag_1_30
-			  ,case when b.complication ^= '' and complication_timeframe2 in ('1 - 30 Days','31 - 60 Days') then 1 
+			  ,case when complication_timeframe2 in ('1 - 30 Days','31 - 60 Days') then 1 
 					else 0 end as cc_flag_1_60
-			  ,case when b.complication ^= '' and complication_timeframe2 in ('1 - 30 Days','31 - 60 Days','61 - 90 Days') then 1
+			  ,case when complication_timeframe2 in ('1 - 30 Days','31 - 60 Days','61 - 90 Days') then 1
 					else 0 end as cc_flag_1_90
 	from ccn_enc11 as a
 	inner join out.cc_det_&label._&bpid1._&bpid2. as b
@@ -1621,7 +1610,6 @@ proc sql;
 	and a.caretype in ('Anchor Admit','Readmit')
 		;
 quit;
-
 
 /*********************************************************************************************/
 /*********************************************************************************************/
@@ -3689,15 +3677,14 @@ Proc sql ;
 	create table episode_detail_11 as
 		select distinct a.*
 			,b.cc_denom
-			,c.cc_flag
-			,case when c.cc_flag eq . then 0 else max(c.cc_flag) end as cc_numer
-			,case when c.cc_flag_anchor eq . then 0 else max(c.cc_flag_anchor) end as cc_numer_anchor
-			,case when c.cc_flag_1_30 eq . then 0 else max(c.cc_flag_1_30) end as cc_numer_1_30
-			,case when c.cc_flag_1_60 eq . then 0 else max(c.cc_flag_1_60) end as cc_numer_1_60
-			,case when c.cc_flag_1_90 eq . then 0 else max(c.cc_flag_1_90) end as cc_numer_1_90
-			,case when c.cc_flag = 1 then "Yes"
-			when b.cc_denom = 1 then "No"
-			else "N/A" end as complication_status 
+			,b.cc_numer
+			,coalesce(max(c.cc_flag_anchor),0) as cc_numer_anchor
+			,coalesce(max(c.cc_flag_1_30),0) as cc_numer_1_30
+			,coalesce(max(c.cc_flag_1_60),0) as cc_numer_1_60
+			,coalesce(max(c.cc_flag_1_90),0) as cc_numer_1_90
+			,case when b.cc_numer = 1 then "Yes"
+				when b.cc_denom = 1 then "No"
+				else "N/A" end as complication_status 
 			,case when a.operating_npi in ("",".") then "N/A"	
 					when d.provider_npi ne '' then 'Yes' else 'No' end as op_prov_flag
 			,case when a.attending_npi in ("",".") then "N/A"
@@ -4267,14 +4254,14 @@ quit;
 
 
 *DEMO ONLY;
-%Dashboard(1148,0000,0);
-%Dashboard(1167,0000,0);
-%Dashboard(1343,0000,0);
-%Dashboard(1368,0000,0);
-%Dashboard(2379,0000,0);
-%Dashboard(2587,0000,0);
-%Dashboard(2607,0000,0);
-%Dashboard(5479,0002,0);
+/*%Dashboard(1148,0000,0);*/
+/*%Dashboard(1167,0000,0);*/
+/*%Dashboard(1343,0000,0);*/
+/*%Dashboard(1368,0000,0);*/
+/*%Dashboard(2379,0000,0);*/
+/*%Dashboard(2587,0000,0);*/
+/*%Dashboard(2607,0000,0);*/
+/*%Dashboard(5479,0002,0);*/
 
 *DEV RUN;
 /*%Dashboard(1032,0000,0);*/
