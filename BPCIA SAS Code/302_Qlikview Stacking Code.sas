@@ -27,7 +27,7 @@ Setup
 
 ****** USER INPUTS ******************************************************************************************;
 /*%let label = ybase; *Baseline/Performance data label;*/
-%let label = y201902;
+%let label = y201903;
 
 %let mode=FULL; *DEV or FULL;
 
@@ -123,8 +123,7 @@ proc sql;
 quit;
 
 data benchmarks_base;
-	set out.baseline_final_benchmark;
-	where fracture = "N/A";
+	set out.baseline_benchmark_:;
 run;
 
 proc sql;
@@ -133,9 +132,9 @@ proc sql;
 			b.*
 	from p1 as a
 	left join benchmarks_base as b
-	on a.Anchor_code = b.drg
-	and timeframe_id = b._id 
-	and client_type = 1
+	on  a.BPID=b.BPID
+	and a.Anchor_code = b.Anchor_code
+	and a.timeframe_id = b.timeframe_id 
 	order by epi_id_milliman, timeframe
 ;
 quit;
@@ -584,7 +583,7 @@ proc sql;
 quit;
 *** BASELINE BENCHMARKS ******;
 data benchmarks_base;
-	set out.baseline_final_benchmark;
+	set out.baseline_benchmark_:;
 run;
 
 proc sql;
@@ -724,19 +723,19 @@ run;
 /*************;*/
 /**/
 *** FULL RUN ***;
-/*%stacking(R:\data\HIPAA\BPCIA_BPCI Advanced\80 - Qlikview\Outfiles);*/
+%stacking(R:\data\HIPAA\BPCIA_BPCI Advanced\80 - Qlikview\Outfiles);
 
 *** DEMO RUN ***;
-%stackingdemo(R:\data\HIPAA\BPCIA_BPCI Advanced\80 - Qlikview\Outfiles,1148,1167,1343,1368,2379,2587,2607,5084,5084,5479);
+/*%stackingdemo(R:\data\HIPAA\BPCIA_BPCI Advanced\80 - Qlikview\Outfiles,1148,1167,1343,1368,2379,2587,2607,5084,5084,5479);*/
 
 *** DEVELOPMENT RUN ***;
 /*%stacking(R:\data\HIPAA\BPCIA_BPCI Advanced\80 - Qlikview\Outfiles\Development);*/
 
 *** PREMIER RUN ***;
-/*%stacking_pre_other(R:\data\HIPAA\BPCIA_BPCI Advanced\80 - Qlikview\Outfiles\Premier, PMR);*/
+%stacking_pre_other(R:\data\HIPAA\BPCIA_BPCI Advanced\80 - Qlikview\Outfiles\Premier, PMR);
 
 *** MILLIMAN RUN ***;
-/*%stacking_pre_other(R:\data\HIPAA\BPCIA_BPCI Advanced\80 - Qlikview\Outfiles\Milliman, MIL);*/
+%stacking_pre_other(R:\data\HIPAA\BPCIA_BPCI Advanced\80 - Qlikview\Outfiles\Milliman, MIL);
 
 *** CCF RUN ***;
 /*%stacking_pre_other(R:\data\HIPAA\BPCIA_BPCI Advanced\80 - Qlikview\Outfiles\CCF, CCF);*/

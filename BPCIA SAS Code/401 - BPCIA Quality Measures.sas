@@ -363,9 +363,7 @@ data bpcia.Quality_Measure_latest_&name. ;
 
 %mend Quality_Measure_demo;
 
-/*%Quality_Measure_demo(1148,1167,1343,1368,2379,2587,2607,5479) ; */
 %Quality_Measure_demo(1148,1167,1343,1368,2379,2587,2607,5479) ; 
-
 
 
   %macro Quality_Measure_latest_demo;
@@ -398,7 +396,6 @@ run ;
 
 %mend Quality_Measure_latest_demo;
 
-/*%Quality_Measure_latest_demo ; */
 %Quality_Measure_latest_demo ; 
 
 
