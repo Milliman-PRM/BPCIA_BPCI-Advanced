@@ -548,11 +548,11 @@ run;
 			else if substr(d_name,1,7)="Hospice" then d_name = "Hospice: Hospice Facility (123456)";
 	%end;
 
-%if &file = ccn_enc %then %do;
-		/*	*20170821 Update: mask HIC number;*/
+/*%if &file = ccn_enc %then %do;*/
+/*		*20170821 Update: mask HIC number;*/
 /*		readmit_med_rec_number = "123456789";*/
-		fac_counter = _N_;
-%end;
+/*		fac_counter = _N_;*/
+/*%end;*/
 
 %if &file = exclusions %then %do;
 
@@ -576,14 +576,14 @@ run;
 		if BENE_GENDER0 = 'Female' then BENE_GENDER = 'A' ;
 		if BENE_GENDER0 = '-'      then BENE_GENDER = 'L' ;
 
-		if  BPID = "1111-0000"  then do; Anchor_Fac_Code_Name = 'Facility 1 (BPID 1111)'; EI_system_name = "Health System 1"; EI_facility_abbr = 'Facility 1 (BPID 1111)' ; end;
-		if  BPID = "2222-0000"  then do; Anchor_Fac_Code_Name = 'Facility 2 (BPID 2222)'; EI_system_name = "Health System 1"; EI_facility_abbr = 'Facility 2 (BPID 2222)' ; end;
-		if  BPID = "3333-0000"  then do; Anchor_Fac_Code_Name = 'Facility 3 (BPID 3333)'; EI_system_name = "Health System 1"; EI_facility_abbr = 'Facility 3 (BPID 3333)' ; end;
-		if  BPID = "4444-0000"  then do; Anchor_Fac_Code_Name = 'Facility 4 (BPID 4444)'; EI_system_name = "Health System 1"; EI_facility_abbr = 'Facility 4 (BPID 4444)' ; end;
-		if  BPID = "5555-0000"  then do; Anchor_Fac_Code_Name = 'Facility 5 (BPID 5555)'; EI_system_name = "Health System 1"; EI_facility_abbr = 'Facility 5 (BPID 5555)' ; end;
-		if  BPID = "6666-0000"  then do; Anchor_Fac_Code_Name = 'Facility 6 (BPID 6666)'; EI_system_name = "Health System 1"; EI_facility_abbr = 'Facility 6 (BPID 6666)' ; end;
-		if  BPID = "7777-0000"  then do; Anchor_Fac_Code_Name = 'Facility 7 (BPID 7777)'; EI_system_name = "Health System 1"; EI_facility_abbr = 'Facility 7 (BPID 7777)' ; end;
-		if  BPID = "8888-0000"  then do; Anchor_Fac_Code_Name = 'Facility 8 (BPID 8888)'; EI_system_name = "Health System 1"; EI_facility_abbr = 'Facility 8 (BPID 8888)' ; end;
+		if  BPID = "1111-0000"  then do; Anchor_Fac_Code_Name = 'Facility 1 (BPID 1111)';
+		if  BPID = "2222-0000"  then do; Anchor_Fac_Code_Name = 'Facility 2 (BPID 2222)'; 
+		if  BPID = "3333-0000"  then do; Anchor_Fac_Code_Name = 'Facility 3 (BPID 3333)'; 
+		if  BPID = "4444-0000"  then do; Anchor_Fac_Code_Name = 'Facility 4 (BPID 4444)'; 
+		if  BPID = "5555-0000"  then do; Anchor_Fac_Code_Name = 'Facility 5 (BPID 5555)'; 
+		if  BPID = "6666-0000"  then do; Anchor_Fac_Code_Name = 'Facility 6 (BPID 6666)'; 
+		if  BPID = "7777-0000"  then do; Anchor_Fac_Code_Name = 'Facility 7 (BPID 7777)'; 
+		if  BPID = "8888-0000"  then do; Anchor_Fac_Code_Name = 'Facility 8 (BPID 8888)';
 
 		BPID_ClinicalEp = strip(BPID)||" - "||strip(clinical_episode_abbr);
 		BPID_ClinicalEp_ccn = strip(BPID)||" - "||strip(clinical_episode_abbr)||" - "||strip(anchor_ccn);
@@ -609,9 +609,7 @@ run;
 
 		%date(BENE_BIRTH_DT);
 		%date(BENE_DEATH_DT);
-		%date(ANCHOR_BEG_DT);
 		%date(ANCHOR_END_DT);
-		%date(Anchor_Year);
 
 /*SM 05072019 SCRAMBLING UPDATE*/
 
@@ -625,25 +623,12 @@ run;
 
 /*SM 05072019 SCRAMBLING UPDATE*/
 		format end_date0 begin_date0 mmddyy10. ;
-		end_date0=end_date ;
-
-/*		end_date=intnx('year',intnx('day',end_date0,floor(ranuni(7)*60)),10,'sameday');*/
-/*		increment=end_date - end_date0 ;*/
-
-		begin_date0=begin_date ;
+		
+     	begin_date0=begin_date ;
 		begin_date=intnx('year', intnx('day',begin_date0,floo(ranuni(7)*60)),10,'sameday'); 
 		end_date0=end_date;
 		end_date=end_date0+begin_date-begin_date0;
-/**/
-/*		%macro date(date);*/
-/**/
-/*			&date. = &date.0 + increment;*/
-/**/
-/*		%mend date;*/
-/**/
-/*		%date(end_date);*/
-/*		%date(begin_date);*/
-		
+
 	%end ;
 /*SM 05072019 SCRAMBLING UPDATE*/
 
