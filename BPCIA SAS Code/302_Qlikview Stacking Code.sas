@@ -311,11 +311,30 @@ run;
 /********** 20170118 - CREATE FILES FOR DEMO ***************************************************************;*/
 %macro stackingdemo(exportDir,bpid1,bpid2,bpid3,bpid4,bpid5,bpid6,bpid7,bpid8);
 
+		
+%macro date(date) ;
+
+		format &date.0 mmddyy10. ;
+		&date.0=&date. ;
+
+		%if &date.=BENE_BIRTH_DT %then %do ;
+			&date.=&date.0+(-3*increment) ;
+
+	%end ;
+
+	%else %do ;
+		&date.=&date.0+increment ;
+	%end ;
+
+%mend date ;
+
+
 *Stack Output files - Files with baseline and perf data use output, files with perf data only use the perf data;
 %macro stack_output_demo(file,file2);
 
 	data out.all_&file._demo;
 		set 
+
 		%if &file = exclusions %then %do;
 			out.&file._&file2._&bpid1._0000
 			out.&file._&file2._&bpid2._0000
@@ -360,8 +379,9 @@ run;
 	%if &file = epi_detail %then %do;
 
 /*SM 20190506 Scrambling Update*/
-		format ANCHOR_BEG_DT mmddyy10. ;
-		BENE_GENDER=gender2 ;	
+		format ANCHOR_BEG_DT0 mmddyy10. ;
+		ANCHOR_BEG_DT0=ANCHOR_BEG_DT ;
+		BENE_GENDER0=BENE_GENDER ;	
 /*SM 20190506 Scrambling Update*/
 
 
@@ -373,21 +393,18 @@ run;
 
 
 /*SM 20190506 Scrambling Update*/
-		if BENE_GENDER = 'Male' then gender2 = 'E' ;
-		if BENE_GENDER = 'Female' then gender2 = 'L' ;
-		if BENE_GENDER = '-' then gender2 = 'P' ;
+		if BENE_GENDER0 = 'Male'   then BENE_GENDER = 'E' ;
+		if BENE_GENDER0 = 'Female' then BENE_GENDER = 'L' ;
+		if BENE_GENDER0 = '-'      then BENE_GENDER = 'P' ;
 
 		if  BPID = "1111-0000"  then do; Anchor_Fac_Code_Name = 'Facility 1 (BPID 1111)'; EI_system_name = "Health System 1"; EI_facility_abbr = 'Facility 1 (BPID 1111)' ; end;
-		if  BPID = "2222-0000"  then do; Anchor_Fac_Code_Name = 'Facility 1 (BPID 2222)'; EI_system_name = "Health System 1"; EI_facility_abbr = 'Facility 1 (BPID 2222)' ; end;
-		if  BPID = "3333-0000"  then do; Anchor_Fac_Code_Name = 'Facility 1 (BPID 3333)'; EI_system_name = "Health System 1"; EI_facility_abbr = 'Facility 1 (BPID 3333)' ; end;
-		if  BPID = "4444-0000"  then do; Anchor_Fac_Code_Name = 'Facility 1 (BPID 4444)'; EI_system_name = "Health System 1"; EI_facility_abbr = 'Facility 1 (BPID 4444)' ; end;
-		if  BPID = "5555-0000"  then do; Anchor_Fac_Code_Name = 'Facility 1 (BPID 5555)'; EI_system_name = "Health System 1"; EI_facility_abbr = 'Facility 1 (BPID 5555)' ; end;
-		if  BPID = "6666-0000"  then do; Anchor_Fac_Code_Name = 'Facility 1 (BPID 6666)'; EI_system_name = "Health System 1"; EI_facility_abbr = 'Facility 1 (BPID 6666)' ; end;
-		if  BPID = "7777-0000"  then do; Anchor_Fac_Code_Name = 'Facility 1 (BPID 7777)'; EI_system_name = "Health System 1"; EI_facility_abbr = 'Facility 1 (BPID 7777)' ; end;
-		if  BPID = "8888-0000"  then do; Anchor_Fac_Code_Name = 'Facility 1 (BPID 8888)'; EI_system_name = "Health System 1"; EI_facility_abbr = 'Facility 1 (BPID 8888)' ; end;
-
-		if BENE_GENDER="Female" then BENE_GENDER="F";
-		else if BENE_GENDER="Male" then BENE_GENDER="M";
+		if  BPID = "2222-0000"  then do; Anchor_Fac_Code_Name = 'Facility 2 (BPID 2222)'; EI_system_name = "Health System 1"; EI_facility_abbr = 'Facility 2 (BPID 2222)' ; end;
+		if  BPID = "3333-0000"  then do; Anchor_Fac_Code_Name = 'Facility 3 (BPID 3333)'; EI_system_name = "Health System 1"; EI_facility_abbr = 'Facility 3 (BPID 3333)' ; end;
+		if  BPID = "4444-0000"  then do; Anchor_Fac_Code_Name = 'Facility 4 (BPID 4444)'; EI_system_name = "Health System 1"; EI_facility_abbr = 'Facility 4 (BPID 4444)' ; end;
+		if  BPID = "5555-0000"  then do; Anchor_Fac_Code_Name = 'Facility 5 (BPID 5555)'; EI_system_name = "Health System 1"; EI_facility_abbr = 'Facility 5 (BPID 5555)' ; end;
+		if  BPID = "6666-0000"  then do; Anchor_Fac_Code_Name = 'Facility 6 (BPID 6666)'; EI_system_name = "Health System 1"; EI_facility_abbr = 'Facility 6 (BPID 6666)' ; end;
+		if  BPID = "7777-0000"  then do; Anchor_Fac_Code_Name = 'Facility 7 (BPID 7777)'; EI_system_name = "Health System 1"; EI_facility_abbr = 'Facility 7 (BPID 7777)' ; end;
+		if  BPID = "8888-0000"  then do; Anchor_Fac_Code_Name = 'Facility 8 (BPID 8888)'; EI_system_name = "Health System 1"; EI_facility_abbr = 'Facility 8 (BPID 8888)' ; end;
 
 		BPID_ClinicalEp = strip(BPID)||" - "||strip(clinical_episode_abbr);
 		BPID_ClinicalEp_ccn = strip(BPID)||" - "||strip(clinical_episode_abbr)||" - "||strip(anchor_ccn);
@@ -395,34 +412,18 @@ run;
 
 /*Masking identifiable dates*/
 
-	ANCHOR_BEG_DT=intnx('year',intnx('day', ANCHOR_BEG_DT, floor(ranuni(7)*60)),10,'sameday') ;
+	ANCHOR_BEG_DT=intnx('year',intnx('day', ANCHOR_BEG_DT0, floor(ranuni(7)*60)),10,'sameday') ;
 	Anchor_Year=put(year(ANCHOR_BEG_DT),4.) ;
+	Anchor_YearQtr = put(year(ANCHOR_BEG_DT), 4.)||' Q'||strip(qtr(ANCHOR_BEG_DT));
+
 	if month(ANCHOR_BEG_DT) < 10 then Anchor_YearMo=put(year(ANCHOR_BEG_DT), 4.)||'M0'||strip(month(ANCHOR_BEG_DT)) ;
 	else Anchor_YearMo = put(year(ANCHOR_BEG_DT), 4.)||' M'||strip(month(ANCHOR_BEG_DT)) ;
 
 	increment = ANCHOR_BEG_DT - ANCHOR_BEG_DT0 ;
 
-	%macro date(date) ;
-
-		format &date.0 mmddyy10. ;
-		&date.0=&date. ;
-
-	%if &date.=BENE_BIRTH_DT %then %do ;
-	&date.=&date.0+(-3*increment) ;
-
-	%end ;
-
-	%else %do ;
-		&date.=&date.0+increment ;
-	%end ;
-
-	%mend date ;
-
 	%date (ANCHOR_END_DT) ;
 	%date (BENE_DEATH_DT) ;
 	%date (BENE_BIRTH_DT) ;
-	%date (END_DATE) ;
-	%date (BEGIN_DATE) ;
 	%date (T0_IP_IDX_STARTDATE) ;
 	%date (T0_IP_IDX_ENDDATE) ;
 
@@ -547,20 +548,58 @@ run;
 			else if substr(d_name,1,7)="Hospice" then d_name = "Hospice: Hospice Facility (123456)";
 	%end;
 
-	%if &file = ccn_enc %then %do;
+%if &file = ccn_enc %then %do;
 		/*	*20170821 Update: mask HIC number;*/
 /*		readmit_med_rec_number = "123456789";*/
 		fac_counter = _N_;
-	%end;
+%end;
 
-	%if &file = exclusions %then %do;
+%if &file = exclusions %then %do;
 
 /*SM 05072019 SCRAMBLING UPDATE*/
-		format BENE_BIRTH_DT mmddyy10. ;
-		BENE_GENDER=gender2 ;
-		BENE_BIRTH_DT=DOB ;
-		DOB=intnx('year',intnx('day',BENE_BIRTH_DT,floor(ranuni(7)*60)),10,'sameday');
-		increment=dob - BENE_BIRTH_DT ;
+		format ANCHOR_BEG_DT0 BENE_BIRTH_DT0 mmddyy10. ;
+		ANCHOR_BEG_DT0=ANCHOR_BEG_DT ;
+		BENE_BIRTH_DT0=BENE_BIRTH_DT ;
+		BENE_GENDER0=BENE_GENDER ;	
+/*SM 20190506 Scrambling Update*/
+
+
+/*	    *20170821 Update: Mask identifiable variables;*/
+/*		BENE_HIC_NUM = "123456789";*/
+/*		anchor_med_rec_num = "123456789";*/
+		BENE_SK = 123456789;
+		MBI_ID="987654321";
+
+
+/*SM 20190506 Scrambling Update*/
+		if BENE_GENDER0 = 'Male'   then BENE_GENDER = 'I' ;
+		if BENE_GENDER0 = 'Female' then BENE_GENDER = 'A' ;
+		if BENE_GENDER0 = '-'      then BENE_GENDER = 'L' ;
+
+		if  BPID = "1111-0000"  then do; Anchor_Fac_Code_Name = 'Facility 1 (BPID 1111)'; EI_system_name = "Health System 1"; EI_facility_abbr = 'Facility 1 (BPID 1111)' ; end;
+		if  BPID = "2222-0000"  then do; Anchor_Fac_Code_Name = 'Facility 2 (BPID 2222)'; EI_system_name = "Health System 1"; EI_facility_abbr = 'Facility 2 (BPID 2222)' ; end;
+		if  BPID = "3333-0000"  then do; Anchor_Fac_Code_Name = 'Facility 3 (BPID 3333)'; EI_system_name = "Health System 1"; EI_facility_abbr = 'Facility 3 (BPID 3333)' ; end;
+		if  BPID = "4444-0000"  then do; Anchor_Fac_Code_Name = 'Facility 4 (BPID 4444)'; EI_system_name = "Health System 1"; EI_facility_abbr = 'Facility 4 (BPID 4444)' ; end;
+		if  BPID = "5555-0000"  then do; Anchor_Fac_Code_Name = 'Facility 5 (BPID 5555)'; EI_system_name = "Health System 1"; EI_facility_abbr = 'Facility 5 (BPID 5555)' ; end;
+		if  BPID = "6666-0000"  then do; Anchor_Fac_Code_Name = 'Facility 6 (BPID 6666)'; EI_system_name = "Health System 1"; EI_facility_abbr = 'Facility 6 (BPID 6666)' ; end;
+		if  BPID = "7777-0000"  then do; Anchor_Fac_Code_Name = 'Facility 7 (BPID 7777)'; EI_system_name = "Health System 1"; EI_facility_abbr = 'Facility 7 (BPID 7777)' ; end;
+		if  BPID = "8888-0000"  then do; Anchor_Fac_Code_Name = 'Facility 8 (BPID 8888)'; EI_system_name = "Health System 1"; EI_facility_abbr = 'Facility 8 (BPID 8888)' ; end;
+
+		BPID_ClinicalEp = strip(BPID)||" - "||strip(clinical_episode_abbr);
+		BPID_ClinicalEp_ccn = strip(BPID)||" - "||strip(clinical_episode_abbr)||" - "||strip(anchor_ccn);
+
+
+/*Masking identifiable dates*/
+
+	ANCHOR_BEG_DT=intnx('year',intnx('day', ANCHOR_BEG_DT0, floor(ranuni(7)*60)),10,'sameday') ;
+	Anchor_Year=put(year(ANCHOR_BEG_DT),4.) ;
+	Anchor_YearQtr = put(year(ANCHOR_BEG_DT), 4.)||' Q'||strip(qtr(ANCHOR_BEG_DT));
+    BENE_BIRTH_DT=intnx('year',intnx('day', BENE_BIRTH_DT0,floor(ranuni(7)*60)),10,'sameday');
+
+	if month(ANCHOR_BEG_DT) < 10 then Anchor_YearMo=put(year(ANCHOR_BEG_DT), 4.)||'M0'||strip(month(ANCHOR_BEG_DT)) ;
+	else Anchor_YearMo = put(year(ANCHOR_BEG_DT), 4.)||' M'||strip(month(ANCHOR_BEG_DT)) ;
+
+	increment = ANCHOR_BEG_DT - ANCHOR_BEG_DT0 ;
 
 		%macro date(date);
 
@@ -580,48 +619,45 @@ run;
 		BENE_SK = "123456789";
 		MBI_ID="987654321";
 
-/*SM 05072019 SCRAMBLING UPDATE*/
-		if BENE_GENDER="Female" then BENE_GENDER="R";
-		else if BENE_GENDER="Male" then BENE_GENDER="T";
-/*SM 05072019 SCRAMBLING UPDATE*/
-
 	%end;
 
 	%if &file = patient_detail %then %do;
 
 /*SM 05072019 SCRAMBLING UPDATE*/
-		format end_date begin_date mmddyy10. ;
-		end_date=end_date1 ;
-		end_date1=intnx('year',intnx('day',end_date,floor(ranuni(7)*60)),10,'sameday');
-		increment=end_date - end_date1 ;
+		format end_date0 begin_date0 mmddyy10. ;
+		end_date0=end_date ;
 
-		%macro date(date);
+/*		end_date=intnx('year',intnx('day',end_date0,floor(ranuni(7)*60)),10,'sameday');*/
+/*		increment=end_date - end_date0 ;*/
 
-			&date. = &date.0 + increment;
-
-		%mend date;
-
-		%date(end_date);
-		%date(begin_date);
+		begin_date0=begin_date ;
+		begin_date=intnx('year', intnx('day',begin_date0,floo(ranuni(7)*60)),10,'sameday'); 
+		end_date0=end_date;
+		end_date=end_date0+begin_date-begin_date0;
+/**/
+/*		%macro date(date);*/
+/**/
+/*			&date. = &date.0 + increment;*/
+/**/
+/*		%mend date;*/
+/**/
+/*		%date(end_date);*/
+/*		%date(begin_date);*/
 		
 	%end ;
 /*SM 05072019 SCRAMBLING UPDATE*/
 
-	%if &file = provider %then %do;
+	%if &file. = provider %then %do;
 		prov_counter= _N_;
 	%end;
 /*SM 05072019 SCRAMBLING UPDATE*/
-	%if &file=performance %then %do ;
+	%if &file.=comp %then %do ;
 
-		format complication_startdate complication_enddate mmddy10. ;
-		complication_startdate1 = intnx('year',intnx('day', complication_startdate, floor(ranuni(7)*60)),10,'sameday') ;
-		increment = complication_startdate1 - complication_startdate ;
-
- 		%macro date(date) ;
-			&date. = &date.0 = increment ;
-		%mend date ;
-
-		%date (complication_enddate1) ;
+		format complication_startdate0 complication_enddate0 mmddyy10. ;
+		complication_startdate0=complication_startdate ;
+		complication_startdate = intnx('year',intnx('day', complication_startdate0, floor(ranuni(7)*60)),10,'sameday') ;
+		complication_enddate0=complication_enddate ;
+		complication_endddate=complication_enddate0+complication_startdate-complication_startdate0 ;
 
 	%end ; 
 /*SM 05072019 SCRAMBLING UPDATE*/
