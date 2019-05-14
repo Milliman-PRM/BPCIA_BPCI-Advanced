@@ -212,7 +212,12 @@ run;
 *JL: Output a file of eligible index admissions with DJRLE/MJRLE participating in the performance period only;
 data out.idx_&label._&bpid1._&bpid2.;
 	set out.ip_&label._&bpid1._&bpid2.;
+	%if &mode.=main %then %do;
 	where type='IP_Idx' and PERFORMANCE_PERIOD='Yes' and EPISODE_GROUP_NAME in ('Double joint replacement of the lower extremity','Major joint replacement of the lower extremity');
+	%end;
+	%else if &mode.=base %then %do;
+	where type='IP_Idx' and EPISODE_GROUP_NAME in ('Double joint replacement of the lower extremity','Major joint replacement of the lower extremity');
+	%end;
 	keep 
 		EPISODE_ID EPI_ID_MILLIMAN BENE_SK IP_STAY_ID STAY_ADMSN_DT TRANSFER_STAY AT_NPI OP_NPI BENE_AGE ANCHOR_BEG_DT STUS_CD ;
 	rename STUS_CD=i_STUS_CD;
