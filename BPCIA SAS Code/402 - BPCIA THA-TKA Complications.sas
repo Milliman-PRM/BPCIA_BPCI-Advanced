@@ -215,7 +215,7 @@ data out.idx_&label._&bpid1._&bpid2.;
 	%if &mode.=main %then %do;
 	where type='IP_Idx' and PERFORMANCE_PERIOD='Yes' and EPISODE_GROUP_NAME in ('Double joint replacement of the lower extremity','Major joint replacement of the lower extremity');
 	%end;
-	%else if &mode.=base %then %do;
+	%else %if &mode.=base %then %do;
 	where type='IP_Idx' and EPISODE_GROUP_NAME in ('Double joint replacement of the lower extremity','Major joint replacement of the lower extremity');
 	%end;
 	keep 
@@ -325,7 +325,7 @@ proc sort data=dxpx; by EPI_ID_MILLIMAN BENE_SK IP_STAY_ID STAY_ADMSN_DT; run;
 data cc4;
 	merge
 		cc3 (in=a)
-		dxpx (in=b keep=EPI_ID_MILLIMAN BENE_SK IP_STAY_ID STAY_ADMSN_DT Radm_rehab -- PJI_RB);
+		dxpx (in=b keep=EPI_ID_MILLIMAN BENE_SK IP_STAY_ID STAY_ADMSN_DT pv Radm_rehab -- PJI_RB);
 	by EPI_ID_MILLIMAN BENE_SK IP_STAY_ID STAY_ADMSN_DT;
 	if a;
 
@@ -333,6 +333,11 @@ data cc4;
 	CC=0;
 	interval = dos - ANCHOR_BEG_DT;
 	if INCLUDE=1 then do;
+
+	*** Identification of Short Term Acute and CAH stays for post-acute complications *** ;
+	elig_hosp = 0;
+	if '0001' <= pv and pv <= '0899' then elig_hosp= 1;
+	else if '1300' <= pv and pv <= '1399' then elig_hosp= 1;
 
    *SD: Complications are not output for index admissions because POA is not provided in the BPCIA CMS files;
 
@@ -349,13 +354,13 @@ data cc4;
 		end;
 
 		*excluded readmissions *;
-		else if
-			Radm_rehab>0
+		else if elig_hosp=1 and
+			(Radm_rehab>0
 			OR (Radm_psych and interval in (0,1) and i_STUS_CD = 65)
-			OR Arthropathy>0 then;
+			OR Arthropathy>0) then;
 
 		*identify complications on readmissions - "R" criteria only*;
-		else do;
+		else if elig_hosp=1 then do;
 			IF (PJI_RA>0 AND sum(IND,PJI_RB)>0 AND interval <= 90)
 				OR (SSB_RA>0 AND SSB_RB>0 AND interval <= 30)
 				OR (MC_RA>0 AND interval <= 90)
