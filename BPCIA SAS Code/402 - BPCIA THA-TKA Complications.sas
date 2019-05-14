@@ -215,7 +215,7 @@ data out.idx_&label._&bpid1._&bpid2.;
 	%if &mode.=main %then %do;
 	where type='IP_Idx' and PERFORMANCE_PERIOD='Yes' and EPISODE_GROUP_NAME in ('Double joint replacement of the lower extremity','Major joint replacement of the lower extremity');
 	%end;
-	%else if &mode.=base %then %do;
+	%else %if &mode.=base %then %do;
 	where type='IP_Idx' and EPISODE_GROUP_NAME in ('Double joint replacement of the lower extremity','Major joint replacement of the lower extremity');
 	%end;
 	keep 
