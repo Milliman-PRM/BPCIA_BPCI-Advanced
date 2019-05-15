@@ -57,6 +57,43 @@ libname out "&dataDir.\07 - Processed Data\Test";
 
 libname bench "R:\client work\CMS_PAC_Bundle_Processing\Benchmark Releases\v.201811";
 
+proc format; value $masked_id
+	'310008'='111111'
+	'310014'='222222'
+	'310022'='333333'
+	'310044'='444444'
+	'310047'='555555'
+	'310051'='666666'
+	'310060'='777777'
+	'310064'='888888'
+	'310086'='999999'
+	'310092'='111110'
+	'310110'='222221'
+	'310111'='333332'
+	'340001'='444443'
+	'340113'='555554'
+	'390012'='666665'
+	'390049'='777776'
+	'390115'='888887'
+	'390123'='999998'
+	'390127'='111109'
+	'390139'='222220'
+	'390153'='333331'
+	'390173'='444442'
+	'390174'='555553'
+	'390195'='666664'
+	'390203'='777775'
+	'390204'='888886'
+	'390222'='999997'
+	'390231'='111108'
+	'390258'='222219'
+	'390322'='333330'
+	'390324'='444441'
+	'223700669'='111111110'
+	'232856880'='222222221'
+	other='';
+run;
+
 ****** EXPORT INFO *****************************************************************************************;
 /*%let exportDir = R:\data\HIPAA\BPCIA_BPCI Advanced\80 - Qlikview\Outfiles;*/
 
@@ -397,14 +434,16 @@ run;
 		if BENE_GENDER0 = 'Female' then BENE_GENDER = 'L' ;
 		if BENE_GENDER0 = '-'      then BENE_GENDER = 'P' ;
 
-		if  BPID = "1111-0000"  then do; Anchor_Fac_Code_Name = 'Facility 1 (BPID 1111)'; EI_system_name = "Health System 1"; EI_facility_abbr = 'Facility 1 (BPID 1111)' ; end;
-		if  BPID = "2222-0000"  then do; Anchor_Fac_Code_Name = 'Facility 2 (BPID 2222)'; EI_system_name = "Health System 1"; EI_facility_abbr = 'Facility 2 (BPID 2222)' ; end;
-		if  BPID = "3333-0000"  then do; Anchor_Fac_Code_Name = 'Facility 3 (BPID 3333)'; EI_system_name = "Health System 1"; EI_facility_abbr = 'Facility 3 (BPID 3333)' ; end;
-		if  BPID = "4444-0000"  then do; Anchor_Fac_Code_Name = 'Facility 4 (BPID 4444)'; EI_system_name = "Health System 1"; EI_facility_abbr = 'Facility 4 (BPID 4444)' ; end;
-		if  BPID = "5555-0000"  then do; Anchor_Fac_Code_Name = 'Facility 5 (BPID 5555)'; EI_system_name = "Health System 1"; EI_facility_abbr = 'Facility 5 (BPID 5555)' ; end;
-		if  BPID = "6666-0000"  then do; Anchor_Fac_Code_Name = 'Facility 6 (BPID 6666)'; EI_system_name = "Health System 1"; EI_facility_abbr = 'Facility 6 (BPID 6666)' ; end;
-		if  BPID = "7777-0000"  then do; Anchor_Fac_Code_Name = 'Facility 7 (BPID 7777)'; EI_system_name = "Health System 1"; EI_facility_abbr = 'Facility 7 (BPID 7777)' ; end;
-		if  BPID = "8888-0000"  then do; Anchor_Fac_Code_Name = 'Facility 8 (BPID 8888)'; EI_system_name = "Health System 1"; EI_facility_abbr = 'Facility 8 (BPID 8888)' ; end;
+		anchor_ccn=put(anchor_ccn,$masked_id.) ;
+
+		if  BPID = "1111-0000"  then do; EI_system_name = "Health System 1"; EI_facility_abbr = 'EI 1 (1111-0000)' ; end;
+		if  BPID = "2222-0000"  then do; EI_system_name = "Health System 1"; EI_facility_abbr = 'EI 2 (2222-0000)' ; end;
+		if  BPID = "3333-0000"  then do; EI_system_name = "Health System 1"; EI_facility_abbr = 'EI 3 (3333-0000)' ; end;
+		if  BPID = "4444-0000"  then do; EI_system_name = "Health System 2"; EI_facility_abbr = 'EI 4 (4444-0000)' ; end;
+		if  BPID = "5555-0000"  then do; EI_system_name = "Health System 2"; EI_facility_abbr = 'EI 5 (5555-0000)' ; end;
+		if  BPID = "6666-0000"  then do; EI_system_name = "Health System 2"; EI_facility_abbr = 'EI 6 (6666-0000)' ; end;
+		if  BPID = "7777-0000"  then do; EI_system_name = "Health System 3"; EI_facility_abbr = 'EI 7 (7777-0000)' ; end;
+		if  BPID = "8888-0000"  then do; EI_system_name = "Health System 3"; EI_facility_abbr = 'EI 8 (8888-0000)' ; end;
 
 		BPID_ClinicalEp = strip(BPID)||" - "||strip(clinical_episode_abbr);
 		BPID_ClinicalEp_ccn = strip(BPID)||" - "||strip(clinical_episode_abbr)||" - "||strip(anchor_ccn);
@@ -419,6 +458,9 @@ run;
 	if month(ANCHOR_BEG_DT) < 10 then Anchor_YearMo=put(year(ANCHOR_BEG_DT), 4.)||'M0'||strip(month(ANCHOR_BEG_DT)) ;
 	else Anchor_YearMo = put(year(ANCHOR_BEG_DT), 4.)||' M'||strip(month(ANCHOR_BEG_DT)) ;
 
+	if month(epi_end_date) < 10 then Episode_End_YearMo=put(year(epi_end_date), 4.)||'M0'||strip(month(epi_end_date)) ;
+	else Episode_End_YearMo = put(year(epi_end_date),4.)||'M'||strip(month(epi_end_date)) ;
+
 	increment = ANCHOR_BEG_DT - ANCHOR_BEG_DT0 ;
 
 	%date (ANCHOR_END_DT) ;
@@ -426,6 +468,7 @@ run;
 	%date (BENE_BIRTH_DT) ;
 	%date (T0_IP_IDX_STARTDATE) ;
 	%date (T0_IP_IDX_ENDDATE) ;
+	%date (epi_end_date) ;
 
 	%date (T1_IP_A_FAC_STARTDATE) ;
 	%date (T12_IP_A_FAC_STARTDATE) ;
@@ -575,14 +618,14 @@ run;
 		if BENE_GENDER0 = 'Female' then BENE_GENDER = 'A' ;
 		if BENE_GENDER0 = '-'      then BENE_GENDER = 'L' ;
 
-		if  BPID = "1111-0000"  then do; Anchor_Fac_Code_Name = 'Facility 1 (BPID 1111)'; end ;
-		if  BPID = "2222-0000"  then do; Anchor_Fac_Code_Name = 'Facility 2 (BPID 2222)'; end ;
-		if  BPID = "3333-0000"  then do; Anchor_Fac_Code_Name = 'Facility 3 (BPID 3333)'; end ;
-		if  BPID = "4444-0000"  then do; Anchor_Fac_Code_Name = 'Facility 4 (BPID 4444)'; end ;
-		if  BPID = "5555-0000"  then do; Anchor_Fac_Code_Name = 'Facility 5 (BPID 5555)'; end ;
-		if  BPID = "6666-0000"  then do; Anchor_Fac_Code_Name = 'Facility 6 (BPID 6666)'; end ;
-		if  BPID = "7777-0000"  then do; Anchor_Fac_Code_Name = 'Facility 7 (BPID 7777)'; end ;
-		if  BPID = "8888-0000"  then do; Anchor_Fac_Code_Name = 'Facility 8 (BPID 8888)'; end ;
+		if  BPID = "1111-0000"  then do; EI_system_name = "Health System 1"; end ;
+		if  BPID = "2222-0000"  then do; EI_system_name = "Health System 1"; end ;
+		if  BPID = "3333-0000"  then do; EI_system_name = "Health System 1"; end ;
+		if  BPID = "4444-0000"  then do; EI_system_name = "Health System 2"; end ;
+		if  BPID = "5555-0000"  then do; EI_system_name = "Health System 2"; end ;
+		if  BPID = "6666-0000"  then do; EI_system_name = "Health System 2"; end ;
+		if  BPID = "7777-0000"  then do; EI_system_name = "Health System 3"; end ;
+		if  BPID = "8888-0000"  then do; EI_system_name = "Health System 3"; end ;
 
 		BPID_ClinicalEp = strip(BPID)||" - "||strip(clinical_episode_abbr);
 		BPID_ClinicalEp_ccn = strip(BPID)||" - "||strip(clinical_episode_abbr)||" - "||strip(anchor_ccn);
