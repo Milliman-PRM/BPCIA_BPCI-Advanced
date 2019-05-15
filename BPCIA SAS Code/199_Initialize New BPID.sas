@@ -31,9 +31,12 @@ libname bpcia 'H:\Nonclient\Medicare Bundled Payment Reference\Program - BPCIA\S
 	%mend;
 	%LOOP(y201810);
 	%LOOP(y201811);
+	%LOOP(y201812);
+	%LOOP(y201901);
+	%LOOP(y201902);
 
 %mend;
 
-%runhosp(1907_0000,5746_0001,5746,0002,100007);
+%runhosp(1191_0001,1191_0001,1191,0002,61440790);
 
 
