@@ -3762,7 +3762,7 @@ data episode_detail_15 (rename = (counter2=episode_index));
 run;
 
 data out.epi_idx_&label._&bpid1._&bpid2.;
-	set out.epi_detail_&label._&bpid1._&bpid2. (keep=bpid epi_id_milliman MBI_ID counter episode_index anchor_beg_dt anchor_end_dt);
+	set episode_detail_15 (keep=bpid epi_id_milliman MBI_ID counter episode_index anchor_beg_dt anchor_end_dt);
 	format recent_label $10.; length recent_label $10;
 	recent_label = "&label.";
 run;
