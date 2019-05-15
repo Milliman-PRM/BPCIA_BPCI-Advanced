@@ -488,9 +488,9 @@ run;
 	%date (T4_IP_O_FAC_ENDDATE) ;
 
 	%date (T1_SNF1_STARTDATE) ;
-	%date (T12_SNF1_STARTDATE) ;
+	%date (T12_SNF_STARTDATE) ;
 	%date (T2_SNF1_STARTDATE) ;
-	%date (T3_SNF_STARTDATE) ;
+	%date (T3_SNF1_STARTDATE) ;
 	%date (T4_SNF_STARTDATE) ;
 
 	%date (T1_SNF1_ENDDATE) ;
@@ -557,9 +557,8 @@ run;
 %if &file = exclusions %then %do;
 
 /*SM 05072019 SCRAMBLING UPDATE*/
-		format ANCHOR_BEG_DT0 BENE_BIRTH_DT0 mmddyy10. ;
+		format ANCHOR_BEG_DT0 mmddyy10. ;
 		ANCHOR_BEG_DT0=ANCHOR_BEG_DT ;
-		BENE_BIRTH_DT0=BENE_BIRTH_DT ;
 		BENE_GENDER0=BENE_GENDER ;	
 /*SM 20190506 Scrambling Update*/
 
@@ -594,22 +593,16 @@ run;
 	ANCHOR_BEG_DT=intnx('year',intnx('day', ANCHOR_BEG_DT0, floor(ranuni(7)*60)),10,'sameday') ;
 	Anchor_Year=put(year(ANCHOR_BEG_DT),4.) ;
 	Anchor_YearQtr = put(year(ANCHOR_BEG_DT), 4.)||' Q'||strip(qtr(ANCHOR_BEG_DT));
-    BENE_BIRTH_DT=intnx('year',intnx('day', BENE_BIRTH_DT0,floor(ranuni(7)*60)),10,'sameday');
+/*    BENE_BIRTH_DT=intnx('year',intnx('day', BENE_BIRTH_DT0,floor(ranuni(7)*60)),10,'sameday');*/
 
 	if month(ANCHOR_BEG_DT) < 10 then Anchor_YearMo=put(year(ANCHOR_BEG_DT), 4.)||'M0'||strip(month(ANCHOR_BEG_DT)) ;
 	else Anchor_YearMo = put(year(ANCHOR_BEG_DT), 4.)||' M'||strip(month(ANCHOR_BEG_DT)) ;
 
 	increment = ANCHOR_BEG_DT - ANCHOR_BEG_DT0 ;
 
-		%macro date(date);
-
-			&date. = &date.0 + increment;
-
-		%mend date;
-
-		%date(BENE_BIRTH_DT);
-		%date(BENE_DEATH_DT);
-		%date(ANCHOR_END_DT);
+	%date(BENE_BIRTH_DT);
+	%date(BENE_DEATH_DT);
+	%date(ANCHOR_END_DT);
 
 /*SM 05072019 SCRAMBLING UPDATE*/
 
