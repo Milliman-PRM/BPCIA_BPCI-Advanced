@@ -3749,7 +3749,7 @@ proc sort data = episode_detail_14 out = episode_detail_14a; by epi_id_milliman 
 ******* NEW EPISODE INDEX CREATION - RUN ONCE FOR FIRST TIME RUN ONLY ************************************;
 %macro epi_idx_first;
 
-data out.epi_detail_&label._&bpid1._&bpid2. (rename = (counter2=episode_index));
+data episode_detail_15 (rename = (counter2=episode_index));
 	set episode_detail_14a;
 	format counter2 $20.; length counter2 $20;
 	counter + 1;
@@ -3762,7 +3762,7 @@ data out.epi_detail_&label._&bpid1._&bpid2. (rename = (counter2=episode_index));
 run;
 
 data out.epi_idx_&label._&bpid1._&bpid2.;
-	set out.epi_detail_&label._&bpid1._&bpid2. (keep=bpid epi_id_milliman MBI_ID counter episode_index anchor_beg_dt anchor_end_dt);
+	set episode_detail_15 (keep=bpid epi_id_milliman MBI_ID counter episode_index anchor_beg_dt anchor_end_dt);
 	format recent_label $10.; length recent_label $10;
 	recent_label = "&label.";
 run;
