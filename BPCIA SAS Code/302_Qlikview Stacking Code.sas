@@ -94,6 +94,42 @@ proc format; value $masked_id
 	other='';
 run;
 
+proc format; value masked_id_num
+	310008=111111
+	310014=222222
+	310022=333333
+	310044=444444
+	310047=555555
+	310051=666666
+	310060=777777
+	310064=888888
+	310086=999999
+	310092=111110
+	310110=222221
+	310111=333332
+	340001=444443
+	340113=555554
+	390012=666665
+	390049=777776
+	390115=888887
+	390123=999998
+	390127=111109
+	390139=222220
+	390153=333331
+	390173=444442
+	390174=555553
+	390195=666664
+	390203=777775
+	390204=888886
+	390222=999997
+	390231=111108
+	390258=222219
+	390322=333330
+	390324=444441
+	223700669=111111110
+	232856880=222222221
+	other=.;
+run;
 ****** EXPORT INFO *****************************************************************************************;
 /*%let exportDir = R:\data\HIPAA\BPCIA_BPCI Advanced\80 - Qlikview\Outfiles;*/
 
@@ -619,7 +655,7 @@ run;
 		if BENE_GENDER0 = 'Female' then BENE_GENDER = 'A' ;
 		if BENE_GENDER0 = '-'      then BENE_GENDER = 'L' ;
 
-		anchor_ccn=put(anchor_ccn,$masked_id.) ;
+		anchor_ccn=put(anchor_ccn,masked_id_num.) ;
 
 
 		BPID_ClinicalEp = strip(BPID)||" - "||strip(clinical_episode_abbr);
