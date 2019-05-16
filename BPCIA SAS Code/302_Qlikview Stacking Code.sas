@@ -436,14 +436,14 @@ run;
 
 		anchor_ccn=put(anchor_ccn,$masked_id.) ;
 
-		if  BPID = "1111-0000"  then do; EI_system_name = "Health System 1"; EI_facility_abbr = 'EI 1 (1111-0000)' ; end;
-		if  BPID = "2222-0000"  then do; EI_system_name = "Health System 1"; EI_facility_abbr = 'EI 2 (2222-0000)' ; end;
-		if  BPID = "3333-0000"  then do; EI_system_name = "Health System 1"; EI_facility_abbr = 'EI 3 (3333-0000)' ; end;
-		if  BPID = "4444-0000"  then do; EI_system_name = "Health System 2"; EI_facility_abbr = 'EI 4 (4444-0000)' ; end;
-		if  BPID = "5555-0000"  then do; EI_system_name = "Health System 2"; EI_facility_abbr = 'EI 5 (5555-0000)' ; end;
-		if  BPID = "6666-0000"  then do; EI_system_name = "Health System 2"; EI_facility_abbr = 'EI 6 (6666-0000)' ; end;
-		if  BPID = "7777-0000"  then do; EI_system_name = "Health System 3"; EI_facility_abbr = 'EI 7 (7777-0000)' ; end;
-		if  BPID = "8888-0000"  then do; EI_system_name = "Health System 3"; EI_facility_abbr = 'EI 8 (8888-0000)' ; end;
+		if  BPID = "1111-0000"  then do; Episode_Initiator_Use = "Episode Initiator 1 (1111-0000)" ;EI_system_name = "Health System 1"; EI_facility_abbr = 'EI 1 (1111-0000)' ; end;
+		if  BPID = "2222-0000"  then do; Episode_Initiator_Use = "Episode Initiator 2 (2222-0000)" ;EI_system_name = "Health System 1"; EI_facility_abbr = 'EI 2 (2222-0000)' ; end;
+		if  BPID = "3333-0000"  then do; Episode_Initiator_Use = "Episode Initiator 3 (3333-0000)" ;EI_system_name = "Health System 1"; EI_facility_abbr = 'EI 3 (3333-0000)' ; end;
+		if  BPID = "4444-0000"  then do; Episode_Initiator_Use = "Episode Initiator 4 (4444-0000)" ;EI_system_name = "Health System 2"; EI_facility_abbr = 'EI 4 (4444-0000)' ; end;
+		if  BPID = "5555-0000"  then do; Episode_Initiator_Use = "Episode Initiator 5 (5555-0000)" ;EI_system_name = "Health System 2"; EI_facility_abbr = 'EI 5 (5555-0000)' ; end;
+		if  BPID = "6666-0000"  then do; Episode_Initiator_Use = "Episode Initiator 6 (6666-0000)" ;EI_system_name = "Health System 2"; EI_facility_abbr = 'EI 6 (6666-0000)' ; end;
+		if  BPID = "7777-0000"  then do; Episode_Initiator_Use = "Episode Initiator 7 (7777-0000)" ;EI_system_name = "Health System 3"; EI_facility_abbr = 'EI 7 (7777-0000)' ; end;
+		if  BPID = "8888-0000"  then do; Episode_Initiator_Use = "Episode Initiator 8 (8888-0000)" ;EI_system_name = "Health System 3"; EI_facility_abbr = 'EI 8 (8888-0000)' ; end;
 
 		BPID_ClinicalEp = strip(BPID)||" - "||strip(clinical_episode_abbr);
 		BPID_ClinicalEp_ccn = strip(BPID)||" - "||strip(clinical_episode_abbr)||" - "||strip(anchor_ccn);
@@ -458,9 +458,6 @@ run;
 	if month(ANCHOR_BEG_DT) < 10 then Anchor_YearMo=put(year(ANCHOR_BEG_DT), 4.)||'M0'||strip(month(ANCHOR_BEG_DT)) ;
 	else Anchor_YearMo = put(year(ANCHOR_BEG_DT), 4.)||' M'||strip(month(ANCHOR_BEG_DT)) ;
 
-	if month(epi_end_date) < 10 then Episode_End_YearMo=put(year(epi_end_date), 4.)||'M0'||strip(month(epi_end_date)) ;
-	else Episode_End_YearMo = put(year(epi_end_date),4.)||'M'||strip(month(epi_end_date)) ;
-
 	increment = ANCHOR_BEG_DT - ANCHOR_BEG_DT0 ;
 
 	%date (ANCHOR_END_DT) ;
@@ -469,6 +466,10 @@ run;
 	%date (T0_IP_IDX_STARTDATE) ;
 	%date (T0_IP_IDX_ENDDATE) ;
 	%date (epi_end_date) ;
+
+	if month(epi_end_date) < 10 then Episode_End_YearMo=put(year(epi_end_date), 4.)||'M0'||strip(month(epi_end_date)) ;
+	else Episode_End_YearMo = put(year(epi_end_date),4.)||'M'||strip(month(epi_end_date)) ;
+
 
 	%date (T1_IP_A_FAC_STARTDATE) ;
 	%date (T12_IP_A_FAC_STARTDATE) ;
@@ -618,14 +619,8 @@ run;
 		if BENE_GENDER0 = 'Female' then BENE_GENDER = 'A' ;
 		if BENE_GENDER0 = '-'      then BENE_GENDER = 'L' ;
 
-		if  BPID = "1111-0000"  then do; EI_system_name = "Health System 1"; end ;
-		if  BPID = "2222-0000"  then do; EI_system_name = "Health System 1"; end ;
-		if  BPID = "3333-0000"  then do; EI_system_name = "Health System 1"; end ;
-		if  BPID = "4444-0000"  then do; EI_system_name = "Health System 2"; end ;
-		if  BPID = "5555-0000"  then do; EI_system_name = "Health System 2"; end ;
-		if  BPID = "6666-0000"  then do; EI_system_name = "Health System 2"; end ;
-		if  BPID = "7777-0000"  then do; EI_system_name = "Health System 3"; end ;
-		if  BPID = "8888-0000"  then do; EI_system_name = "Health System 3"; end ;
+		anchor_ccn=put(anchor_ccn,$masked_id.) ;
+
 
 		BPID_ClinicalEp = strip(BPID)||" - "||strip(clinical_episode_abbr);
 		BPID_ClinicalEp_ccn = strip(BPID)||" - "||strip(clinical_episode_abbr)||" - "||strip(anchor_ccn);
