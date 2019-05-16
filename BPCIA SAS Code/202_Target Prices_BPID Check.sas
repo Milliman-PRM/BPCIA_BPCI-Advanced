@@ -14,15 +14,32 @@ options mprint;
 
 
 proc printto;run;
-proc printto log="H:\BPCIA_BPCI Advanced\50 - BPCI Advanced Ongoing Reporting - 2019\Work Papers\SAS\logs\202 - Target Prices_&label._&sysdate._BPID Check.log" print=print new;
+proc printto log="H:\BPCIA_BPCI Advanced\50 - BPCI Advanced Ongoing Reporting - 2019\Work Papers\SAS\logs\202 - Target Prices Check_&sysdate._BPID Check.log" print=print new;
 run;
 
 %let dataDir = R:\data\HIPAA\BPCIA_BPCI Advanced;
 libname in "&dataDir.\06 - Imported Raw Data";
-libname out "&dataDir.\07 - Processed Data";
+/*libname out "&dataDir.\07 - Processed Data";*/
 libname tp "&dataDir.\08 - Target Price Data";
 
 libname ref "H:\Nonclient\Medicare Bundled Payment Reference\General\SAS Datasets" ;
+
+%let mode = main; *main = main interface, base = baseline interface;
+
+%macro modesetup;
+%if &mode.=main %then %do;
+libname out "&dataDir.\07 - Processed Data";
+proc printto log="H:\BPCIA_BPCI Advanced\50 - BPCI Advanced Ongoing Reporting - 2019\Work Papers\SAS\logs\202 - Target Prices Check_&sysdate..log" print=print new;
+run;
+%end;
+%else %if &mode.=base %then %do;
+libname out "&dataDir.\07 - Processed Data\Baseline Interface Demo";
+proc printto log="H:\BPCIA_BPCI Advanced\50 - BPCI Advanced Ongoing Reporting - 2019\Work Papers\SAS\logs\202 - Baseline Target Prices Check_&sysdate..log" print=print new;
+run;
+%end;
+%mend modesetup;
+
+%modesetup;
 
 data test01;
 	set in.epi_ybase:;
@@ -137,27 +154,52 @@ proc sql;
 	order by Epi_Year, Epi_Qtr;
 quit;
 
+%MACRO EXPORT;
+%if &mode.=main %then %do;
+	proc export data= PCMA_Check
+	            outfile= "R:\data\HIPAA\BPCIA_BPCI Advanced\08 - Target Price Data\Checks\TP PCMA Check.csv"
+	            dbms=csv replace; 
+	run;
 
-proc export data= PCMA_Check
-            outfile= "R:\data\HIPAA\BPCIA_BPCI Advanced\08 - Target Price Data\Checks\TP PCMA Check.csv"
-            dbms=csv replace; 
-run;
+	proc export data= Target_Price_Check
+	            outfile= "R:\data\HIPAA\BPCIA_BPCI Advanced\08 - Target Price Data\Checks\TP Price Check.csv"
+	            dbms=csv replace; 
+	run;
 
-proc export data= Target_Price_Check
-            outfile= "R:\data\HIPAA\BPCIA_BPCI Advanced\08 - Target Price Data\Checks\TP Price Check.csv"
-            dbms=csv replace; 
-run;
+	proc export data= PAT_Check
+	            outfile= "R:\data\HIPAA\BPCIA_BPCI Advanced\08 - Target Price Data\Checks\TP PAT Check.csv"
+	            dbms=csv replace; 
+	run;
 
-proc export data= PAT_Check
-            outfile= "R:\data\HIPAA\BPCIA_BPCI Advanced\08 - Target Price Data\Checks\TP PAT Check.csv"
-            dbms=csv replace; 
-run;
+	proc export data= All_PCMA_Check
+	            outfile= "R:\data\HIPAA\BPCIA_BPCI Advanced\08 - Target Price Data\Checks\TP PCMA Trend Check.csv"
+	            dbms=csv replace; 
+	run;
+%end;
+%else %if &mode.=base %then %do;
+	proc export data= PCMA_Check
+	            outfile= "R:\data\HIPAA\BPCIA_BPCI Advanced\08 - Target Price Data\Checks\Baseline TP PCMA Check.csv"
+	            dbms=csv replace; 
+	run;
 
-proc export data= All_PCMA_Check
-            outfile= "R:\data\HIPAA\BPCIA_BPCI Advanced\08 - Target Price Data\Checks\TP PCMA Trend Check.csv"
-            dbms=csv replace; 
-run;
+	proc export data= Target_Price_Check
+	            outfile= "R:\data\HIPAA\BPCIA_BPCI Advanced\08 - Target Price Data\Checks\Baseline TP Price Check.csv"
+	            dbms=csv replace; 
+	run;
 
+	proc export data= PAT_Check
+	            outfile= "R:\data\HIPAA\BPCIA_BPCI Advanced\08 - Target Price Data\Checks\Baseline TP PAT Check.csv"
+	            dbms=csv replace; 
+	run;
+
+	proc export data= All_PCMA_Check
+	            outfile= "R:\data\HIPAA\BPCIA_BPCI Advanced\08 - Target Price Data\Checks\Baseline TP PCMA Trend Check.csv"
+	            dbms=csv replace; 
+	run;
+%end;
+%mend EXPORT;
+
+%EXPORT;
 
 proc printto;run;
 %let _edtm=%sysfunc(datetime());
