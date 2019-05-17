@@ -7,13 +7,14 @@ Code to calculate the use of target price variables
 *********************************************************;
 options mprint;
 
+***** USER INPUTS ******************************************************************************************;
+%let mode = main; *main = main interface, base = baseline interface;
 
-%let label = y201903;
+%let label = y201904;
 
 
 proc printto;run;
-proc printto log="R:\data\HIPAA\BPCIA_BPCI Advanced\88 - Documentation\50 - BPCI Advanced 2019\Checking Documentation\_Data Summary\TP Variables Clinical Epi Use_&label._&sysdate..log" print=print new;
-run;
+
 
 ****** REFERENCE PROGRAMS ***********************************************************************************;
 %include "H:\_HealthLibrary\SAS\000 - General SAS Macros.sas";
@@ -26,11 +27,25 @@ run;
 
 ****** LIBRARY ASSIGNMENTS **********************************************************************************;
 %let dataDir = R:\data\HIPAA\BPCIA_BPCI Advanced;
-libname out "&dataDir.\07 - Processed Data";
-libname out2 "&dataDir.\07 - Processed Data\Output";
+/*libname out "&dataDir.\07 - Processed Data";*/
 libname tp "&dataDir.\08 - Target Price Data";
 
 libname ref "H:\Nonclient\Medicare Bundled Payment Reference\Program - BPCIA\SAS Datasets" ;
+
+%macro modesetup;
+%if &mode.=main %then %do;
+libname out "&dataDir.\07 - Processed Data\";
+proc printto log="R:\data\HIPAA\BPCIA_BPCI Advanced\88 - Documentation\50 - BPCI Advanced 2019\Checking Documentation\_Data Summary\TP Variables Epi Use_&label._&sysdate..log" print=print new;
+run;
+%end;
+%else %if &mode.=base %then %do;
+libname out "&dataDir.\07 - Processed Data\Baseline Interface Demo";
+proc printto log="R:\data\HIPAA\BPCIA_BPCI Advanced\88 - Documentation\50 - BPCI Advanced 2019\Checking Documentation\_Data Summary\Baseline TP Variables Epi Use_&label._&sysdate..log" print=print new;
+run;
+%end;
+%mend modesetup;
+
+%modesetup;
 
 
 data baseline;
@@ -251,11 +266,22 @@ proc sql;
 quit;
 
 
-proc export data= sasout
-            outfile= "R:\data\HIPAA\BPCIA_BPCI Advanced\88 - Documentation\50 - BPCI Advanced 2019\Checking Documentation\_Data Summary\sasout_TP Variable Clinical Epi Use_&label._&sysdate..csv"
-            dbms=csv replace; 
-run;
+%MACRO EXPORT;
+%if &mode.=main %then %do;
+	proc export data= sasout
+	    outfile= "R:\data\HIPAA\BPCIA_BPCI Advanced\88 - Documentation\50 - BPCI Advanced 2019\Checking Documentation\_Data Summary\sasout_TP Variable Epi Use_&label._&sysdate..csv"
+	    dbms=csv replace; 
+	run;
+%end;
+%else %if &mode.=base %then %do;
+	proc export data= sasout
+	    outfile= "R:\data\HIPAA\BPCIA_BPCI Advanced\88 - Documentation\50 - BPCI Advanced 2019\Checking Documentation\_Data Summary\sasout_Baseline TP Variable Epi Use_&label._&sysdate..csv"
+	    dbms=csv replace; 
+	run;
+%end;
+%mend EXPORT;
 
+%EXPORT;
 
 proc printto;run;
 %let _edtm=%sysfunc(datetime());
