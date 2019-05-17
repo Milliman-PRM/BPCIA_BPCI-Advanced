@@ -8,8 +8,12 @@ Code to calculate target prices
 options mprint;
 
 proc printto;run;
-proc printto log="H:\BPCIA_BPCI Advanced\50 - BPCI Advanced Ongoing Reporting - 2019\Work Papers\SAS\logs\201 - Target Prices_&sysdate..log" print=print new;
-run;
+
+***** USER INPUTS ******************************************************************************************;
+%let mode = main; *main = main interface, base = baseline interface;
+
+%let transmit_date = '19APR2019'd; *Change for every Update*;
+
 
 ****** REFERENCE PROGRAMS ***********************************************************************************;
 %include "H:\_HealthLibrary\SAS\000 - General SAS Macros.sas";
@@ -22,13 +26,29 @@ run;
 
 ****** LIBRARY ASSIGNMENTS **********************************************************************************;
 %let dataDir = R:\data\HIPAA\BPCIA_BPCI Advanced;
-libname out "&dataDir.\07 - Processed Data";
-libname out2 "&dataDir.\07 - Processed Data\Output";
+/*libname out "&dataDir.\07 - Processed Data";*/
+/*libname out2 "&dataDir.\07 - Processed Data\Output";*/
 libname tp "&dataDir.\08 - Target Price Data";
 
 libname ref "H:\Nonclient\Medicare Bundled Payment Reference\Program - BPCIA\SAS Datasets" ;
 
-%let transmit_date = '04APR2019'd; *Change for every Update*;
+
+%macro modesetup;
+%if &mode.=main %then %do;
+libname out "&dataDir.\07 - Processed Data\";
+libname out2 "&dataDir.\07 - Processed Data\Output";
+proc printto log="H:\BPCIA_BPCI Advanced\50 - BPCI Advanced Ongoing Reporting - 2019\Work Papers\SAS\logs\201 - Target Prices_&sysdate..log" print=print new;
+run;
+%end;
+%else %if &mode.=base %then %do;
+libname out "&dataDir.\07 - Processed Data\Baseline Interface Demo";
+libname out2 "&dataDir.\07 - Processed Data\Baseline Interface Demo\Output";
+proc printto log="H:\BPCIA_BPCI Advanced\50 - BPCI Advanced Ongoing Reporting - 2019\Work Papers\SAS\logs\201 - Baseline Target Prices_&sysdate..log" print=print new;
+run;
+%end;
+%mend modesetup;
+
+%modesetup;
 
 
 ********************
@@ -1762,15 +1782,6 @@ run;
 %runhosp(2587_0000,2587_0000,2587,0000,310014);
 %runhosp(2607_0000,2607_0000,2607,0000,223700669);
 %runhosp(1931_0001,5479_0001,5479,0002,310051);
-
-
-%runhosp(1032_0000,1032_0000,1032,0000,260886056);
-%runhosp(1075_0000,1075_0000,1075,0000,360133);
-%runhosp(1125_0000,1125_0000,1125,0000,070025);
-%runhosp(1167_0000,1167_0000,1167,0000,390173);
-%runhosp(1148_0000,1148_0000,1148,0000,310008);
-
-%runhosp(1374_0001,1374_0001,1374,0004,420078);
 */
 
 %runhosp(1125_0000,1125_0000,1125,0000,070025);
@@ -1869,7 +1880,7 @@ run;
 %MEND TP;
 
 %TP(ybase);
-%TP(y201903);
+%TP(y201904);
 
 data All_Target_Prices;
 	format BPID EPI_ID_MILLIMAN EPISODE_ID EPISODE_INITIATOR EPISODE_GROUP_NAME ANCHOR_TYPE ANCHOR_CODE ANCHOR_CCN
@@ -1917,29 +1928,61 @@ data All_Target_Prices_1 All_Target_Prices_Premier All_Target_Prices_NonPremier 
 	if BPID in (&PMR_EI_lst.) then output All_Target_Prices_Premier;
 	else if BPID in (&NON_PMR_EI_lst.) then output All_Target_Prices_NonPremier;
 	else if BPID in (&CCF_lst.) then output All_Target_Prices_CCF;
+
 run;
-/*
-proc export data= All_Target_Prices
-            outfile= "R:\data\HIPAA\BPCIA_BPCI Advanced\08 - Target Price Data\Target Prices.csv"
-            dbms=csv replace; 
-run;
-*/
-proc export data= All_Target_Prices_1
-            outfile= "R:\data\HIPAA\BPCIA_BPCI Advanced\08 - Target Price Data\Target Prices_1.csv"
-            dbms=csv replace; 
-run;
-proc export data= All_Target_Prices_Premier
-            outfile= "R:\data\HIPAA\BPCIA_BPCI Advanced\08 - Target Price Data\Target Prices_Premier.csv"
-            dbms=csv replace; 
-run;
-proc export data= All_Target_Prices_NonPremier
-            outfile= "R:\data\HIPAA\BPCIA_BPCI Advanced\08 - Target Price Data\Target Prices_Non-Premier.csv"
-            dbms=csv replace; 
-run;
-proc export data= All_Target_Prices_CCF
-            outfile= "R:\data\HIPAA\BPCIA_BPCI Advanced\08 - Target Price Data\Target Prices_CCF.csv"
-            dbms=csv replace; 
-run;
+
+%MACRO EXPORT;
+%if &mode.=main %then %do;
+	/*
+	proc export data= All_Target_Prices
+	            outfile= "R:\data\HIPAA\BPCIA_BPCI Advanced\08 - Target Price Data\Target Prices.csv"
+	            dbms=csv replace; 
+	run;
+	*/
+	proc export data= All_Target_Prices_1
+	            outfile= "R:\data\HIPAA\BPCIA_BPCI Advanced\08 - Target Price Data\Target Prices_1.csv"
+	            dbms=csv replace; 
+	run;
+	proc export data= All_Target_Prices_Premier
+	            outfile= "R:\data\HIPAA\BPCIA_BPCI Advanced\08 - Target Price Data\Target Prices_Premier.csv"
+	            dbms=csv replace; 
+	run;
+	proc export data= All_Target_Prices_NonPremier
+	            outfile= "R:\data\HIPAA\BPCIA_BPCI Advanced\08 - Target Price Data\Target Prices_Non-Premier.csv"
+	            dbms=csv replace; 
+	run;
+	proc export data= All_Target_Prices_CCF
+	            outfile= "R:\data\HIPAA\BPCIA_BPCI Advanced\08 - Target Price Data\Target Prices_CCF.csv"
+	            dbms=csv replace; 
+	run;
+%end;
+%else %if &mode.=base %then %do;
+	/*
+	proc export data= All_Target_Prices
+	            outfile= "R:\data\HIPAA\BPCIA_BPCI Advanced\08 - Target Price Data\Baseline Target Prices.csv"
+	            dbms=csv replace; 
+	run;
+	*/
+	proc export data= All_Target_Prices_1
+	            outfile= "R:\data\HIPAA\BPCIA_BPCI Advanced\08 - Target Price Data\Baseline Target Prices_1.csv"
+	            dbms=csv replace; 
+	run;
+	proc export data= All_Target_Prices_Premier
+	            outfile= "R:\data\HIPAA\BPCIA_BPCI Advanced\08 - Target Price Data\Baseline Target Prices_Premier.csv"
+	            dbms=csv replace; 
+	run;
+	proc export data= All_Target_Prices_NonPremier
+	            outfile= "R:\data\HIPAA\BPCIA_BPCI Advanced\08 - Target Price Data\Baseline Target Prices_Non-Premier.csv"
+	            dbms=csv replace; 
+	run;
+	proc export data= All_Target_Prices_CCF
+	            outfile= "R:\data\HIPAA\BPCIA_BPCI Advanced\08 - Target Price Data\Baseline Target Prices_CCF.csv"
+	            dbms=csv replace; 
+	run;
+%end;
+%mend EXPORT;
+
+%EXPORT;
 
 
 proc printto;run;

@@ -16,7 +16,7 @@ Generate Hospital Data from:
 options mprint mlogic spool;
 
 ****** USER INPUTS **********************************************************************************;
-%let dte = 201903;
+%let dte = 201904;
 
 %let label = y&dte.; 
 %let pth =R:\data\HIPAA\BPCIA_BPCI Advanced\02 - Performance Data\Data &dte. ;
