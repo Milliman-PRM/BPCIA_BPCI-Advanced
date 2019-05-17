@@ -1155,7 +1155,7 @@ create table Episode_Detail_7 as
 			%end;
 			%else %do;
 			,"PERF" as period
-			,"Performance - Year 1" as timeframe_filter format = $100. length=100
+			,"Performance Period 1" as timeframe_filter format = $100. length=100
 			%end;
 			,case when (&transmit_date. - b.POST_DSCH_END_DT) >= 60 then "Yes" else "No" end as COMP_EP_FLAG
 			,b.POST_DSCH_END_DT as epi_end_date
