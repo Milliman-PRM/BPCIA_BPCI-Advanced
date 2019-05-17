@@ -145,7 +145,7 @@ run;
 	data out.all_&file._1 out.all_&file._2 check_&file.;
 		set out.all_&file.;
 		if BPID in (&PMR_EI_lst.,&NON_PMR_EI_lst.) then output out.all_&file._1;
-		else if BPID in (&BASELINE_lst.) then output out.all_&file._2;
+		else if BPID in (&CCF_lst.) then output out.all_&file._2;
 		else output check_&file.;
 	run;
 
@@ -484,7 +484,7 @@ run;
 		%end;
 
 		%if &name = CCF %then %do;
-		where BPID in (&BASELINE_lst.) ; 
+		where BPID in (&CCF_lst.) ; 
 		%end ;
 		%else %if &name = MIL %then %do ;
 		where BPID in (&NON_PMR_EI_lst.) ; 
