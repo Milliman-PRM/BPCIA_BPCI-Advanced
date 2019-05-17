@@ -324,7 +324,7 @@ Step 3 - out tables, limit TP_Components to BPIDs in the Data Tracker, and expor
 			set out.&table._all;
 			if initiator_bpid in (&PMR_EI_lst.) then output out.&table._pmr;
 			else if initiator_bpid in (&NON_PMR_EI_lst.) then output out.&table._oth;
-			else if initiator_bpid in (&BASELINE_lst.) then output out.&table._cc;
+			else if initiator_bpid in (&CCF_lst.) then output out.&table._ccf;
 
 			if initiator_bpid in (&PMR_EI_lst.) or initiator_bpid in (&NON_PMR_EI_lst.) then output out.&table._1;
 		run;
@@ -342,8 +342,8 @@ Step 3 - out tables, limit TP_Components to BPIDs in the Data Tracker, and expor
 			replace;
 		run;
 		proc export
-			data=out.&table._cc
-			outfile="R:\data\HIPAA\BPCIA_BPCI Advanced\08 - Target Price Data\&table._cc.csv"
+			data=out.&table._ccf
+			outfile="R:\data\HIPAA\BPCIA_BPCI Advanced\08 - Target Price Data\&table._ccf.csv"
 			dbms=CSV 
 			replace;
 		run;
