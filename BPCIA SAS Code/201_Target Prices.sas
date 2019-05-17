@@ -1909,14 +1909,14 @@ proc sql;
 	on a.BPID=b.BPID;
 quit;
 
-data All_Target_Prices_1 All_Target_Prices_Premier All_Target_Prices_NonPremier All_Target_Prices_Baseline;
+data All_Target_Prices_1 All_Target_Prices_Premier All_Target_Prices_NonPremier All_Target_Prices_CCF;
 	set All_Target_Prices;
 
 	if BPID in (&PMR_EI_lst.) or BPID in (&NON_PMR_EI_lst.) then output All_Target_Prices_1;
 
 	if BPID in (&PMR_EI_lst.) then output All_Target_Prices_Premier;
 	else if BPID in (&NON_PMR_EI_lst.) then output All_Target_Prices_NonPremier;
-	else if BPID in (&BASELINE_lst.) then output All_Target_Prices_Baseline;
+	else if BPID in (&CCF_lst.) then output All_Target_Prices_CCF;
 run;
 /*
 proc export data= All_Target_Prices
@@ -1936,8 +1936,8 @@ proc export data= All_Target_Prices_NonPremier
             outfile= "R:\data\HIPAA\BPCIA_BPCI Advanced\08 - Target Price Data\Target Prices_Non-Premier.csv"
             dbms=csv replace; 
 run;
-proc export data= All_Target_Prices_Baseline
-            outfile= "R:\data\HIPAA\BPCIA_BPCI Advanced\08 - Target Price Data\Target Prices_Baseline.csv"
+proc export data= All_Target_Prices_CCF
+            outfile= "R:\data\HIPAA\BPCIA_BPCI Advanced\08 - Target Price Data\Target Prices_CCF.csv"
             dbms=csv replace; 
 run;
 
