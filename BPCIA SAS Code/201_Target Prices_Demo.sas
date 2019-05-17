@@ -10,6 +10,10 @@ options mprint;
 
 proc printto;run;
 
+***** USER INPUTS ******************************************************************************************;
+%let mode = main; *main = main interface, base = baseline interface;
+
+
 ****** REFERENCE PROGRAMS ***********************************************************************************;
 %include "H:\_HealthLibrary\SAS\000 - General SAS Macros.sas";
 %include "H:\_HealthLibrary\SAS\000 - General SAS Macros_64bit.sas";
@@ -26,7 +30,6 @@ libname tp "&dataDir.\08 - Target Price Data";
 
 libname ref "H:\Nonclient\Medicare Bundled Payment Reference\General\SAS Datasets" ;
 
-%let mode = main; *main = main interface, base = baseline interface;
 
 %macro modesetup;
 %if &mode.=main %then %do;
@@ -95,16 +98,11 @@ run;
 %mend;
 
 %Period(ybase);
-%Period(y201903);
+%Period(y201904);
 
 
 data All_Target_Prices;
 	set out2.tp_: ;
-run;
-
-proc export data= All_Target_Prices
-            outfile= "R:\data\HIPAA\BPCIA_BPCI Advanced\08 - Target Price Data\Demo\Target Prices Demo_&sysdate..csv"
-            dbms=csv replace; 
 run;
 
 
@@ -113,10 +111,6 @@ data All_Target_Prices_Baseline;
 	if substr(EPI_ID_MILLIMAN,11,1) = 'B';
 run;
 
-proc export data= All_Target_Prices_Baseline
-            outfile= "R:\data\HIPAA\BPCIA_BPCI Advanced\08 - Target Price Data\Demo\Target Prices Base Demo_&sysdate..csv"
-            dbms=csv replace; 
-run;
 %MACRO EXPORT;
 %if &mode.=main %then %do;
 	proc export data= All_Target_Prices
@@ -124,8 +118,8 @@ run;
         dbms=csv replace; 
 	run;
 	proc export data= All_Target_Prices_Baseline
-	            outfile= "R:\data\HIPAA\BPCIA_BPCI Advanced\08 - Target Price Data\Demo\Target Prices Base Demo_&sysdate..csv"
-	            dbms=csv replace; 
+	    outfile= "R:\data\HIPAA\BPCIA_BPCI Advanced\08 - Target Price Data\Demo\Target Prices Base Demo_&sysdate..csv"
+	    dbms=csv replace; 
 	run;
 %end;
 %else %if &mode.=base %then %do;
@@ -134,8 +128,8 @@ run;
         dbms=csv replace; 
 	run;
 	proc export data= All_Target_Prices_Baseline
-	            outfile= "R:\data\HIPAA\BPCIA_BPCI Advanced\08 - Target Price Data\Demo\Baseline Target Prices Base Demo_&sysdate..csv"
-	            dbms=csv replace; 
+	    outfile= "R:\data\HIPAA\BPCIA_BPCI Advanced\08 - Target Price Data\Demo\Baseline Target Prices Base Demo_&sysdate..csv"
+	    dbms=csv replace; 
 	run;
 %end;
 %mend EXPORT;

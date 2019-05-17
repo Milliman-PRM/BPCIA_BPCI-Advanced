@@ -9,6 +9,12 @@ options mprint;
 
 proc printto;run;
 
+***** USER INPUTS ******************************************************************************************;
+%let mode = main; *main = main interface, base = baseline interface;
+
+%let transmit_date = '19APR2019'd; *Change for every Update*;
+
+
 ****** REFERENCE PROGRAMS ***********************************************************************************;
 %include "H:\_HealthLibrary\SAS\000 - General SAS Macros.sas";
 %include "H:\_HealthLibrary\SAS\000 - General SAS Macros_64bit.sas";
@@ -26,9 +32,6 @@ libname tp "&dataDir.\08 - Target Price Data";
 
 libname ref "H:\Nonclient\Medicare Bundled Payment Reference\Program - BPCIA\SAS Datasets" ;
 
-%let mode = main; *main = main interface, base = baseline interface;
-
-%let transmit_date = '19APR2019'd; *Change for every Update*;
 
 %macro modesetup;
 %if &mode.=main %then %do;
@@ -1924,7 +1927,7 @@ data All_Target_Prices_1 All_Target_Prices_Premier All_Target_Prices_NonPremier 
 
 	if BPID in (&PMR_EI_lst.) then output All_Target_Prices_Premier;
 	else if BPID in (&NON_PMR_EI_lst.) then output All_Target_Prices_NonPremier;
-	else if BPID in (&BASELINE_lst.) then output All_Target_Prices_Baseline;
+	else if BPID in (&CCF_lst.) then output All_Target_Prices_CCF;
 run;
 
 %MACRO EXPORT;

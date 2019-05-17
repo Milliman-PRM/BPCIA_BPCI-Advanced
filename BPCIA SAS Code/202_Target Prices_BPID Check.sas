@@ -9,8 +9,7 @@ options mprint;
 
 
 ****** USER INPUTS ******************************************************************************************;
-%let label = ybase; *Turn on for baseline data, turn off for quarterly data;
-*%let label = y201902; *Turn off for baseline data, turn on for quarterly data;
+%let mode = main; *main = main interface, base = baseline interface;
 
 
 proc printto;run;
@@ -24,7 +23,6 @@ libname tp "&dataDir.\08 - Target Price Data";
 
 libname ref "H:\Nonclient\Medicare Bundled Payment Reference\General\SAS Datasets" ;
 
-%let mode = main; *main = main interface, base = baseline interface;
 
 %macro modesetup;
 %if &mode.=main %then %do;
