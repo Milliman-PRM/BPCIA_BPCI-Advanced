@@ -4,8 +4,8 @@ options emailsys = SMTP;
 *Specifying a single SMTP server;
 options emailhost = smtp.milliman.com;
 * Add to and from email addresses;
-%let to_email = jocelyn.lau@milliman.com;
-%let from_email = jocelyn.lau@milliman.com;
+%let to_email = shachi.mistry@milliman.com;
+%let from_email = shachi.mistry@milliman.com;
 
 %let _sdtm=%sysfunc(datetime());
 options minoperator mprint nospool;
@@ -39,7 +39,7 @@ SET UP
 %let transmit_date = '12APR2019'd;*Change for every Update*; 
 
 * MAIN VS BASELINE INTERFACE *****;
-%let mode = base; *main=main interface, base = baseline interface;
+%let mode = main; *main=main interface, base = baseline interface;
 
 proc printto;run;
 
@@ -1905,8 +1905,8 @@ data patientjourney_1 ;
 	set out.op_&label._&bpid1._&bpid2. (keep =  epi_id_milliman type provider_num from_dt thru_dt anchor_beg_dt anchor_end_dt BPID std_allowed_wage util_day in = a rename=(from_dt = admsn_dt thru_dt=dschrgdt provider_num=provider)) 
 		out.ip_&label._&bpid1._&bpid2. (keep =  epi_id_milliman type provider STAY_ADMSN_DT STAY_DSCHRGDT anchor_beg_dt anchor_end_dt BPID std_allowed_wage util_day in = b rename=(STAY_ADMSN_DT = admsn_dt STAY_DSCHRGDT=dschrgdt)) 
 		out.snf_&label._&bpid1._&bpid2. (keep =  epi_id_milliman type provider admsn_dt dschrgdt thru_dt anchor_beg_dt anchor_end_dt BPID std_allowed_wage util_day in = c rename =(thru_dt=dichrgdt2 util_day = util_day_pre))
-		out.hha_&label._&bpid1._&bpid2. (keep =  epi_id_milliman type provider from_dt thru_dt anchor_beg_dt anchor_end_dt BPID std_allowed_wage in = d rename=(from_dt = admsn_dt thru_dt = dschrgdt))
-		pj_hs (keep =  epi_id_milliman type provider1 from_dt thru_dt anchor_beg_dt anchor_end_dt BPID std_allowed_wage in = d rename=(from_dt = admsn_dt thru_dt = dschrgdt provider1 = provider));
+		out.hha_&label._&bpid1._&bpid2. (keep =  epi_id_milliman type provider from_dt thru_dt anchor_beg_dt anchor_end_dt BPID std_allowed_wage util_day in = d rename=(from_dt = admsn_dt thru_dt = dschrgdt))
+		pj_hs (keep =  epi_id_milliman type provider1 from_dt thru_dt anchor_beg_dt anchor_end_dt BPID std_allowed_wage util_day in = d rename=(from_dt = admsn_dt thru_dt = dschrgdt provider1 = provider));
 
 		provider=strip(Provider); /*20180615 MK UPDATE*/
 		if length(provider)=5 then provider="0"||provider; /*20180615 MK UPDATE*/
@@ -2007,7 +2007,7 @@ data patientjourney_2 (drop = i start_date end_date provider_ccn type admsn_dt d
 		provider = "";
 	end;
 
-	retain start_date2 end_date2 type2 d1-d90 d_first d_first_name d_first_cost d_second d_second_name d_third d_third_name rank2 rank_lag;
+	retain start_date2 end_date2 type2 d1-d90 d_first d_first_name d_first_cost d_first_util_days d_second d_second_name d_second_cost d_second_util_days d_third d_third_name d_third_cost d_third_util_days rank2 rank_lag;
 
 	if first.epi_id_milliman then do;
 
@@ -2020,6 +2020,12 @@ data patientjourney_2 (drop = i start_date end_date provider_ccn type admsn_dt d
 		type_lag = .;
 		rank_lag = .;
 		d_first_cost = .;
+		d_first_util_days = .;  
+ 		d_second_cost = .;  
+		d_second_util_days = .;  
+		d_third_cost = .;  
+		d_third_util_days = .;  
+
 
 		d1 = ''; d2 = ''; d3 = ''; d4 = ''; d5 = ''; d6 = ''; d7 = ''; d8 = ''; d9 = '';
 		d10 = ''; d11 = ''; d12 = ''; d13 = ''; d14 = ''; d15 = ''; d16 = ''; d17 = ''; d18 = ''; d19 = '';
@@ -2065,26 +2071,31 @@ data patientjourney_2 (drop = i start_date end_date provider_ccn type admsn_dt d
 			d_first = type;
 			d_first_name = provider;
 			d_first_cost = std_allowed_wage;
+			d_first_util_days = util_day; 
 		end;
 		else if d_first = '' and d2 ^= '' and start_date = 1 then do;
 			d_first = type;
 			d_first_name = provider;
 			d_first_cost = std_allowed_wage;
+			d_first_util_days = util_day; 
 		end;
 		else if d_first = '' and d3 ^= '' and start_date = 2 then do;
 			d_first = type;
 			d_first_name = provider;
 			d_first_cost = std_allowed_wage;
+			d_first_util_days = util_day; 
 		end;
 		else if d_first = '' and d4 ^= '' and start_date = 3 and type = 'HH' then do;
 			d_first = type;
 			d_first_name = provider;
 			d_first_cost = std_allowed_wage;
+			d_first_util_days = util_day; 
 		end;
 		else if d_first = '' and d5 ^= '' and start_date = 4 and type = 'HH' then do;
 			d_first = type;
 			d_first_name = provider;
 			d_first_cost = std_allowed_wage;
+			d_first_util_days = util_day; 
 		end;
 	end;
 
@@ -2094,38 +2105,57 @@ data patientjourney_2 (drop = i start_date end_date provider_ccn type admsn_dt d
 			if type = 'HH' then do;
 				d_second = type;
 				d_second_name = provider;
+				d_second_cost = std_allowed_wage;  
+ 				d_second_util_days = util_day;  
+
 			end;
 			else if type = 'SNF' and type_lag = 'SNF' then do;
 				if start_date - end_date_lag <=3 then do;
 					d_second = type;
 					d_second_name = provider;
+					d_second_cost = std_allowed_wage;  
+					d_second_util_days = util_day;  
+
 				end;
 				else if start_date - end_date_lag > 3 then do;
 					d_second = 'Home';
 					d_second_name = 'Home';
 					d_third = type;
 					d_third_name = provider;
+					d_second_cost = std_allowed_wage;  
+ 					d_second_util_days = util_day;  
+
 				end;
 			end;
 			else if start_date - end_date_lag > 1 then do;
 				if type_lag = 'HH' and start_date - end_date_lag < 4 then do;
 					d_second = type;
 					d_second_name = provider;
+					d_second_cost = std_allowed_wage;  
+					d_second_util_days = util_day;  
+
 				end;
 				else if type_lag = 'HH' and end_date_lag < 0 then do;
 					d_second = type;
 					d_second_name = provider;
+					d_second_cost = std_allowed_wage;  
+					d_second_util_days = util_day;  
 				end;
 				else do;
 					d_second = 'Home';
 					d_second_name = 'Home';
 					d_third = type;
 					d_third_name = provider;
+					d_third_cost = std_allowed_wage;  
+  					d_third_util_days = util_day;  
 				end;
 			end;
 			else do;
 				d_second = type;
 				d_second_name = provider;
+				d_second_cost = std_allowed_wage;  
+  				d_second_util_days = util_day;  
+
 			end;
 		end;
 		else if provider = d_first_name then do; /*If next site is same as previous and it is the same SNF within 3 days, it should be continuous*/
@@ -2138,12 +2168,18 @@ data patientjourney_2 (drop = i start_date end_date provider_ccn type admsn_dt d
 					d_second_name = 'Home';
 					d_third = type;
 					d_third_name = provider;
+					d_third_cost = std_allowed_wage;  
+ 					d_third_util_days = util_day; 
+
 				end;
 			end; 
 			else if type = 'HH' and type_lag = 'HH' then do; end; /*20180212 JL UPDATE*/
 			else if start_date - end_date_lag > 1 then do;
 				d_second = 'Home';
 				d_second_name = 'Home';
+				d_third_cost = std_allowed_wage;  
+  				d_third_util_days = util_day;  
+
 			end;
 		end;
 	end;
@@ -2158,6 +2194,9 @@ data patientjourney_2 (drop = i start_date end_date provider_ccn type admsn_dt d
 				if start_date - end_date_lag <=3 then do;
 					d_third = type;
 					d_third_name = provider;
+					d_third_cost = std_allowed_wage;  
+ 					d_third_util_days = util_day;  
+
 				end;
 				else if start_date - end_date_lag > 3 then do;
 					d_third = 'Home';
@@ -2169,6 +2208,9 @@ data patientjourney_2 (drop = i start_date end_date provider_ccn type admsn_dt d
 					if type_lag = 'HH' and start_date - end_date_lag < 4 then do;
 						d_third = type;
 						d_third_name = provider;
+						d_third_cost = std_allowed_wage;  
+ 		 				d_third_util_days = util_day;  
+
 					end;
 					else do;
 						d_third = 'Home';
@@ -2178,11 +2220,17 @@ data patientjourney_2 (drop = i start_date end_date provider_ccn type admsn_dt d
 				else do;
 					d_third = type;
 					d_third_name = provider;
+					d_third_cost = std_allowed_wage;  
+ 					d_third_util_days = util_day;  
+
 				end;
 			end;
 			else do;
 				d_third = type;
 				d_third_name = provider;
+				d_third_cost = std_allowed_wage;  
+  				d_third_util_days = util_day;  
+
 			end;
 		end;
 		else if provider = d_second_name then do; /*If next site is same as previous and it is the same SNF within 3 days, it should be continuous*/
