@@ -1991,9 +1991,7 @@ data patientjourney_2 (drop = i start_date end_date provider_ccn type admsn_dt d
 	length provider d1-d90 d_first d_first_name d_second d_second_name d_third d_third_name type2 type_lag $255;	
 	format d1-d90 type2 provider type_lag $255.;
 
-
 	by epi_id_milliman;
-
 
 	if type ^="" then do;
 		if provider_name ^= '' then do;
@@ -2025,7 +2023,6 @@ data patientjourney_2 (drop = i start_date end_date provider_ccn type admsn_dt d
 		d_second_util_days = .;  
 		d_third_cost = .;  
 		d_third_util_days = .;  
-
 
 		d1 = ''; d2 = ''; d3 = ''; d4 = ''; d5 = ''; d6 = ''; d7 = ''; d8 = ''; d9 = '';
 		d10 = ''; d11 = ''; d12 = ''; d13 = ''; d14 = ''; d15 = ''; d16 = ''; d17 = ''; d18 = ''; d19 = '';
@@ -2115,16 +2112,14 @@ data patientjourney_2 (drop = i start_date end_date provider_ccn type admsn_dt d
 					d_second_name = provider;
 					d_second_cost = std_allowed_wage;  
 					d_second_util_days = util_day;  
-
 				end;
 				else if start_date - end_date_lag > 3 then do;
 					d_second = 'Home';
 					d_second_name = 'Home';
 					d_third = type;
 					d_third_name = provider;
-					d_second_cost = std_allowed_wage;  
- 					d_second_util_days = util_day;  
-
+					d_third_cost = std_allowed_wage;  
+  					d_third_util_days = util_day;   
 				end;
 			end;
 			else if start_date - end_date_lag > 1 then do;
@@ -2133,7 +2128,6 @@ data patientjourney_2 (drop = i start_date end_date provider_ccn type admsn_dt d
 					d_second_name = provider;
 					d_second_cost = std_allowed_wage;  
 					d_second_util_days = util_day;  
-
 				end;
 				else if type_lag = 'HH' and end_date_lag < 0 then do;
 					d_second = type;
@@ -2170,17 +2164,13 @@ data patientjourney_2 (drop = i start_date end_date provider_ccn type admsn_dt d
 					d_third_name = provider;
 					d_third_cost = std_allowed_wage;  
  					d_third_util_days = util_day; 
-
 				end;
 			end; 
 			else if type = 'HH' and type_lag = 'HH' then do; end; /*20180212 JL UPDATE*/
 			else if start_date - end_date_lag > 1 then do;
 				d_second = 'Home';
 				d_second_name = 'Home';
-				d_third_cost = std_allowed_wage;  
-  				d_third_util_days = util_day;  
-
-			end;
+				end;
 		end;
 	end;
 	/*Assign 3rd PAC site*/
@@ -2196,7 +2186,6 @@ data patientjourney_2 (drop = i start_date end_date provider_ccn type admsn_dt d
 					d_third_name = provider;
 					d_third_cost = std_allowed_wage;  
  					d_third_util_days = util_day;  
-
 				end;
 				else if start_date - end_date_lag > 3 then do;
 					d_third = 'Home';
@@ -2210,7 +2199,6 @@ data patientjourney_2 (drop = i start_date end_date provider_ccn type admsn_dt d
 						d_third_name = provider;
 						d_third_cost = std_allowed_wage;  
  		 				d_third_util_days = util_day;  
-
 					end;
 					else do;
 						d_third = 'Home';
@@ -2222,7 +2210,6 @@ data patientjourney_2 (drop = i start_date end_date provider_ccn type admsn_dt d
 					d_third_name = provider;
 					d_third_cost = std_allowed_wage;  
  					d_third_util_days = util_day;  
-
 				end;
 			end;
 			else do;
@@ -2230,7 +2217,6 @@ data patientjourney_2 (drop = i start_date end_date provider_ccn type admsn_dt d
 				d_third_name = provider;
 				d_third_cost = std_allowed_wage;  
   				d_third_util_days = util_day;  
-
 			end;
 		end;
 		else if provider = d_second_name then do; /*If next site is same as previous and it is the same SNF within 3 days, it should be continuous*/
