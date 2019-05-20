@@ -2179,6 +2179,8 @@ data patientjourney_2 (drop = i start_date end_date provider_ccn type admsn_dt d
 			if type = 'HH' then do;
 				d_third = type;
 				d_third_name = provider;
+				d_third_cost = std_allowed_wage;  
+ 				d_third_util_days = util_day;
 			end;
 			else if type = 'SNF' and type_lag = 'SNF' then do;
 				if start_date - end_date_lag <=3 then do;
