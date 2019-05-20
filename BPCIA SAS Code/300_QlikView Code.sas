@@ -3939,7 +3939,7 @@ create table exclusions1 as
 		,a.anchor_beg_dt
 		,a.anchor_end_dt
 		,"PERF" as period
-		,"Performance - Year 1" as timeframe_filter format = $100. length=100
+		,"Performance Period 1" as timeframe_filter format = $100. length=100
 /*		,a.DROPFLAG_NON_ACH*/
 /*		,a.DROPFLAG_EXCLUDED_STATE*/
 /*		,a.DROPFLAG_NOT_CONT_ENR_AB_NO_C*/
