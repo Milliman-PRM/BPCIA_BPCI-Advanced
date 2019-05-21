@@ -284,6 +284,7 @@ proc sort data=epi0 ; by bene_sk ANCHOR_BEG_DT ANCHOR_TYPE ANCHOR_END_DT POST_DS
 			out.epi_y201901_&bpid1._&bpid2. (in=e)
 			out.epi_y201902_&bpid1._&bpid2. (in=f)
 			out.epi_y201903_&bpid1._&bpid2. (in=g)
+			out.epi_y201904_&bpid1._&bpid2. (in=h)
 		;
 		Epis_Baseline=0;
 		Epis_201810=0;
@@ -292,6 +293,7 @@ proc sort data=epi0 ; by bene_sk ANCHOR_BEG_DT ANCHOR_TYPE ANCHOR_END_DT POST_DS
 		Epis_201901=0;
 		Epis_201902=0;
 		Epis_201903=0;
+		Epis_201904=0;
 		if a then Epis_Baseline=1;
 		if b then Epis_201810=1;
 		if c then Epis_201811=1;
@@ -299,9 +301,10 @@ proc sort data=epi0 ; by bene_sk ANCHOR_BEG_DT ANCHOR_TYPE ANCHOR_END_DT POST_DS
 		if e then Epis_201901=1;
 		if f then Epis_201902=1;
 		if g then Epis_201903=1;
+		if h then Epis_201904=1;
 
 		Total_Episodes=0;
-		if a or g then Total_Episodes=1;
+		if a or h then Total_Episodes=1;
 
 		if EPISODE_GROUP_NAME = "Disorders Of Liver Except Malignancy, Cirrhosis Or Alcoholic Hepatitis" then
 		EPISODE_GROUP_NAME = "Disorders of liver except malignancy, cirrhosis or alcoholic hepatitis" ;
@@ -348,7 +351,8 @@ proc sort data=epi0 ; by bene_sk ANCHOR_BEG_DT ANCHOR_TYPE ANCHOR_END_DT POST_DS
 			sum(Epis_201812) as Epis_201812,
 			sum(Epis_201901) as Epis_201901,
 			sum(Epis_201902) as Epis_201902,
-			sum(Epis_201903) as Epis_201903
+			sum(Epis_201903) as Epis_201903,
+			sum(Epis_201904) as Epis_201904
 		from clinepi5_&bpid1._&bpid2.
 		group by BPID, Clinical_Episode, PERFORMANCE_PERIOD, Client, Health_system_name, Facility_PGP
 		order by BPID, Clinical_Episode, PERFORMANCE_PERIOD, Client, Health_system_name, Facility_PGP;
