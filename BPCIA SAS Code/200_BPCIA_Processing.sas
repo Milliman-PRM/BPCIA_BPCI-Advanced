@@ -1471,6 +1471,7 @@ run;
 		end;
 		else do i=1 to dim(px);
 			if put(px[i],$CABG_9Inc.)='Y' then include_CABG=1;
+			if put(px[i],$CABG_9Exc.)='Y' then exclude_CABG=1;
 		end;
 		if include_CABG=1 and exclude_CABG=0;
 
