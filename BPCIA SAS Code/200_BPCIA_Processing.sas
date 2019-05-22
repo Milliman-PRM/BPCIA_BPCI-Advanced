@@ -1466,16 +1466,18 @@ run;
 		exclude_CABG=0;
 		array px(*) PRCDRCD01-PRCDRCD25;
 		if STAY_DSCHRGDT >= '01OCT2015'd then do i=1 to dim(px);
-			if put(px[i],$CABG_Inc.)='Y' then include_CABG=1;
-			if put(px[i],$CABG_Exc.)='Y' then exclude_CABG=1;
+			if put(px[i],$CABG_10Inc.)='Y' then include_CABG=1;
+			if put(px[i],$CABG_10Exc.)='Y' then exclude_CABG=1;
+		end;
+		else do i=1 to dim(px);
+			if put(px[i],$CABG_9Inc.)='Y' then include_CABG=1;
+			if put(px[i],$CABG_9Exc.)='Y' then exclude_CABG=1;
 		end;
 		if include_CABG=1 and exclude_CABG=0;
 
 		format Mortality_CABG $3.;
-		if STAY_DSCHRGDT >= '01OCT2015'd then do;
-			Mortality_CABG = 'No';
-			if STAY_THRU_DT <= BENE_DEATH_DT <= STAY_THRU_DT+30 then Mortality_CABG = 'Yes';
-		end;
+		Mortality_CABG = 'No';
+		if STAY_THRU_DT <= BENE_DEATH_DT <= STAY_THRU_DT+30 then Mortality_CABG = 'Yes';
 
 		proc sort; by EPI_ID_MILLIMAN STAY_ADMSN_DT;
 		proc sort nodupkey; by EPI_ID_MILLIMAN;
