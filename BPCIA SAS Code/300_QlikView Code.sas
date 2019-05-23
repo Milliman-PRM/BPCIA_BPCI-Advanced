@@ -61,13 +61,13 @@ libname in "&dataDir.\06 - Imported Raw Data\";
 %macro modesetup;
 %if &mode.=main %then %do;
 libname out "&dataDir.\07 - Processed Data\";
-proc printto log="H:\BPCIA_BPCI Advanced\50 - BPCI Advanced Ongoing Reporting - 2019\Work Papers\SAS\logs\300 - Qlikview Code_&label._&sysdate..log";
-run;
+/*proc printto log="H:\BPCIA_BPCI Advanced\50 - BPCI Advanced Ongoing Reporting - 2019\Work Papers\SAS\logs\300 - Qlikview Code_&label._&sysdate..log";*/
+/*run;*/
 %end;
 %else %if &mode.=base %then %do;
 libname out "&dataDir.\07 - Processed Data\Baseline Interface Demo";
-proc printto log="H:\BPCIA_BPCI Advanced\50 - BPCI Advanced Ongoing Reporting - 2019\Work Papers\SAS\logs\300 - Baseline Qlikview Code_&label._&sysdate..log";
-run;
+/*proc printto log="H:\BPCIA_BPCI Advanced\50 - BPCI Advanced Ongoing Reporting - 2019\Work Papers\SAS\logs\300 - Baseline Qlikview Code_&label._&sysdate..log";*/
+/*run;*/
 %end;
 %mend modesetup;
 
@@ -1889,10 +1889,237 @@ set npi_level4;
 	end;
 run;
 
+*********************************************************************************************/
+/*Code to identify clinical visits in post-acute period***************************************/
+/*********************************************************************************************/ ;
+data op;
+	set out.ccn_enc_&label._&bpid1._&bpid2. (keep=BPID Epi_id_Milliman type provider_ccn CCN_Name_Desc startdate HCPCS_CD rev_cntr std_allowed_wage edac_flag rename=(CCN_Name_Desc=Provider startdate = service_date));
+	if substr(type,1,2) = "OP" and type ^= "OP_Idx";
+	rev_ctr = put(rev_cntr,$3.);
+run;
+
+data prov;
+	set out.provider_&label._&bpid1._&bpid2.(keep=BPID Epi_id_Milliman type provider_npi Physician service_date HCPCS_CD Op_MD_flag At_MD_flag std_allowed_wage timeframe2 edac_flag rename=(Physician=Provider));
+	where timeframe2 ^= "Anchor";
+run;
+
+data hh_hdr1;
+	set out.ccn_enc_&label._&bpid1._&bpid2.  (keep=BPID GEO_BENE_SK claimno startdate Anchor_CCN Epi_id_Milliman type provider_ccn CCN_Name_Desc rename=(CCN_Name_Desc=Provider /*provider_ccn=provider_ccn1*/));
+	if substr(type,1,2) = "HH";
+run;
+
+*20180720 - transpose dates, rev center, and hcpcs to set up long list of dates;
+proc sort data = out.hha_&label._&bpid1._&bpid2. out=hh_hdr2aa; by epi_id_milliman claimno;run;
+proc sort data = out.hha_&label._&bpid1._&bpid2. out=hh_hdr2bb; by epi_id_milliman claimno;run;
+proc sort data = out.hha_&label._&bpid1._&bpid2. out=hh_hdr2cc; by epi_id_milliman claimno;run;
+
+proc transpose data = hh_hdr2aa out=hh_hdr2a;
+	by epi_id_milliman claimno;
+	var rvcntr01-rvcntr45;
+run;
+
+proc transpose data = hh_hdr2bb out=hh_hdr2b;
+	by epi_id_milliman claimno;
+	var rev_dt01-rev_dt45;
+run;
+
+proc transpose data = hh_hdr2cc out=hh_hdr2c;
+	by epi_id_milliman claimno;
+	var hcpscd01-hcpscd45;
+run;
+
+data hh_hdr2a1 (drop=_NAME_ col1);
+	set hh_hdr2a /*(rename=(col1=rvcntr))*/;
+	num = substr(_NAME_,7,2);
+	rvcntr=coalesce(col1,".");
+	if rvcntr ^= .;
+run;
+
+data hh_hdr2b1 (drop=_NAME_);
+	set hh_hdr2b /*(rename=(col1=rev_dt))*/;
+	num = substr(_NAME_,7,2);
+	rev_dt=coalesce(col1,".");
+	if rev_dt ^= .;
+run;
+
+data hh_hdr2c1 (drop=_NAME_);
+	set hh_hdr2c /*(rename=(col1=hcpcs))*/;
+	num = substr(_NAME_,7,2);
+	hcpcs=coalescec(col1,"");
+	if hcpcs ^= "";
+/*	hcpcs2 = put(hcpcs,$20.);*/
+run;
+
+*inner join to find lines where none of the three components are missing;
+proc sql;
+	create table hh_hdr3 as
+	select a.*
+		,b.rev_dt
+		,c.hcpcs
+	from hh_hdr2a1 as a
+	inner join hh_hdr2b1 as b
+	on a.epi_id_milliman = b.epi_id_milliman and a.claimno = b.claimno and a.num = b.num
+	inner join hh_hdr2c1 as c
+	on a.epi_id_milliman = c.epi_id_milliman and a.claimno = c.claimno and a.num = c.num
+	where a.rvcntr not in (1,23) and c.hcpcs ^= "Q5001"
+;
+quit;
+
+*join visit dates to header HH file;
+proc sql;
+	create table hh_visits as
+	select	distinct
+			a.*
+		,	b.rev_dt as service_date
+	from	hh_hdr1 as a
+			inner join hh_hdr3 as b
+			on a.epi_id_milliman = b.epi_id_milliman and a.claimno = b.claimno
+;
+quit ;
+*20180720 update end;
+
+data visits;
+	format provider $298. clinic_visit_type $50.; length provider $298 clinic_visit_type $50;
+	set op(in=a) prov(in=b) hh_visits(in=c) ;/*MB ADDITION HH INDICATORS 20180126*/
+	hierarchy = 0;
+	if a or b then do ; /*MB ADDITION HH INDICATORS 20180126*/
+	if put(HCPCS_CD,$Obs_HCPCS.) = 'Y' or put(REV_CTR,$Obs_Revenue_CD.) = 'Y' then do; 
+		hierarchy = 1; clinic_visit_type = "Observation"; end;
+	else if put(HCPCS_CD,$ER_HCPCS.) = 'Y' or put(REV_CTR,$ER_Revenue_CD.) = 'Y' then do; 
+		hierarchy = 2; clinic_visit_type = "Emergency Room"; end;
+	else if put(HCPCS_CD,$Physician_visits_HCPCS.) = 'Y' and Op_MD_flag = "Yes" then do; 
+		hierarchy = 3; clinic_visit_type = "Operating Physician Visit"; end;
+	else if put(HCPCS_CD,$Physician_visits_HCPCS.) = 'Y' and Op_MD_flag = "No" then do; 
+		hierarchy = 4; clinic_visit_type = "Other Physician Visit"; end;
+	else if put(HCPCS_CD,$Therapy_HCPCS.) = 'Y' then do; 
+		hierarchy = 5; clinic_visit_type = "Therapy"; end;
+end;
+
+/*MB ADDITION HH INDICATORS 20180126*/
+	else if c then do;
+		hierarchy = 6; clinic_visit_type = "HH";
+	end;
+ /*MB ADDITION HH INDICATORS 20180126*/
+	if hierarchy > 0;
+run;
+
+proc sort; by epi_id_milliman service_date hierarchy type descending std_allowed_wage;
+
+run;
+			
+proc sort data = visits nodupkey out=visits2; by epi_id_milliman service_date; run;
+
+*Join anchor end date to file for later calculation;
+proc sql;
+	create table visits3a as
+	select a.*
+		,b.anchor_end_dt
+	from visits2 as a
+	left join out.epi_detail_&label._&bpid1._&bpid2. as b
+	on a.epi_id_milliman = b.epi_id_milliman
+;
+quit;
+
+proc sql;
+	create table visits_ER as
+	select distinct a.*
+		,1 as IP_visit_flag
+	from visits3a as a
+	left join out.ccn_enc_&label._&bpid1._&bpid2. as b
+	on a.epi_id_milliman = b.epi_id_milliman and (a.service_date = b.startdate or sum(a.service_date,1) = b.startdate)
+	where a.clinic_visit_type = "Emergency Room" and b.type in ("IP_d","IP_s")
+;
+*Merge flags for overlapping admissions to original dataset;
+	create table visits3b as
+	select a.*
+		,b.IP_visit_flag
+	from visits3a as a
+	left join visits_ER as b
+	on a.epi_id_milliman = b.epi_id_milliman and a.service_date = b.service_date and a.type = b.type
+;
+quit;
+
+*Change ER visits to ER - stand alone or ER - preceding admit based on overlap with inpatient admissions on the same day;
+data visits3;
+	set visits3b;
+	if clinic_visit_type = "Emergency Room" then do;
+		if IP_visit_flag = 1 then clinic_visit_type = "Emergency Room - Preceding Admit";
+		else clinic_visit_type = "Emergency Room - Stand Alone";
+	end;
+run;
+
+*Assign visits for each day of post-acute period;
+data visits4 (keep = epi_id_milliman v1-v90);
+	set visits3;
+
+	format visit_provider $255.; length visit_provider $255;
+
+	start_date = service_date - anchor_end_dt;
+
+	if clinic_visit_type ^="" then visit_provider = strip(clinic_visit_type)||": "||strip(provider)||": "||strip(put(service_date,$mmddyy10.));
+	else visit_provider = "";
+
+	by epi_id_milliman; 
+
+	retain v1-v90;
+	length v1-v90 $255;
+
+	if first.epi_id_milliman then do;
+
+		v1 = ''; v2 = ''; v3 = ''; v4 = ''; v5 = ''; v6 = ''; v7 = ''; v8 = ''; v9 = '';
+		v10 = ''; v11 = ''; v12 = ''; v13 = ''; v14 = ''; v15 = ''; v16 = ''; v17 = ''; v18 = ''; v19 = '';
+		v20 = ''; v21 = ''; v22 = ''; v23 = ''; v24 = ''; v25 = ''; v26 = ''; v27 = ''; v28 = ''; v29 = '';
+		v30 = ''; v31 = ''; v32 = ''; v33 = ''; v34 = ''; v35 = ''; v36 = ''; v37 = ''; v38 = ''; v39 = '';
+		v40 = ''; v41 = ''; v42 = ''; v43 = ''; v44 = ''; v45 = ''; v46 = ''; v47 = ''; v48 = ''; v49 = '';
+		v50 = ''; v51 = ''; v52 = ''; v53 = ''; v54 = ''; v55 = ''; v56 = ''; v57 = ''; v58 = ''; v59 = '';
+		v60 = ''; v61 = ''; v62 = ''; v63 = ''; v64 = ''; v65 = ''; v66 = ''; v67 = ''; v68 = ''; v69 = '';
+		v70 = ''; v71 = ''; v72 = ''; v73 = ''; v74 = ''; v75 = ''; v76 = ''; v77 = ''; v78 = ''; v79 = '';
+		v80 = ''; v81 = ''; v82 = ''; v83 = ''; v84 = ''; v85 = ''; v86 = ''; v87 = ''; v88 = ''; v89 = '';
+		v90 = ''; 
+	end;
+
+	array v(*) v1-v90 ;
+	 
+	do i=1 to 90;
+	/*Assign provider for each day*/
+		if start_date = (i-1) then do;
+			v{i} = visit_provider;
+		end;
+	end;
+
+	if last.epi_id_milliman then output;
+run;
 
 /*********************************************************************************************/
 /*Code to create Patient Journey dataset  ****************************************************/
 /*********************************************************************************************/
+
+*20190523 UPDATE: update the HH visits logic in HH File;
+*Count number of unique visits for each claim;
+proc sql;
+	create table hh_hdr4 as
+	select epi_id_milliman
+		,claimno
+		,count(*) as hh_visits
+	from hh_hdr3
+	group by epi_id_milliman, claimno
+;
+quit;
+
+proc sql;
+	create table ccn_hh as
+	select a.*
+		,case when type = "HH" then b.hh_visits else a.util_day end as util_day2
+	from out.hha_&label._&bpid1._&bpid2. as a
+	left join hh_hdr4 as b
+	on a.epi_id_milliman=b.epi_id_milliman and a.claimno=b.claimno
+;
+quit;
+
+data pj_hh (rename= (util_day2=util_day)) ;
+	set ccn_hh (drop=util_day) ;
+run;
+*20190523 UPDATE END;
 
 *Make Hospice provider field character;
 data pj_hs;
@@ -1905,7 +2132,7 @@ data patientjourney_1 ;
 	set out.op_&label._&bpid1._&bpid2. (keep =  epi_id_milliman type provider_num from_dt thru_dt anchor_beg_dt anchor_end_dt BPID std_allowed_wage util_day in = a rename=(from_dt = admsn_dt thru_dt=dschrgdt provider_num=provider)) 
 		out.ip_&label._&bpid1._&bpid2. (keep =  epi_id_milliman type provider STAY_ADMSN_DT STAY_DSCHRGDT anchor_beg_dt anchor_end_dt BPID std_allowed_wage util_day in = b rename=(STAY_ADMSN_DT = admsn_dt STAY_DSCHRGDT=dschrgdt)) 
 		out.snf_&label._&bpid1._&bpid2. (keep =  epi_id_milliman type provider admsn_dt dschrgdt thru_dt anchor_beg_dt anchor_end_dt BPID std_allowed_wage util_day in = c rename =(thru_dt=dichrgdt2 util_day = util_day_pre))
-		out.hha_&label._&bpid1._&bpid2. (keep =  epi_id_milliman type provider from_dt thru_dt anchor_beg_dt anchor_end_dt BPID std_allowed_wage util_day in = d rename=(from_dt = admsn_dt thru_dt = dschrgdt))
+		pj_hh (keep =  epi_id_milliman type provider from_dt thru_dt anchor_beg_dt anchor_end_dt BPID std_allowed_wage util_day in = d rename=(from_dt = admsn_dt thru_dt = dschrgdt))
 		pj_hs (keep =  epi_id_milliman type provider1 from_dt thru_dt anchor_beg_dt anchor_end_dt BPID std_allowed_wage util_day in = d rename=(from_dt = admsn_dt thru_dt = dschrgdt provider1 = provider));
 
 		provider=strip(Provider); /*20180615 MK UPDATE*/
@@ -2334,6 +2561,29 @@ proc sql;
 quit;
 
 
+*Join to PAC pjourney file to output final pjourney file;
+proc sql;
+	create table out.pjourney_&label._&bpid1._&bpid2. as
+	select a.*
+		,b.*
+	from patientjourney_3 as a
+	left join visits4 as b
+	on a.epi_id_milliman = b.epi_id_milliman
+;
+quit;
+
+*Create output table of all PAC and clinic visit types for all episodes as QVW filter;
+data util_table (keep= BPID epi_id_milliman type);
+	set patientjourney_1b (keep= BPID epi_id_milliman type)
+		visits3 (keep= BPID epi_id_milliman clinic_visit_type rename=(clinic_visit_type=type))
+	;
+	where type ^= "";
+	if type = "Other Readmit" then type = "Other Readmit"; /*20171107 JL Update - clean up label*/
+	if type = "Anchor Readmit" then type = "Anchor Readmit";
+run;
+
+proc sort data = util_table nodupkey out = out.util_&label._&bpid1._&bpid2.; by epi_id_milliman type; run;
+
 
 /********************************************************************************************/
 /*code to create source of readmission*******************************************************/
@@ -2572,246 +2822,10 @@ quit;
 
 
 *********************************************************************************************/
-/*Code to identify clinical visits in post-acute period***************************************/
-/*********************************************************************************************/ ;
-data op;
-	set out.ccn_enc_&label._&bpid1._&bpid2. (keep=BPID Epi_id_Milliman type provider_ccn CCN_Name_Desc startdate HCPCS_CD rev_cntr std_allowed_wage edac_flag rename=(CCN_Name_Desc=Provider startdate = service_date));
-	if substr(type,1,2) = "OP" and type ^= "OP_Idx";
-	rev_ctr = put(rev_cntr,$3.);
-run;
-
-data prov;
-	set out.provider_&label._&bpid1._&bpid2.(keep=BPID Epi_id_Milliman type provider_npi Physician service_date HCPCS_CD Op_MD_flag At_MD_flag std_allowed_wage timeframe2 edac_flag rename=(Physician=Provider));
-	where timeframe2 ^= "Anchor";
-run;
-
-data hh_hdr1;
-	set out.ccn_enc_&label._&bpid1._&bpid2.  (keep=BPID GEO_BENE_SK claimno startdate Anchor_CCN Epi_id_Milliman type provider_ccn CCN_Name_Desc rename=(CCN_Name_Desc=Provider /*provider_ccn=provider_ccn1*/));
-	if substr(type,1,2) = "HH";
-run;
-
-*20180720 - transpose dates, rev center, and hcpcs to set up long list of dates;
-proc sort data = out.hha_&label._&bpid1._&bpid2. out=hh_hdr2aa; by epi_id_milliman claimno;run;
-proc sort data = out.hha_&label._&bpid1._&bpid2. out=hh_hdr2bb; by epi_id_milliman claimno;run;
-proc sort data = out.hha_&label._&bpid1._&bpid2. out=hh_hdr2cc; by epi_id_milliman claimno;run;
-
-proc transpose data = hh_hdr2aa out=hh_hdr2a;
-	by epi_id_milliman claimno;
-	var rvcntr01-rvcntr45;
-run;
-
-proc transpose data = hh_hdr2bb out=hh_hdr2b;
-	by epi_id_milliman claimno;
-	var rev_dt01-rev_dt45;
-run;
-
-proc transpose data = hh_hdr2cc out=hh_hdr2c;
-	by epi_id_milliman claimno;
-	var hcpscd01-hcpscd45;
-run;
-
-data hh_hdr2a1 (drop=_NAME_ col1);
-	set hh_hdr2a /*(rename=(col1=rvcntr))*/;
-	num = substr(_NAME_,7,2);
-	rvcntr=coalesce(col1,".");
-	if rvcntr ^= .;
-run;
-
-data hh_hdr2b1 (drop=_NAME_);
-	set hh_hdr2b /*(rename=(col1=rev_dt))*/;
-	num = substr(_NAME_,7,2);
-	rev_dt=coalesce(col1,".");
-	if rev_dt ^= .;
-run;
-
-data hh_hdr2c1 (drop=_NAME_);
-	set hh_hdr2c /*(rename=(col1=hcpcs))*/;
-	num = substr(_NAME_,7,2);
-	hcpcs=coalescec(col1,"");
-	if hcpcs ^= "";
-/*	hcpcs2 = put(hcpcs,$20.);*/
-run;
-
-*inner join to find lines where none of the three components are missing;
-proc sql;
-	create table hh_hdr3 as
-	select a.*
-		,b.rev_dt
-		,c.hcpcs
-	from hh_hdr2a1 as a
-	inner join hh_hdr2b1 as b
-	on a.epi_id_milliman = b.epi_id_milliman and a.claimno = b.claimno and a.num = b.num
-	inner join hh_hdr2c1 as c
-	on a.epi_id_milliman = c.epi_id_milliman and a.claimno = c.claimno and a.num = c.num
-	where a.rvcntr not in (1,23) and c.hcpcs ^= "Q5001"
-;
-quit;
-
-*join visit dates to header HH file;
-proc sql;
-	create table hh_visits as
-	select	distinct
-			a.*
-		,	b.rev_dt as service_date
-	from	hh_hdr1 as a
-			inner join hh_hdr3 as b
-			on a.epi_id_milliman = b.epi_id_milliman and a.claimno = b.claimno
-;
-quit ;
-*20180720 update end;
-
-data visits;
-	format provider $298. clinic_visit_type $50.; length provider $298 clinic_visit_type $50;
-	set op(in=a) prov(in=b) hh_visits(in=c) ;/*MB ADDITION HH INDICATORS 20180126*/
-	hierarchy = 0;
-	if a or b then do ; /*MB ADDITION HH INDICATORS 20180126*/
-	if put(HCPCS_CD,$Obs_HCPCS.) = 'Y' or put(REV_CTR,$Obs_Revenue_CD.) = 'Y' then do; 
-		hierarchy = 1; clinic_visit_type = "Observation"; end;
-	else if put(HCPCS_CD,$ER_HCPCS.) = 'Y' or put(REV_CTR,$ER_Revenue_CD.) = 'Y' then do; 
-		hierarchy = 2; clinic_visit_type = "Emergency Room"; end;
-	else if put(HCPCS_CD,$Physician_visits_HCPCS.) = 'Y' and Op_MD_flag = "Yes" then do; 
-		hierarchy = 3; clinic_visit_type = "Operating Physician Visit"; end;
-	else if put(HCPCS_CD,$Physician_visits_HCPCS.) = 'Y' and Op_MD_flag = "No" then do; 
-		hierarchy = 4; clinic_visit_type = "Other Physician Visit"; end;
-	else if put(HCPCS_CD,$Therapy_HCPCS.) = 'Y' then do; 
-		hierarchy = 5; clinic_visit_type = "Therapy"; end;
-end;
-
-/*MB ADDITION HH INDICATORS 20180126*/
-	else if c then do;
-		hierarchy = 6; clinic_visit_type = "HH";
-	end;
- /*MB ADDITION HH INDICATORS 20180126*/
-	if hierarchy > 0;
-run;
-
-proc sort; by epi_id_milliman service_date hierarchy type descending std_allowed_wage;
-
-run;
-			
-proc sort data = visits nodupkey out=visits2; by epi_id_milliman service_date; run;
-
-*Join anchor end date to file for later calculation;
-proc sql;
-	create table visits3a as
-	select a.*
-		,b.anchor_end_dt
-	from visits2 as a
-	left join out.epi_detail_&label._&bpid1._&bpid2. as b
-	on a.epi_id_milliman = b.epi_id_milliman
-;
-quit;
-
-proc sql;
-	create table visits_ER as
-	select distinct a.*
-		,1 as IP_visit_flag
-	from visits3a as a
-	left join out.ccn_enc_&label._&bpid1._&bpid2. as b
-	on a.epi_id_milliman = b.epi_id_milliman and (a.service_date = b.startdate or sum(a.service_date,1) = b.startdate)
-	where a.clinic_visit_type = "Emergency Room" and b.type in ("IP_d","IP_s")
-;
-*Merge flags for overlapping admissions to original dataset;
-	create table visits3b as
-	select a.*
-		,b.IP_visit_flag
-	from visits3a as a
-	left join visits_ER as b
-	on a.epi_id_milliman = b.epi_id_milliman and a.service_date = b.service_date and a.type = b.type
-;
-quit;
-
-*Change ER visits to ER - stand alone or ER - preceding admit based on overlap with inpatient admissions on the same day;
-data visits3;
-	set visits3b;
-	if clinic_visit_type = "Emergency Room" then do;
-		if IP_visit_flag = 1 then clinic_visit_type = "Emergency Room - Preceding Admit";
-		else clinic_visit_type = "Emergency Room - Stand Alone";
-	end;
-run;
-
-*Assign visits for each day of post-acute period;
-data visits4 (keep = epi_id_milliman v1-v90);
-	set visits3;
-
-	format visit_provider $255.; length visit_provider $255;
-
-	start_date = service_date - anchor_end_dt;
-
-	if clinic_visit_type ^="" then visit_provider = strip(clinic_visit_type)||": "||strip(provider)||": "||strip(put(service_date,$mmddyy10.));
-	else visit_provider = "";
-
-	by epi_id_milliman; 
-
-	retain v1-v90;
-	length v1-v90 $255;
-
-	if first.epi_id_milliman then do;
-
-		v1 = ''; v2 = ''; v3 = ''; v4 = ''; v5 = ''; v6 = ''; v7 = ''; v8 = ''; v9 = '';
-		v10 = ''; v11 = ''; v12 = ''; v13 = ''; v14 = ''; v15 = ''; v16 = ''; v17 = ''; v18 = ''; v19 = '';
-		v20 = ''; v21 = ''; v22 = ''; v23 = ''; v24 = ''; v25 = ''; v26 = ''; v27 = ''; v28 = ''; v29 = '';
-		v30 = ''; v31 = ''; v32 = ''; v33 = ''; v34 = ''; v35 = ''; v36 = ''; v37 = ''; v38 = ''; v39 = '';
-		v40 = ''; v41 = ''; v42 = ''; v43 = ''; v44 = ''; v45 = ''; v46 = ''; v47 = ''; v48 = ''; v49 = '';
-		v50 = ''; v51 = ''; v52 = ''; v53 = ''; v54 = ''; v55 = ''; v56 = ''; v57 = ''; v58 = ''; v59 = '';
-		v60 = ''; v61 = ''; v62 = ''; v63 = ''; v64 = ''; v65 = ''; v66 = ''; v67 = ''; v68 = ''; v69 = '';
-		v70 = ''; v71 = ''; v72 = ''; v73 = ''; v74 = ''; v75 = ''; v76 = ''; v77 = ''; v78 = ''; v79 = '';
-		v80 = ''; v81 = ''; v82 = ''; v83 = ''; v84 = ''; v85 = ''; v86 = ''; v87 = ''; v88 = ''; v89 = '';
-		v90 = ''; 
-	end;
-
-	array v(*) v1-v90 ;
-	 
-	do i=1 to 90;
-	/*Assign provider for each day*/
-		if start_date = (i-1) then do;
-			v{i} = visit_provider;
-		end;
-	end;
-
-	if last.epi_id_milliman then output;
-run;
-
-*Join to PAC pjourney file to output final pjourney file;
-proc sql;
-	create table out.pjourney_&label._&bpid1._&bpid2. as
-	select a.*
-		,b.*
-	from patientjourney_3 as a
-	left join visits4 as b
-	on a.epi_id_milliman = b.epi_id_milliman
-;
-quit;
-
-*Create output table of all PAC and clinic visit types for all episodes as QVW filter;
-data util_table (keep= BPID epi_id_milliman type);
-	set patientjourney_1b (keep= BPID epi_id_milliman type)
-		visits3 (keep= BPID epi_id_milliman clinic_visit_type rename=(clinic_visit_type=type))
-	;
-	where type ^= "";
-	if type = "Other Readmit" then type = "Other Readmit"; /*20171107 JL Update - clean up label*/
-	if type = "Anchor Readmit" then type = "Anchor Readmit";
-run;
-
-proc sort data = util_table nodupkey out = out.util_&label._&bpid1._&bpid2.; by epi_id_milliman type; run;
-
-
-
-
-*********************************************************************************************/
 /*** Code to create Patient Detail Report  ***************************************************/
 /*********************************************************************************************/
 *20180723 UPDATE: update the HH visits logic;
 *Count number of unique visits for each claim;
-proc sql;
-	create table hh_hdr4 as
-	select epi_id_milliman
-		,claimno
-		,count(*) as hh_visits
-	from hh_hdr3
-	group by epi_id_milliman, claimno
-;
-quit;
 
 proc sql;
 	create table ccn_hh as
@@ -4118,7 +4132,7 @@ quit;
 *MACRO RUNS;
 
 
-/*%Dashboard(1125,0000,0);*/
+%Dashboard(1125,0000,0);
 /*%Dashboard(1148,0000,0);*/
 /*%Dashboard(1167,0000,0);*/
 /*%Dashboard(1209,0000,0);*/
@@ -4216,15 +4230,15 @@ quit;
 
 
 
-*DEMO ONLY;
-%Dashboard(1148,0000,0);
-%Dashboard(1167,0000,0);
-%Dashboard(1343,0000,0);
-%Dashboard(1368,0000,0);
-%Dashboard(2379,0000,0);
-%Dashboard(2587,0000,0);
-%Dashboard(2607,0000,0);
-%Dashboard(5479,0002,0);
+/**DEMO ONLY;*/
+/*%Dashboard(1148,0000,0);*/
+/*%Dashboard(1167,0000,0);*/
+/*%Dashboard(1343,0000,0);*/
+/*%Dashboard(1368,0000,0);*/
+/*%Dashboard(2379,0000,0);*/
+/*%Dashboard(2587,0000,0);*/
+/*%Dashboard(2607,0000,0);*/
+/*%Dashboard(5479,0002,0);*/
 
 *DEV RUN;
 /*%Dashboard(1075,0000,0);*/
