@@ -4,8 +4,8 @@ options emailsys = SMTP;
 *Specifying a single SMTP server;
 options emailhost = smtp.milliman.com;
 * Add to and from email addresses;
-%let to_email = sumudu.dehipawala@milliman.com;
-%let from_email = sumudu.dehipawala@milliman.com;
+%let to_email = shachi.mistry@milliman.com;
+%let from_email = shachi.mistry@milliman.com;
 
 %let _sdtm=%sysfunc(datetime());
 options mprint nospool;
