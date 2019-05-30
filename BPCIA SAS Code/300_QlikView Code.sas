@@ -3554,9 +3554,9 @@ proc sql;
 				,base_snf_n/epi_total as base_snf_freq
 				,base_hh_n/epi_total as base_hh_freq
 				,base_dod_n/epi_total as base_dod_freq
-				,base_ip_days/epi_total as base_fip_avg_days
-				,base_irf_days/epi_total as base_irf_avg_days
-				,base_snf_days/epi_total as base_snf_avg_days
+				,base_ip_days/base_fip_n as base_fip_avg_days
+				,base_irf_days/base_irf_n as base_irf_avg_days
+				,base_snf_days/base_snf_n as base_snf_avg_days
 		from baseline_util as a
 		order by BPID
 				,anchor_code
@@ -4118,79 +4118,79 @@ quit;
 *MACRO RUNS;
 
 
-/*%Dashboard(1125,0000,0);*/
-/*%Dashboard(1148,0000,0);*/
-/*%Dashboard(1167,0000,0);*/
-/*%Dashboard(1209,0000,0);*/
-/*%Dashboard(1343,0000,0);*/
-/*%Dashboard(1368,0000,0);*/
-/*%Dashboard(1374,0004,0);*/
-/*%Dashboard(1374,0008,0);*/
-/*%Dashboard(1374,0009,0);*/
-/*%Dashboard(1686,0002,0);*/
-/*%Dashboard(1688,0002,0);*/
-/*%Dashboard(1696,0002,0);*/
-/*%Dashboard(1710,0002,0);*/
-/*%Dashboard(1958,0000,0);*/
-/*%Dashboard(2070,0000,0);*/
-/*%Dashboard(2374,0000,0);*/
-/*%Dashboard(2376,0000,0);*/
-/*%Dashboard(2378,0000,0);*/
-/*%Dashboard(2379,0000,0);*/
-/*%Dashboard(1075,0000,0);*/
-/*%Dashboard(2594,0000,0);*/
-/*%Dashboard(2048,0000,0);*/
-/*%Dashboard(2049,0000,0);*/
-/*%Dashboard(2607,0000,0);*/
-/*%Dashboard(5038,0000,0);*/
-/*%Dashboard(5050,0000,0);*/
-/*%Dashboard(2587,0000,0);*/
-/*%Dashboard(2589,0000,0);*/
-/*%Dashboard(5154,0000,0);*/
-/*%Dashboard(5282,0000,0);*/
-/*%Dashboard(2631,0000,0);*/
-/*%Dashboard(5037,0000,0);*/
-/*%Dashboard(5478,0002,0);*/
-/*%Dashboard(5043,0000,0);*/
-/*%Dashboard(5479,0002,0);*/
-/*%Dashboard(5480,0002,0);*/
-/*%Dashboard(5215,0003,0);*/
-/*%Dashboard(5215,0002,0);*/
-/*%Dashboard(5229,0000,0);*/
-/*%Dashboard(5263,0000,0);*/
-/*%Dashboard(5264,0000,0);*/
-/*%Dashboard(5481,0002,0);*/
-/*%Dashboard(5394,0000,0);*/
-/*%Dashboard(5395,0000,0);*/
-/*%Dashboard(5397,0002,0);*/
-/*%Dashboard(5397,0005,0);*/
-/*%Dashboard(5397,0004,0);*/
-/*%Dashboard(5397,0008,0);*/
-/*%Dashboard(5397,0003,0);*/
-/*%Dashboard(5397,0006,0);*/
-/*%Dashboard(5397,0009,0);*/
-/*%Dashboard(5397,0010,0);*/
-/*%Dashboard(5916,0002,0);*/
-/*%Dashboard(6049,0002,0);*/
-/*%Dashboard(6050,0002,0);*/
-/*%Dashboard(6051,0002,0);*/
-/*%Dashboard(6052,0002,0);*/
-/*%Dashboard(6053,0002,0);*/
-/*%Dashboard(5397,0007,0);*/
-/*%Dashboard(1102,0000,0);*/
-/*%Dashboard(1105,0000,0);*/
-/*%Dashboard(1106,0000,0);*/
-/*%Dashboard(1103,0000,0);*/
-/*%Dashboard(1104,0000,0);*/
-/*%Dashboard(5392,0004,0);*/
-/*%Dashboard(6054,0002,0);*/
-/*%Dashboard(6055,0002,0);*/
-/*%Dashboard(6056,0002,0);*/
-/*%Dashboard(6057,0002,0);*/
-/*%Dashboard(6058,0002,0);*/
-/*%Dashboard(6059,0002,0);*/
-/*%Dashboard(5746,0002,0);*/
-/*%Dashboard(1191,0002,1);*/
+%Dashboard(1125,0000,0);
+%Dashboard(1148,0000,0);
+%Dashboard(1167,0000,0);
+%Dashboard(1209,0000,0);
+%Dashboard(1343,0000,0);
+%Dashboard(1368,0000,0);
+%Dashboard(1374,0004,0);
+%Dashboard(1374,0008,0);
+%Dashboard(1374,0009,0);
+%Dashboard(1686,0002,0);
+%Dashboard(1688,0002,0);
+%Dashboard(1696,0002,0);
+%Dashboard(1710,0002,0);
+%Dashboard(1958,0000,0);
+%Dashboard(2070,0000,0);
+%Dashboard(2374,0000,0);
+%Dashboard(2376,0000,0);
+%Dashboard(2378,0000,0);
+%Dashboard(2379,0000,0);
+%Dashboard(1075,0000,0);
+%Dashboard(2594,0000,0);
+%Dashboard(2048,0000,0);
+%Dashboard(2049,0000,0);
+%Dashboard(2607,0000,0);
+%Dashboard(5038,0000,0);
+%Dashboard(5050,0000,0);
+%Dashboard(2587,0000,0);
+%Dashboard(2589,0000,0);
+%Dashboard(5154,0000,0);
+%Dashboard(5282,0000,0);
+%Dashboard(2631,0000,0);
+%Dashboard(5037,0000,0);
+%Dashboard(5478,0002,0);
+%Dashboard(5043,0000,0);
+%Dashboard(5479,0002,0);
+%Dashboard(5480,0002,0);
+%Dashboard(5215,0003,0);
+%Dashboard(5215,0002,0);
+%Dashboard(5229,0000,0);
+%Dashboard(5263,0000,0);
+%Dashboard(5264,0000,0);
+%Dashboard(5481,0002,0);
+%Dashboard(5394,0000,0);
+%Dashboard(5395,0000,0);
+%Dashboard(5397,0002,0);
+%Dashboard(5397,0005,0);
+%Dashboard(5397,0004,0);
+%Dashboard(5397,0008,0);
+%Dashboard(5397,0003,0);
+%Dashboard(5397,0006,0);
+%Dashboard(5397,0009,0);
+%Dashboard(5397,0010,0);
+%Dashboard(5916,0002,0);
+%Dashboard(6049,0002,0);
+%Dashboard(6050,0002,0);
+%Dashboard(6051,0002,0);
+%Dashboard(6052,0002,0);
+%Dashboard(6053,0002,0);
+%Dashboard(5397,0007,0);
+%Dashboard(1102,0000,0);
+%Dashboard(1105,0000,0);
+%Dashboard(1106,0000,0);
+%Dashboard(1103,0000,0);
+%Dashboard(1104,0000,0);
+%Dashboard(5392,0004,0);
+%Dashboard(6054,0002,0);
+%Dashboard(6055,0002,0);
+%Dashboard(6056,0002,0);
+%Dashboard(6057,0002,0);
+%Dashboard(6058,0002,0);
+%Dashboard(6059,0002,0);
+%Dashboard(5746,0002,0);
+%Dashboard(1191,0002,1);
 
 
 
@@ -4217,14 +4217,14 @@ quit;
 
 
 *DEMO ONLY;
-%Dashboard(1148,0000,0);
-%Dashboard(1167,0000,0);
-%Dashboard(1343,0000,0);
-%Dashboard(1368,0000,0);
-%Dashboard(2379,0000,0);
-%Dashboard(2587,0000,0);
-%Dashboard(2607,0000,0);
-%Dashboard(5479,0002,0);
+/*%Dashboard(1148,0000,0);*/
+/*%Dashboard(1167,0000,0);*/
+/*%Dashboard(1343,0000,0);*/
+/*%Dashboard(1368,0000,0);*/
+/*%Dashboard(2379,0000,0);*/
+/*%Dashboard(2587,0000,0);*/
+/*%Dashboard(2607,0000,0);*/
+/*%Dashboard(5479,0002,0);*/
 
 *DEV RUN;
 /*%Dashboard(1075,0000,0);*/
