@@ -2276,6 +2276,8 @@ create table patientjourney_3 as
 		,a.Anchor_YearQtr
 		,a.Anchor_YearMo
 		,a.Anchor_Year	
+		,a.bene_death_dt
+		,a.anchor_end_dt
 		,b.*
 		,case when d_first in ("Other Readmit","Anchor Readmit") then "Readmit" else d_first end as d_first_2
 	from out.epi_detail_&label._&bpid1._&bpid2. as a
@@ -2774,17 +2776,6 @@ run;
 
 *Join to PAC pjourney file to output final pjourney file;
 
-
-/*proc sql;*/
-/*	create table out.pjourney_&label._&bpid1._&bpid2. as*/
-/*	select a.**/
-/*		,b.**/
-/*	from patientjourney_3 as a*/
-/*	left join visits4 as b*/
-/*	on a.epi_id_milliman = b.epi_id_milliman*/
-/*;*/
-/*quit;*/
-
 proc sql ;
 	create table patientjourney_4 as 
 	select a.* ,
@@ -2798,7 +2789,11 @@ data out.pjourney_&label._&bpid1._&bpid2. (drop=i);
 	set patientjourney_4 ;
 	array d(*) d1-d90 ;
 	do i=1 to 90 ;
-		if pac_start_date + i - 1 >= bene_death_date then d(i)="Deceased";
+		if  anchor_end_dt + i - 1 > bene_death_dt then d(i)="Deceased";
+end ;
+	array v(*) v1-v90 ;
+	do i=1 to 90 ;
+		if  anchor_end_dt + i - 1 >= bene_death_dt then v(i)="Deceased";
 end ;
 run ;
 
