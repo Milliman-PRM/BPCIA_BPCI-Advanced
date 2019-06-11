@@ -2773,15 +2773,34 @@ data visits4 (keep = epi_id_milliman v1-v90);
 run;
 
 *Join to PAC pjourney file to output final pjourney file;
-proc sql;
-	create table out.pjourney_&label._&bpid1._&bpid2. as
-	select a.*
-		,b.*
-	from patientjourney_3 as a
-	left join visits4 as b
-	on a.epi_id_milliman = b.epi_id_milliman
-;
-quit;
+
+
+/*proc sql;*/
+/*	create table out.pjourney_&label._&bpid1._&bpid2. as*/
+/*	select a.**/
+/*		,b.**/
+/*	from patientjourney_3 as a*/
+/*	left join visits4 as b*/
+/*	on a.epi_id_milliman = b.epi_id_milliman*/
+/*;*/
+/*quit;*/
+
+proc sql ;
+	create table patientjourney_4 as 
+	select a.* ,
+		   b.* 
+	from patientjourney_3 as a 
+	left join visits4 as b 
+	on a.epi_id_milliman=b.epi_id_milliman ;
+quit ;
+
+data out.pjourney_&label._&bpid1._&bpid2. (drop=i);
+	set patientjourney_4 ;
+	array d(*) d1-d90 ;
+	do i=1 to 90 ;
+		if pac_start_date + i - 1 >= bene_death_date then d(i)="Deceased";
+end ;
+run ;
 
 *Create output table of all PAC and clinic visit types for all episodes as QVW filter;
 data util_table (keep= BPID epi_id_milliman type);
