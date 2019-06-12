@@ -1180,7 +1180,7 @@ quit ;
 /*/*********************************************************************************************/*/
 /*/*Code to create a CCN-level observational dataset********************************************/*/
 /*/*********************************************************************************************/*/;
-data ccn_enc_ip (keep=BPID anchor_ccn claimno EPISODE_INITIATOR epi_id_milliman drg_cd type allowed std_allowed_wage provider_ccn0 admsn_dt DSCHRGDT util_day timeframe GEO_BENE_SK pdgns_cd pproc_cd transfer_stay DGNSCD02-DGNSCD25 edac_flag);
+data ccn_enc_ip (keep=BPID anchor_ccn claimno EPISODE_INITIATOR epi_id_milliman drg_cd type allowed std_allowed_wage provider_ccn0 admsn_dt DSCHRGDT util_day timeframe GEO_BENE_SK pdgns_cd pproc_cd transfer_stay AD_DGNS DGNSCD02-DGNSCD25 edac_flag);
 	set		out.ipr_&label._&bpid1._&bpid2.;
 /*	where timeframe ^=0 ; */
 	format DRG_CD $3.;
@@ -1214,6 +1214,7 @@ proc sql;
 			  ,pdgns_cd 
 			  ,pproc_cd
 			  ,timeframe
+			  ,AD_DGNS
 			  ,DGNSCD02,DGNSCD03,DGNSCD04,DGNSCD05,DGNSCD06,DGNSCD07,DGNSCD08,DGNSCD09,DGNSCD10,DGNSCD11,DGNSCD12,DGNSCD13,DGNSCD14,DGNSCD15,DGNSCD16,DGNSCD17,DGNSCD18,DGNSCD19,DGNSCD20,DGNSCD21,DGNSCD22,DGNSCD23,DGNSCD24,DGNSCD25
 			  ,edac_flag
 		from ccn_enc_ip
@@ -1233,6 +1234,7 @@ proc sql;
 			  ,pdgns_cd 
 			  ,pproc_cd
 			  ,timeframe
+			  ,AD_DGNS
 			  ,DGNSCD02,DGNSCD03,DGNSCD04,DGNSCD05,DGNSCD06,DGNSCD07,DGNSCD08,DGNSCD09,DGNSCD10,DGNSCD11,DGNSCD12,DGNSCD13,DGNSCD14,DGNSCD15,DGNSCD16,DGNSCD17,DGNSCD18,DGNSCD19,DGNSCD20,DGNSCD21,DGNSCD22,DGNSCD23,DGNSCD24,DGNSCD25
 			  ,edac_flag
 		; 
@@ -1251,7 +1253,7 @@ set out.hha_&label._&bpid1._&bpid2.(keep=BENE_SK  claimno anchor_ccn EPISODE_INI
 run;
 
 data ccn_enc_op;
-	set out.op_&label._&bpid1._&bpid2. (keep= bene_sk claimno anchor_ccn EPISODE_INITIATOR BPID epi_id_milliman type allowed std_allowed_wage PROVIDER dos timeframe DGNSCD01-DGNSCD25 at_npi HCPCS_CD  REV_CNTR edac_flag in=c rename=(PROVIDER=provider_ccn0 bene_sk = geo_bene_sk DGNSCD01=pdgns_cd)) ;
+	set out.op_&label._&bpid1._&bpid2. (keep= bene_sk claimno anchor_ccn EPISODE_INITIATOR BPID epi_id_milliman type allowed std_allowed_wage PROVIDER dos timeframe CD01-DGNSCD25 at_npi HCPCS_CD  REV_CNTR edac_flag in=c rename=(PROVIDER=provider_ccn0 bene_sk = geo_bene_sk DGNSCD01=pdgns_cd)) ;
 	ADMSN_DT = dos;
 	DSCHRGDT = dos;
 run;
@@ -1264,7 +1266,7 @@ run;
 
 data ccn_enc(drop=provider_ccn0);
 set		
-		ccn_enc_ip_a (keep=GEO_BENE_SK  anchor_ccn EPISODE_INITIATOR BPID epi_id_milliman drg_cd type allowed std_allowed_wage provider_ccn0 admsn_dt DSCHRGDT util_day  pdgns_cd pproc_cd timeframe DGNSCD02-DGNSCD25 edac_flag)
+		ccn_enc_ip_a (keep=GEO_BENE_SK AD_DGNS anchor_ccn EPISODE_INITIATOR BPID epi_id_milliman drg_cd type allowed std_allowed_wage provider_ccn0 admsn_dt DSCHRGDT util_day  pdgns_cd pproc_cd timeframe DGNSCD02-DGNSCD25 edac_flag)
 		ccn_enc_snf
 		ccn_enc_hha
 		ccn_enc_op
@@ -3084,7 +3086,7 @@ union all
 		,fac_timeframe_1_90
 		,fac_timeframe_all
 		,"Facility" as claim_category
-    	,DGNSCD02,DGNSCD03,DGNSCD04,DGNSCD05,DGNSCD06,DGNSCD07,DGNSCD08,DGNSCD09,DGNSCD10,DGNSCD11,DGNSCD12,DGNSCD13,DGNSCD14,DGNSCD15,DGNSCD16,DGNSCD17,DGNSCD18,DGNSCD19,DGNSCD20,DGNSCD21,DGNSCD22,DGNSCD23,DGNSCD24,DGNSCD25
+		,DGNSCD02,DGNSCD03,DGNSCD04,DGNSCD05,DGNSCD06,DGNSCD07,DGNSCD08,DGNSCD09,DGNSCD10,DGNSCD11,DGNSCD12,DGNSCD13,DGNSCD14,DGNSCD15,DGNSCD16,DGNSCD17,DGNSCD18,DGNSCD19,DGNSCD20,DGNSCD21,DGNSCD22,DGNSCD23,DGNSCD24,DGNSCD25
 		,edac_flag
 		,UNPLANNED_READMIT_FLAG
 		,HAS_READMISSION
