@@ -17,12 +17,11 @@ data temp_DME;
 infile "&file." dlm="," missover dsd lrecl=1000 firstobs = 2 ;
 input
 EPISODE_ID	:
-CLAIMNO: $50.
 LINEITEM: $9.
 STD_COST_EPI_TOTAL :
+CLAIMNO: $50.
 MBI_ID	:$20.
 CURHIC_UNEQ	:$20.
-BENE_SK: $20.
 LINE_STD_ALLOWED:
 LINE_ALLOWED :
 FROM_DT	:date9.
@@ -56,7 +55,6 @@ run;
 
 data DME_&sub2._&BPID._&i. ;
  set temp_DME; 
-BENE_SK = compress(BENE_SK,",");
 CLAIMNO = compress(CLAIMNO,",");
 run ;
 
@@ -72,11 +70,10 @@ data temp_HHA;
 infile "&file." dlm="," missover dsd lrecl=1000 firstobs = 2 ;
 input
 EPISODE_ID :
-CLAIMNO : $50.
 STD_COST_EPI_TOTAL :
+CLAIMNO : $50.
 MBI_ID :$20.
 CURHIC_UNEQ :$20.
-BENE_SK : $20.
 STD_ALLOWED :
 CLM_ALLOWED :
 FROM_DT :date9.
@@ -391,7 +388,6 @@ run;
 
 data HHA_&sub2._&BPID._&i. ;
  set temp_HHA; 
-BENE_SK = compress(BENE_SK,",");
 CLAIMNO = compress(CLAIMNO,",");
 run ;
 %mend HHA;
@@ -404,11 +400,10 @@ data temp_HS;
 infile "&file." dlm="," missover dsd lrecl=1000 firstobs = 2 ;
 input
 EPISODE_ID:
-CLAIMNO : $50.
 STD_COST_EPI_TOTAL :
+CLAIMNO : $50.
 MBI_ID :$20.
 CURHIC_UNEQ :$20.
-BENE_SK : $20.
 STD_ALLOWED :
 CLM_ALLOWED :
 FROM_DT : date9.
@@ -458,7 +453,6 @@ run;
 
 data HS_&sub2._&BPID._&i. ;
  set temp_HS; 
-BENE_SK = compress(BENE_SK,",");
 CLAIMNO = compress(CLAIMNO,",");
 run ;
 %mend HS;
@@ -475,7 +469,6 @@ IP_STAY_ID :
 STD_COST_EPI_TOTAL :
 MBI_ID : $20.
 CURHIC_UNEQ : $20.
-BENE_SK : $20.
 PROVIDER : $20.
 PTNTCNTL : $20.
 STAY_ADMSN_DT :date9.
@@ -551,7 +544,6 @@ run;
 
 data IP_&sub2._&BPID._&i. ;
  set temp_IP; 
-BENE_SK = compress(BENE_SK,",");
 run ;
 %mend IP;
 
@@ -564,12 +556,11 @@ data temp_OP;
 infile "&file." dlm="," missover dsd lrecl=1000 firstobs = 2 ;
 input
 EPISODE_ID :
-CLAIMNO : $50.
 LINEITEM :
 STD_COST_EPI_TOTAL :
+CLAIMNO : $50.
 MBI_ID :$20.
 CURHIC_UNEQ :$20.
-BENE_SK : $20.
 LINE_STD_ALLOWED :
 LINE_ALLOWED :
 FROM_DT :date9.
@@ -618,7 +609,6 @@ run;
 
 data OP_&sub2._&BPID._&i. ;
  set temp_OP; 
-BENE_SK = compress(BENE_SK,",");
 CLAIMNO = compress(CLAIMNO,",");
 run ;
 %mend OP;
@@ -632,12 +622,11 @@ data temp_PB;
 infile "&file." dlm="," missover dsd lrecl=1000 firstobs = 2 ;
 input
 EPISODE_ID :
-CLAIMNO : $50.
 LINEITEM :
 STD_COST_EPI_TOTAL :
+CLAIMNO : $50.
 MBI_ID : $20.
 CURHIC_UNEQ : $20.
-BENE_SK : $20.
 LINE_STD_ALLOWED :
 LINE_ALLOWED :
 FROM_DT :date9.
@@ -677,7 +666,6 @@ run;
 
 data PB_&sub2._&BPID._&i. ;
  set temp_PB; 
-BENE_SK = compress(BENE_SK,",");
 CLAIMNO = compress(CLAIMNO,",");
 run ;
 %mend PB;
@@ -691,11 +679,10 @@ data temp_SNF;
 infile "&file." dlm="," missover dsd lrecl=1000 firstobs = 2 ;
 input
 EPISODE_ID :
-CLAIMNO : $50.
 STD_COST_EPI_TOTAL :
+CLAIMNO : $50.
 MBI_ID : $20.
 CURHIC_UNEQ : $20.
-BENE_SK : $20.
 STD_ALLOWED :
 CLM_ALLOWED :
 FROM_DT : date9.
@@ -745,7 +732,6 @@ run;
 
 data SNF_&sub2._&BPID._&i. ;
  set temp_SNF; 
-BENE_SK = compress(BENE_SK,",");
 CLAIMNO = compress(CLAIMNO,",");
 run ;
 %mend SNF;
@@ -763,7 +749,6 @@ EI_BPID : $9.
 ATTRIBUTED_PVDR_GROUP_ID :
 EPISODE_ID :
 EPISODE_GROUP_NAME :  $225.
-BENE_SK : $20.
 MBI_ID :  $20.
 BENE_GVN_NAME : $32.
 BENE_MDL_NAME : $32.
@@ -775,7 +760,6 @@ BENE_BIRTH_DT : date9.
 BENE_DEATH_DT : date9.
 ANCHOR_TYPE :  $20.
 ANCHOR_STAY_ID :
-ANCHOR_CLAIMNO : $50.
 ANCHOR_LINEITEM :
 ANCHOR_TRIGGER_CD : $20.
 PERF_APC :
@@ -925,6 +909,7 @@ WINSORIZE_EPI_1_99 :
 EPI_STD_PMT_FCTR_WIN_1_99 :
 MULT_ATTR_PROVS :
 CNT_ATTR_PGP :
+ANCHOR_CLAIMNO : $50.
 
 ;
 
@@ -935,7 +920,6 @@ run;
 
 data EPI_&sub2._&BPID._&i. ;
  set temp_EPI; 
-BENE_SK = compress(BENE_SK,",");
 ANCHOR_CLAIMNO = compress(ANCHOR_CLAIMNO,",");
 run ;
 %mend EPI;
