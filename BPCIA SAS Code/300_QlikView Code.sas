@@ -1155,7 +1155,17 @@ create table Episode_Detail_7 as
 			%end;
 			%else %do;
 			,"PERF" as period
-			,"Performance Period 1" as timeframe_filter format = $100. length=100
+			, case when '01OCT2018'd le POST_DSCH_END_DT le '30JUN2019'd then "Performance Period 1"
+				   when '01JUL2019'd le POST_DSCH_END_DT le '31DEC2019'd then "Performance Period 2"
+				   when '01JAN2020'd le POST_DSCH_END_DT le '30JUN2020'd then "Performance Period 3"
+				   when '01JUL2020'd le POST_DSCH_END_DT le '31DEC2020'd then "Performance Period 4"
+				   when '01JAN2021'd le POST_DSCH_END_DT le '30JUN2021'd then "Performance Period 5"
+				   when '01JUL2021'd le POST_DSCH_END_DT le '31DEC2021'd then "Performance Period 6"
+				   when '01JAN2022'd le POST_DSCH_END_DT le '30JUN2022'd then "Performance Period 7"
+				   when '01JUL2022'd le POST_DSCH_END_DT le '31DEC2022'd then "Performance Period 8"
+				   when '01JAN2023'd le POST_DSCH_END_DT le '30JUN2023'd then "Performance Period 9"
+				   when '01JUL2023'd le POST_DSCH_END_DT le '31DEC2023'd then "Performance Period 10"
+			end as timeframe_filter format = $100. length=100
 			%end;
 			,case when (&transmit_date. - b.POST_DSCH_END_DT) >= 60 then "Yes" else "No" end as COMP_EP_FLAG
 			,b.POST_DSCH_END_DT as epi_end_date
@@ -3996,7 +4006,17 @@ create table exclusions1 as
 		,a.anchor_beg_dt
 		,a.anchor_end_dt
 		,"PERF" as period
-		,"Performance Period 1" as timeframe_filter format = $100. length=100
+		,case when '01OCT2018'd le POST_DSCH_END_DT le '30JUN2019'd then "Performance Period 1"
+			  when '01JUL2019'd le POST_DSCH_END_DT le '31DEC2019'd then "Performance Period 2"
+			  when '01JAN2020'd le POST_DSCH_END_DT le '30JUN2020'd then "Performance Period 3"
+			  when '01JUL2020'd le POST_DSCH_END_DT le '31DEC2020'd then "Performance Period 4"
+			  when '01JAN2021'd le POST_DSCH_END_DT le '30JUN2021'd then "Performance Period 5"
+			  when '01JUL2021'd le POST_DSCH_END_DT le '31DEC2021'd then "Performance Period 6"
+			  when '01JAN2022'd le POST_DSCH_END_DT le '30JUN2022'd then "Performance Period 7"
+			  when '01JUL2022'd le POST_DSCH_END_DT le '31DEC2022'd then "Performance Period 8"
+			  when '01JAN2023'd le POST_DSCH_END_DT le '30JUN2023'd then "Performance Period 9"
+			  when '01JUL2023'd le POST_DSCH_END_DT le '31DEC2023'd then "Performance Period 10"
+		 end as timeframe_filter format = $100. length=100
 /*		,a.DROPFLAG_NON_ACH*/
 /*		,a.DROPFLAG_EXCLUDED_STATE*/
 /*		,a.DROPFLAG_NOT_CONT_ENR_AB_NO_C*/
