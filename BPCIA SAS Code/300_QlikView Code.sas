@@ -1242,12 +1242,12 @@ quit;
 
 *!! JL BPCIA update: Temporary - to fix formats and rename variables to get them all to stack;
 data ccn_enc_snf;
-set out.snf_&label._&bpid1._&bpid2. (keep= EPISODE_INITIATOR claimno BPID epi_id_milliman type allowed std_allowed_wage PROVIDER admsn_dt DSCHRGDT THRU_DT util_day timeframe AD_DGNS DGNSCD01-DGNSCD25 rename=(PROVIDER=provider_ccn0 DGNSCD01=pdgns_cd /*util_day = util_day_pre*/)) ;
+set out.snf_&label._&bpid1._&bpid2. (keep= EPISODE_INITIATOR claimno BPID epi_id_milliman type allowed std_allowed_wage PROVIDER admsn_dt DSCHRGDT THRU_DT util_day timeframe DGNSCD01-DGNSCD25 rename=(PROVIDER=provider_ccn0 DGNSCD01=pdgns_cd /*util_day = util_day_pre*/)) ;
 /*	util_day = min(util_day_pre,90);*/
 run;
 
 data ccn_enc_hha;
-set out.hha_&label._&bpid1._&bpid2.(keep=BENE_SK  claimno anchor_ccn EPISODE_INITIATOR BPID epi_id_milliman type allowed std_allowed_wage PROVIDER timeframe AD_DGNS DGNSCD01-DGNSCD25 FROM_DT THRU_DT util_day
+set out.hha_&label._&bpid1._&bpid2.(keep=BENE_SK  claimno anchor_ccn EPISODE_INITIATOR BPID epi_id_milliman type allowed std_allowed_wage PROVIDER timeframe DGNSCD01-DGNSCD25 FROM_DT THRU_DT util_day
 											 rename=(BENE_SK=GEO_BENE_SK DGNSCD01=pdgns_cd FROM_DT=admsn_dt THRU_DT=DSCHRGDT) in=d) ;
 	provider_ccn0 = strip(provider);
 run;
@@ -1259,7 +1259,7 @@ data ccn_enc_op;
 run;
 
 data ccn_enc_hs (drop=provider);
-	set out.hs_&label._&bpid1._&bpid2. (keep= bene_sk claimno anchor_ccn EPISODE_INITIATOR BPID epi_id_milliman type allowed std_allowed_wage PROVIDER dos timeframe AD_DGNS DGNSCD01-DGNSCD25 thru_dt util_day in=c rename=(bene_sk=geo_bene_sk dos = admsn_dt DGNSCD01=pdgns_cd thru_dt = dschrgdt));
+	set out.hs_&label._&bpid1._&bpid2. (keep= bene_sk claimno anchor_ccn EPISODE_INITIATOR BPID epi_id_milliman type allowed std_allowed_wage PROVIDER dos timeframe DGNSCD01-DGNSCD25 thru_dt util_day in=c rename=(bene_sk=geo_bene_sk dos = admsn_dt DGNSCD01=pdgns_cd thru_dt = dschrgdt));
 	provider_ccn0 = input(provider,$20.);
 run;
 *;
@@ -1288,7 +1288,6 @@ proc sql;
 			  ,drg_cd
 			  ,pdgns_cd
 			  ,pproc_cd
-/*			  ,admtg_dgns_cd*/
 			  ,max(at_npi) as at_npi
 			  ,timeframe
 			  ,admsn_dt
@@ -1312,7 +1311,6 @@ proc sql;
 			  ,drg_cd
 			  ,pdgns_cd
 			  ,pproc_cd
-/*			  ,admtg_dgns_cd*/
 			  ,timeframe
 			  ,admsn_dt
 			  ,hcpcs_cd
@@ -1374,7 +1372,6 @@ proc sql;
 			  ,drg_cd
 			  ,pdgns_cd
 			  ,pproc_cd
-/*			  ,admtg_dgns_cd as readmit_admit_diag*/
 			  ,timeframe
 			  ,hcpcs_cd
 			  ,rev_cntr
@@ -1400,7 +1397,6 @@ proc sql;
 			  ,drg_cd 
 			  ,pdgns_cd 
 			  ,pproc_cd
-/*			  ,admtg_dgns_cd*/
 			  ,at_npi
 			  ,timeframe
 			  ,hcpcs_cd
@@ -1696,6 +1692,7 @@ proc sql;
 		,strip(put(a.PRFNPI,15.)) as PRFNPI_A
 		,a.HCPCS_CD as HCPCS_CD_A
 		,a.DGNSCD01 as primary_diag_cd
+		,a.AD_DGNS
 		,a.DGNSCD02,a.DGNSCD03,a.DGNSCD04,a.DGNSCD05,a.DGNSCD06,a.DGNSCD07,a.DGNSCD08,a.DGNSCD09,a.DGNSCD10,a.DGNSCD11,a.DGNSCD12
 	from npi_level as a 
 	group by a.anchor_CCN
@@ -1708,6 +1705,7 @@ proc sql;
 			,PRFNPI_A
 			,HCPCS_CD_A
 			,primary_diag_cd
+			,a.AD_DGNS
 			,a.DGNSCD02,a.DGNSCD03,a.DGNSCD04,a.DGNSCD05,a.DGNSCD06,a.DGNSCD07,a.DGNSCD08,a.DGNSCD09,a.DGNSCD10,a.DGNSCD11,a.DGNSCD12
 	;
 quit ; 
@@ -1743,6 +1741,7 @@ proc sql ;
 			  ,(a.allowed/2) as cap_50percent
 			  ,a.type
 			  ,a.primary_diag_cd
+			  ,a.AD_DGNS
 			  ,a.DGNSCD02,a.DGNSCD03,a.DGNSCD04,a.DGNSCD05,a.DGNSCD06,a.DGNSCD07,a.DGNSCD08,a.DGNSCD09,a.DGNSCD10,a.DGNSCD11,a.DGNSCD12
 			  ,a.hcpcs_cd_A as hcpcs_cd
 			  ,case when a.PRFNPI_A in ("",".") then "Unknown ()"	/*20170522 Update: Change name logic and add last 4 digits of NPI to physician abbreviation*/
@@ -2891,6 +2890,7 @@ create table patient_detail1 as
 	,0 as fac_timeframe_1_90
 	,1 as fac_timeframe_all
 	,"Facility" as claim_category
+	,AD_DGNS
     ,DGNSCD02,DGNSCD03,DGNSCD04,DGNSCD05,DGNSCD06,DGNSCD07,DGNSCD08,DGNSCD09,DGNSCD10,DGNSCD11,DGNSCD12,DGNSCD13,DGNSCD14,DGNSCD15,DGNSCD16,DGNSCD17,DGNSCD18,DGNSCD19,DGNSCD20,DGNSCD21,DGNSCD22,DGNSCD23,DGNSCD24,DGNSCD25
 	,edac_flag
 	,UNPLANNED_READMIT_FLAG
@@ -2943,6 +2943,7 @@ union all
 		,0 as fac_timeframe_1_90
 		,1 as fac_timeframe_all
 		,"Facility" as claim_category
+		,AD_DGNS
 		,DGNSCD02
 		,DGNSCD03
 		,DGNSCD04
@@ -3017,6 +3018,7 @@ union all
 		,. as fac_timeframe_1_90
 		,. as fac_timeframe_all
 		,"Provider" as claim_category
+		,AD_DGNS
 		,DGNSCD02
 		,DGNSCD03
 		,DGNSCD04
@@ -3090,6 +3092,7 @@ union all
 		,fac_timeframe_1_90
 		,fac_timeframe_all
 		,"Facility" as claim_category
+		,AD_DGNS
 		,DGNSCD02,DGNSCD03,DGNSCD04,DGNSCD05,DGNSCD06,DGNSCD07,DGNSCD08,DGNSCD09,DGNSCD10,DGNSCD11,DGNSCD12,DGNSCD13,DGNSCD14,DGNSCD15,DGNSCD16,DGNSCD17,DGNSCD18,DGNSCD19,DGNSCD20,DGNSCD21,DGNSCD22,DGNSCD23,DGNSCD24,DGNSCD25
 		,edac_flag
 		,UNPLANNED_READMIT_FLAG
