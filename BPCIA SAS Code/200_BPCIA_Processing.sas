@@ -395,6 +395,11 @@ data ip_&label._&bpid1._&bpid2. out.FrChk_&label._&bpid1._&bpid2. readexc_&label
 	end;
 
 	%if &label. = ybase %then %do;
+		format AD_DGNS $20.;
+		AD_DGNS = '';
+	%end;
+
+	%if &label. = ybase %then %do;
 		array tran(*) TRANS_IP_STAY_1 - TRANS_IP_STAY_13;
 	%end;
 	%else %do;
