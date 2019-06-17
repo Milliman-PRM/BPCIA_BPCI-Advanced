@@ -339,7 +339,7 @@ data ip_&label._&bpid1._&bpid2. out.FrChk_&label._&bpid1._&bpid2. readexc_&label
 	dos = STAY_ADMSN_DT;
 
 	if ANCHOR_STAY_ID = IP_STAY_ID then type = 'IP_Idx';
-	if STAY_ADMSN_DT >= ANCHOR_BEG_DT and STAY_DSCHRGDT <= ANCHOR_END_DT then type = 'IP_Idx';
+	if STAY_ADMSN_DT >= ANCHOR_BEG_DT and STAY_DSCHRGDT <= ANCHOR_END_DT and ipps=1 then type = 'IP_Idx';
 
 	*** timeframe is field to keep and will be output for exhibits *** ;
 	*** 0 = Anchor, Post-Acute: 1 = 0-30 days, 2 = 31-60 days, 3 =  61-90 days *** ;
