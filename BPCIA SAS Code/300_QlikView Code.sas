@@ -651,7 +651,7 @@ proc sort data = out.ip_&label._&bpid1._&bpid2. out = ip_test; by epi_id_millima
 where type = 'IP_Idx';
 run;
 
-data dgcd1 (rename=(DGNSCD01 = primary_diag_code PRCDRCD01 = primary_proc_code));
+data dgcd1 (rename=(DGNSCD01 = primary_diag_code PRCDRCD01 = primary_proc_code AD_DGNS = admitting_diag_code));
 	set ip_test;
 	format anchor_facility_code $20.; length anchor_facility_code $20; 
 	retain anchor_facility_code anchor_facility_cost;
@@ -667,6 +667,7 @@ run;
 
 /*add description for primary diagnosis code to anchor */
 /*add description for primary procedure code to anchor*/
+/*add description for admitting diagnosis code to anchor*/
 proc sql;
 
 
@@ -674,24 +675,26 @@ proc sql;
 		select a.*
 			,lowcase(b.diag_desc) as primary_diag_desc
 			,lowcase(c.ICD9PROC_DESC) as primary_proc_desc
+			,lowcase(d.diag_desc) as admitting_diag_desc
 		from dgcd1 as a
 		left join ref.Icd9diag_codemap as b
 		on a.primary_diag_code = b.diag
 		and ((a.STAY_DSCHRGDT < '01OCT2015'd and b.version = 9) or (a.STAY_DSCHRGDT >= '01OCT2015'd and b.version = 0)) 
 		left join ref.Icd9proc_codemap as c
 		on a.primary_proc_code = c.ICD9Proc
-		and ((a.STAY_DSCHRGDT < '01OCT2015'd and c.version = 9) or (a.STAY_DSCHRGDT >= '01OCT2015'd and c.version = 0))  
+		and ((a.STAY_DSCHRGDT < '01OCT2015'd and c.version = 9) or (a.STAY_DSCHRGDT >= '01OCT2015'd and c.version = 0))	
+		left join ref.Icd9diag_codemap as d
+		on a.admitting_diag_code = d.diag
+		and ((a.STAY_DSCHRGDT < '01OCT2015'd and d.version = 9) or (a.STAY_DSCHRGDT >= '01OCT2015'd and d.version = 0))
+ 
 ;
 ;
 
-/*add description for admitting diagnosis code to anchor*/
+
 /*	create table dgcd3 as	*/
 /*		select a.**/
-/*			,lowcase(b.diag_desc) as admitting_diag_desc*/
 /*		from dgcd2 as a*/
-/*		left join ref.Icd9diag_codemap as b*/
-/*		on a.admitting_diag_code = b.diag*/
-/*		and ((a.DSCHRGDT < '01OCT2015'd and b.version = 9) or (a.DSCHRGDT >= '01OCT2015'd and b.version = 0))*/
+
 /*;*/
 
 
@@ -702,10 +705,10 @@ proc sql;
 			when primary_diag_code ^="" and primary_diag_desc ="" then primary_diag_code
 			else strip(primary_diag_code)||": "||strip(primary_diag_desc)
 				end as primary_diag_with_desc
-/*		,case when admitting_diag_code ="" then ""*/
-/*			when admitting_diag_code ^="" and admitting_diag_desc ="" then admitting_diag_code*/
-/*			else strip(admitting_diag_code)||": "||strip(admitting_diag_desc)*/
-/*				end as admitting_diag_with_desc*/
+		,case when admitting_diag_code ="" then ""
+			when admitting_diag_code ^="" and admitting_diag_desc ="" then admitting_diag_code
+			else strip(admitting_diag_code)||": "||strip(admitting_diag_desc)
+				end as admitting_diag_with_desc
 		,case when primary_proc_code ="" then ""
 			when primary_proc_code ^="" and primary_proc_desc ="" then primary_proc_code
 			else strip(primary_proc_code)||": "||strip(primary_proc_desc)
@@ -719,9 +722,9 @@ create table report6_comb_drgs as
 		   ,b.primary_diag_code
 		   ,b.primary_diag_desc
 		   ,b.primary_diag_with_desc
-/*		   ,b.admitting_diag_code*/
-/*		   ,b.admitting_diag_desc*/
-/*		   ,b.admitting_diag_with_desc*/
+		   ,b.admitting_diag_code
+		   ,b.admitting_diag_desc
+		   ,b.admitting_diag_with_desc
 		   ,b.primary_proc_code
 		   ,b.primary_proc_desc
 		   ,b.primary_proc_with_desc
@@ -1190,7 +1193,7 @@ quit ;
 /*/*********************************************************************************************/*/
 /*/*Code to create a CCN-level observational dataset********************************************/*/
 /*/*********************************************************************************************/*/;
-data ccn_enc_ip (keep=BPID anchor_ccn claimno EPISODE_INITIATOR epi_id_milliman drg_cd type allowed std_allowed_wage provider_ccn0 admsn_dt DSCHRGDT util_day timeframe GEO_BENE_SK pdgns_cd pproc_cd transfer_stay AD_DGNS DGNSCD02-DGNSCD25 edac_flag);
+data ccn_enc_ip (keep=BPID anchor_ccn claimno EPISODE_INITIATOR epi_id_milliman drg_cd type allowed std_allowed_wage provider_ccn0 admsn_dt DSCHRGDT util_day timeframe GEO_BENE_SK pdgns_cd pproc_cd transfer_stay admitting_diag_code DGNSCD02-DGNSCD25 edac_flag);
 	set		out.ipr_&label._&bpid1._&bpid2.;
 /*	where timeframe ^=0 ; */
 	format DRG_CD $3.;
@@ -1202,6 +1205,7 @@ data ccn_enc_ip (keep=BPID anchor_ccn claimno EPISODE_INITIATOR epi_id_milliman 
 	pdgns_cd = DGNSCD01 ;
 	pproc_cd = PRCDRCD01 ;
 	claimno = IP_STAY_ID;
+	admitting_diag_code = AD_DGNS
 run;
 
 proc sql;
@@ -1220,11 +1224,10 @@ proc sql;
 			  ,admsn_dt 
 			  ,DSCHRGDT
 			  ,max(util_day) as util_day 
-/*			  ,admtg_dgns_cd */
 			  ,pdgns_cd 
 			  ,pproc_cd
 			  ,timeframe
-			  ,AD_DGNS
+			  ,admitting_diag_code
 			  ,DGNSCD02,DGNSCD03,DGNSCD04,DGNSCD05,DGNSCD06,DGNSCD07,DGNSCD08,DGNSCD09,DGNSCD10,DGNSCD11,DGNSCD12,DGNSCD13,DGNSCD14,DGNSCD15,DGNSCD16,DGNSCD17,DGNSCD18,DGNSCD19,DGNSCD20,DGNSCD21,DGNSCD22,DGNSCD23,DGNSCD24,DGNSCD25
 			  ,edac_flag
 		from ccn_enc_ip
@@ -1240,11 +1243,10 @@ proc sql;
 			  ,provider_ccn0
 			  ,admsn_dt 
 			  ,DSCHRGDT
-/*			  ,admtg_dgns_cd */
 			  ,pdgns_cd 
 			  ,pproc_cd
 			  ,timeframe
-			  ,AD_DGNS
+			  ,admitting_diag_code
 			  ,DGNSCD02,DGNSCD03,DGNSCD04,DGNSCD05,DGNSCD06,DGNSCD07,DGNSCD08,DGNSCD09,DGNSCD10,DGNSCD11,DGNSCD12,DGNSCD13,DGNSCD14,DGNSCD15,DGNSCD16,DGNSCD17,DGNSCD18,DGNSCD19,DGNSCD20,DGNSCD21,DGNSCD22,DGNSCD23,DGNSCD24,DGNSCD25
 			  ,edac_flag
 		; 
@@ -1276,7 +1278,7 @@ run;
 
 data ccn_enc(drop=provider_ccn0);
 set		
-		ccn_enc_ip_a (keep=GEO_BENE_SK AD_DGNS anchor_ccn EPISODE_INITIATOR BPID epi_id_milliman drg_cd type allowed std_allowed_wage provider_ccn0 admsn_dt DSCHRGDT util_day  pdgns_cd pproc_cd timeframe AD_DGNS DGNSCD02-DGNSCD25 edac_flag)
+		ccn_enc_ip_a (keep=GEO_BENE_SK AD_DGNS anchor_ccn EPISODE_INITIATOR BPID epi_id_milliman drg_cd type allowed std_allowed_wage provider_ccn0 admsn_dt DSCHRGDT util_day  pdgns_cd pproc_cd timeframe admitting_diag_code DGNSCD02-DGNSCD25 edac_flag)
 		ccn_enc_snf
 		ccn_enc_hha
 		ccn_enc_op
@@ -1303,7 +1305,7 @@ proc sql;
 			  ,admsn_dt
 			  ,hcpcs_cd
 			  ,rev_cntr
-			  ,AD_DGNS
+			  ,admitting_diag_code
 			  ,DGNSCD02,DGNSCD03,DGNSCD04,DGNSCD05,DGNSCD06,DGNSCD07,DGNSCD08,DGNSCD09,DGNSCD10,DGNSCD11,DGNSCD12,DGNSCD13,DGNSCD14,DGNSCD15,DGNSCD16,DGNSCD17,DGNSCD18,DGNSCD19,DGNSCD20,DGNSCD21,DGNSCD22,DGNSCD23,DGNSCD24,DGNSCD25
 			  ,max(dschrgdt) as dschrgdt format=mmddyy10.
 			  ,sum(util_day) as util_day
@@ -1325,7 +1327,7 @@ proc sql;
 			  ,admsn_dt
 			  ,hcpcs_cd
 			  ,rev_cntr
-			  ,AD_DGNS
+			  ,admitting_diag_code
 			  ,DGNSCD02,DGNSCD03,DGNSCD04,DGNSCD05,DGNSCD06,DGNSCD07,DGNSCD08,DGNSCD09,DGNSCD10,DGNSCD11,DGNSCD12,DGNSCD13,DGNSCD14,DGNSCD15,DGNSCD16,DGNSCD17,DGNSCD18,DGNSCD19,DGNSCD20,DGNSCD21,DGNSCD22,DGNSCD23,DGNSCD24,DGNSCD25
 			  ,edac_flag
 		order by BPID, epi_id_milliman,type,admsn_dt;
@@ -1385,7 +1387,7 @@ proc sql;
 			  ,timeframe
 			  ,hcpcs_cd
 			  ,rev_cntr
-			  ,AD_DGNS
+			  ,admitting_diag_code
 			  ,DGNSCD02,DGNSCD03,DGNSCD04,DGNSCD05,DGNSCD06,DGNSCD07,DGNSCD08,DGNSCD09,DGNSCD10,DGNSCD11,DGNSCD12,DGNSCD13,DGNSCD14,DGNSCD15,DGNSCD16,DGNSCD17,DGNSCD18,DGNSCD19,DGNSCD20,DGNSCD21,DGNSCD22,DGNSCD23,DGNSCD24,DGNSCD25
 			  ,at_npi
 			  ,counter
@@ -1411,7 +1413,7 @@ proc sql;
 			  ,timeframe
 			  ,hcpcs_cd
 			  ,rev_cntr
-			  ,AD_DGNS
+			  ,admitting_diag_code
 			  ,DGNSCD02,DGNSCD03,DGNSCD04,DGNSCD05,DGNSCD06,DGNSCD07,DGNSCD08,DGNSCD09,DGNSCD10,DGNSCD11,DGNSCD12,DGNSCD13,DGNSCD14,DGNSCD15,DGNSCD16,DGNSCD17,DGNSCD18,DGNSCD19,DGNSCD20,DGNSCD21,DGNSCD22,DGNSCD23,DGNSCD24,DGNSCD25
 			  ,counter
 			  ,edac_flag
@@ -1702,7 +1704,7 @@ proc sql;
 		,strip(put(a.PRFNPI,15.)) as PRFNPI_A
 		,a.HCPCS_CD as HCPCS_CD_A
 		,a.DGNSCD01 as primary_diag_cd
-		,a.AD_DGNS
+		,a.admitting_diag_code
 		,a.DGNSCD02,a.DGNSCD03,a.DGNSCD04,a.DGNSCD05,a.DGNSCD06,a.DGNSCD07,a.DGNSCD08,a.DGNSCD09,a.DGNSCD10,a.DGNSCD11,a.DGNSCD12
 	from npi_level as a 
 	group by a.anchor_CCN
@@ -1715,7 +1717,7 @@ proc sql;
 			,PRFNPI_A
 			,HCPCS_CD_A
 			,primary_diag_cd
-			,a.AD_DGNS
+			,a.admitting_diag_code
 			,a.DGNSCD02,a.DGNSCD03,a.DGNSCD04,a.DGNSCD05,a.DGNSCD06,a.DGNSCD07,a.DGNSCD08,a.DGNSCD09,a.DGNSCD10,a.DGNSCD11,a.DGNSCD12
 	;
 quit ; 
@@ -1751,7 +1753,7 @@ proc sql ;
 			  ,(a.allowed/2) as cap_50percent
 			  ,a.type
 			  ,a.primary_diag_cd
-			  ,a.AD_DGNS
+			  ,a.admitting_diag_code
 			  ,a.DGNSCD02,a.DGNSCD03,a.DGNSCD04,a.DGNSCD05,a.DGNSCD06,a.DGNSCD07,a.DGNSCD08,a.DGNSCD09,a.DGNSCD10,a.DGNSCD11,a.DGNSCD12
 			  ,a.hcpcs_cd_A as hcpcs_cd
 			  ,case when a.PRFNPI_A in ("",".") then "Unknown ()"	/*20170522 Update: Change name logic and add last 4 digits of NPI to physician abbreviation*/
@@ -2900,7 +2902,7 @@ create table patient_detail1 as
 	,0 as fac_timeframe_1_90
 	,1 as fac_timeframe_all
 	,"Facility" as claim_category
-	,AD_DGNS
+	,admitting_diag_code
     ,DGNSCD02,DGNSCD03,DGNSCD04,DGNSCD05,DGNSCD06,DGNSCD07,DGNSCD08,DGNSCD09,DGNSCD10,DGNSCD11,DGNSCD12,DGNSCD13,DGNSCD14,DGNSCD15,DGNSCD16,DGNSCD17,DGNSCD18,DGNSCD19,DGNSCD20,DGNSCD21,DGNSCD22,DGNSCD23,DGNSCD24,DGNSCD25
 	,edac_flag
 	,UNPLANNED_READMIT_FLAG
@@ -2953,7 +2955,7 @@ union all
 		,0 as fac_timeframe_1_90
 		,1 as fac_timeframe_all
 		,"Facility" as claim_category
-		,AD_DGNS
+		,admitting_diag_code
 		,DGNSCD02
 		,DGNSCD03
 		,DGNSCD04
@@ -3028,7 +3030,7 @@ union all
 		,. as fac_timeframe_1_90
 		,. as fac_timeframe_all
 		,"Provider" as claim_category
-		,AD_DGNS
+		,admitting_diag_code
 		,DGNSCD02
 		,DGNSCD03
 		,DGNSCD04
@@ -3102,7 +3104,7 @@ union all
 		,fac_timeframe_1_90
 		,fac_timeframe_all
 		,"Facility" as claim_category
-		,AD_DGNS
+		,admitting_diag_code
 		,DGNSCD02,DGNSCD03,DGNSCD04,DGNSCD05,DGNSCD06,DGNSCD07,DGNSCD08,DGNSCD09,DGNSCD10,DGNSCD11,DGNSCD12,DGNSCD13,DGNSCD14,DGNSCD15,DGNSCD16,DGNSCD17,DGNSCD18,DGNSCD19,DGNSCD20,DGNSCD21,DGNSCD22,DGNSCD23,DGNSCD24,DGNSCD25
 		,edac_flag
 		,UNPLANNED_READMIT_FLAG
