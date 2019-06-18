@@ -392,11 +392,16 @@ QUIT ;
 
 PROC SORT DATA=out.IPR_FINAL_&label._&bpid1._&bpid2. ; BY BENE_SK EPISODE_ID IP_CASE ; run;
 
+DATA IPR_USE_&label._&bpid1._&bpid2.;
+	set out.IPR_FINAL_&label._&bpid1._&bpid2.;
+	drop DGNSCD: PRCDRCD: ;
+run;
+
 ***Code for merging readmissions back into main inpatient file***;
 PROC SORT DATA=index1b; BY BENE_SK EPISODE_ID IP_CASE STAY_ADMSN_DT STAY_DSCHRGDT; run;
 
 DATA ip_combine ; 
-      MERGE index1b(IN=A) out.IPR_FINAL_&label._&bpid1._&bpid2.((IN=B) drop=DGNSCD: PRCDRCD:) ; by BENE_SK EPISODE_ID IP_CASE ;
+      MERGE index1b(IN=A) IPR_USE_&label._&bpid1._&bpid2.(IN=B); by BENE_SK EPISODE_ID IP_CASE ;
       if a ;
       IF B=0 THEN DO ;
             INDEX_ADMIT = 0 ;

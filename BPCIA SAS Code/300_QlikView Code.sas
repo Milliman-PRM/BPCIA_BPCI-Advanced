@@ -26,17 +26,17 @@ SET UP
 
 ****** USER INPUTS ******************************************************************************************;
 * TURN ON FOR BASELINE / TURN OFF FOR PERFORMANCE *****;
-%let label = ybase; *Update with change in period;
-%let prevlabel = ybase;
-%let reporting_period=201806;*Change for every Update*; 
+/*%let label = ybase; *Update with change in period;*/
+/*%let prevlabel = ybase;*/
+/*%let reporting_period=201806;*Change for every Update*; */
 
 * TURN ON FOR PERFORMANCE / TURN OFF FOR BASELINE *****;
-/*%let label = y201903; *Update with change in period;*/
-/*%let prevlabel = y201902; *Update with the prior period;*/
-/*%let reporting_period=201903;*Change for every Update*; */
+%let label = y201905; *Update with change in period;
+%let prevlabel = y201904; *Update with the prior period;
+%let reporting_period=201905;*Change for every Update*; 
 
 * UPDATE WITH EVERY PERF UPDATE *****;
-%let transmit_date = '19APR2019'd;*Change for every Update*; 
+%let transmit_date = '17MAY2019'd;*Change for every Update*; 
 
 * MAIN VS BASELINE INTERFACE *****;
 %let mode = main; *main=main interface, base = baseline interface;
@@ -1205,7 +1205,7 @@ data ccn_enc_ip (keep=BPID anchor_ccn claimno EPISODE_INITIATOR epi_id_milliman 
 	pdgns_cd = DGNSCD01 ;
 	pproc_cd = PRCDRCD01 ;
 	claimno = IP_STAY_ID;
-	admitting_diag_code = AD_DGNS
+	admitting_diag_code = AD_DGNS ;
 run;
 
 proc sql;
@@ -1265,7 +1265,7 @@ set out.hha_&label._&bpid1._&bpid2.(keep=BENE_SK  claimno anchor_ccn EPISODE_INI
 run;
 
 data ccn_enc_op;
-	set out.op_&label._&bpid1._&bpid2. (keep= bene_sk claimno anchor_ccn EPISODE_INITIATOR BPID epi_id_milliman type allowed std_allowed_wage PROVIDER dos timeframe CD01-DGNSCD25 at_npi HCPCS_CD  REV_CNTR edac_flag in=c rename=(PROVIDER=provider_ccn0 bene_sk = geo_bene_sk DGNSCD01=pdgns_cd)) ;
+	set out.op_&label._&bpid1._&bpid2. (keep= bene_sk claimno anchor_ccn EPISODE_INITIATOR BPID epi_id_milliman type allowed std_allowed_wage PROVIDER dos timeframe DGNSCD01-DGNSCD25 at_npi HCPCS_CD  REV_CNTR edac_flag in=c rename=(PROVIDER=provider_ccn0 bene_sk = geo_bene_sk DGNSCD01=pdgns_cd)) ;
 	ADMSN_DT = dos;
 	DSCHRGDT = dos;
 run;
