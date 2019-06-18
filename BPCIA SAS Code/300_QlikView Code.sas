@@ -60,7 +60,7 @@ libname in "&dataDir.\06 - Imported Raw Data\";
 
 %macro modesetup;
 %if &mode.=main %then %do;
-libname out "&dataDir.\07 - Processed Data\";
+libname out "&dataDir.\07 - Processed Data";
 /*proc printto log="H:\BPCIA_BPCI Advanced\50 - BPCI Advanced Ongoing Reporting - 2019\Work Papers\SAS\logs\300 - Qlikview Code_&label._&sysdate..log";*/
 /*run;*/
 %end;
@@ -3235,6 +3235,7 @@ proc sql;
 			,b.ALL_IP as PSI_Flag
 			,b.Coronary_artery_bypass_graft as CABG_Flag
 			,b.Acute_myocardial_infarction as AMI_Flag
+			,max(b.Double_joint_replacement_of_the_,b.Major_joint_replacement_of_the_l) as Comp_Flag
 		from patient_detail4 as a left join 
 			bpciaref.bpcia_episode_initiator_info as b
 			on a.BPID = b.BPCI_Advanced_ID_Number_2
