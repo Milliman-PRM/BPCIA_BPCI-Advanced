@@ -3030,7 +3030,7 @@ union all
 		,. as fac_timeframe_1_90
 		,. as fac_timeframe_all
 		,"Provider" as claim_category
-		,admitting_diag_code
+		,'' as admitting_diag_code
 		,DGNSCD02
 		,DGNSCD03
 		,DGNSCD04
