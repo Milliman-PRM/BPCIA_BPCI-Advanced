@@ -685,7 +685,7 @@ proc sql;
 		and ((a.STAY_DSCHRGDT < '01OCT2015'd and c.version = 9) or (a.STAY_DSCHRGDT >= '01OCT2015'd and c.version = 0))	
 		left join ref.Icd9diag_codemap as d
 		on a.admitting_diag_code = d.diag
-		and ((a.DSCHRGDT < '01OCT2015'd and d.version = 9) or (a.DSCHRGDT >= '01OCT2015'd and d.version = 0))
+		and ((a.STAY_DSCHRGDT < '01OCT2015'd and d.version = 9) or (a.STAY_DSCHRGDT >= '01OCT2015'd and d.version = 0))
  
 ;
 ;
@@ -1195,6 +1195,7 @@ data ccn_enc_ip (keep=BPID anchor_ccn claimno EPISODE_INITIATOR epi_id_milliman 
 	pdgns_cd = DGNSCD01 ;
 	pproc_cd = PRCDRCD01 ;
 	claimno = IP_STAY_ID;
+	admitting_diag_code = AD_DGNS
 run;
 
 proc sql;
@@ -1204,7 +1205,6 @@ proc sql;
 			  ,anchor_ccn
 			  ,BPID  
 			  ,epi_id_milliman
-			  ,admitting_diag_code = AD_DGNS
 			  ,EPISODE_INITIATOR
 			  ,drg_cd 
 			  ,type
