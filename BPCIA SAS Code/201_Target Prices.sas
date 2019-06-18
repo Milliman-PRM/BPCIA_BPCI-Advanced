@@ -1682,11 +1682,7 @@ quit;
 	 
 data out.tp_&label._&bpid1._&bpid2.;
 	set t3 (rename=(anchor_ccn=anchor_ccn_orig EPI_STD_PMT_FCTR_WIN_1_99=EPI_STD_PMT_FCTR_WIN_1_99_orig)) ;
-	format HAS_TP PERFORMANCE_PERIOD COMP_EP_FLAG $3.;
-
-	/*if (&transmit_date. - anchor_end_dt) >= 60 then COMP_EP_FLAG = 'Yes';
-	else COMP_EP_FLAG = 'No';*/
-	COMP_EP_FLAG = 'Yes';
+	format HAS_TP PERFORMANCE_PERIOD $3.;
 
 	PGP_Offset_Amt_Real=0;
 	if PGP_Offset < 1 and PGP_Offset ^= . then PGP_Offset_Amt_Real = TP_Adj / .97 * (1-(PGP_Offset/PGP_Offset_Adj)) * PAYMENT_RATIO;
@@ -1714,7 +1710,7 @@ data out.tp_&label._&bpid1._&bpid2.;
 
 	PAT_Adj = PAT_New;
 
-	if TARGET_PRICE = . or PAYMENT_RATIO = . or COMP_EP_FLAG = 'No' then do;
+	if TARGET_PRICE = . or PAYMENT_RATIO = . then do;
 		EPI_STD_PMT_FCTR_WIN_1_99_Real = .;
 		Adjusted_TP_Real = .;
 		Discount_Real = .;
@@ -1880,7 +1876,7 @@ run;
 %MEND TP;
 
 %TP(ybase);
-%TP(y201904);
+%TP(y201905);
 
 data All_Target_Prices;
 	format BPID EPI_ID_MILLIMAN EPISODE_ID EPISODE_INITIATOR EPISODE_GROUP_NAME ANCHOR_TYPE ANCHOR_CODE ANCHOR_CCN
