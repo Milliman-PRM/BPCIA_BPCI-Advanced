@@ -191,6 +191,10 @@ data epi0 out.epiexc_&label._&bpid1._&bpid2. perf_epis0;
 
 		CNT_ATTR_PGP = .;
 	%end;
+	%if &label. ^= ybase %then %do;
+		format BENE_SK $20.;
+		BENE_SK = '.';
+	%end;
 
 	format anc_ccn $6.;
 	anc_ccn = put(ANCHOR_CCN,$6.);
@@ -279,6 +283,11 @@ data ip1 ;
 	set %if &label. = ybase %then %do; in.ip_&label._&id1.; %end; %else %do; in.ip_&label._&id2.; %end;
 	allowed=STAY_ALLOWED;
 	std_allowed=STAY_STD_ALLOWED;
+
+	%if &label. ^= ybase %then %do;
+		format BENE_SK $20.;
+		BENE_SK = '.';
+	%end;
 
 	BPID = "&BPID1." || "-" || "&BPID2.";
 	ConvenerID = tranwrd("&id2.","_","-");
@@ -438,6 +447,11 @@ data snf ;
 	type='SNF';	
 	allowed = CLM_ALLOWED;
 
+	%if &label. ^= ybase %then %do;
+		format BENE_SK $20.;
+		BENE_SK = '.';
+	%end;
+
 	BPID = "&BPID1." || "-" || "&BPID2.";
 	ConvenerID = tranwrd("&id2.","_","-");
 	EPI_ID_MILLIMAN = BPID || "-&vers.-" || compress(EPISODE_ID);
@@ -559,6 +573,11 @@ data hha1  ;
 	
 	allowed = CLM_ALLOWED  ;
 
+	%if &label. ^= ybase %then %do;
+		format BENE_SK $20.;
+		BENE_SK = '.';
+	%end;
+
 	BPID = "&BPID1." || "-" || "&BPID2.";
 	ConvenerID = tranwrd("&id2.","_","-");
 	EPI_ID_MILLIMAN = BPID || "-&vers.-" || compress(EPISODE_ID);
@@ -673,6 +692,11 @@ data op ;
 	format PROVIDER $20.;
 	PROVIDER = put(PROVIDER_NUM,$20.);
 
+	%if &label. ^= ybase %then %do;
+		format BENE_SK $20.;
+		BENE_SK = '.';
+	%end;
+
 	BPID = "&BPID1." || "-" || "&BPID2.";
 	ConvenerID = tranwrd("&id2.","_","-");
 	EPI_ID_MILLIMAN = BPID || "-&vers.-" || compress(EPISODE_ID);
@@ -773,6 +797,11 @@ data bcarrier1 ;
 	*type = "Prof";
 	util_day = max(1,thru_dt-FROM_DT);
 
+	%if &label. ^= ybase %then %do;
+		format BENE_SK $20.;
+		BENE_SK = '.';
+	%end;
+
 	BPID = "&BPID1." || "-" || "&BPID2.";
 	ConvenerID = tranwrd("&id2.","_","-");
 	EPI_ID_MILLIMAN = BPID || "-&vers.-" || compress(EPISODE_ID);
@@ -856,6 +885,11 @@ data dme ;
 	type = 'DME';
 	util_day = max(1,thru_dt-FROM_DT);
 
+	%if &label. ^= ybase %then %do;
+		format BENE_SK $20.;
+		BENE_SK = '.';
+	%end;
+
 	BPID = "&BPID1." || "-" || "&BPID2.";
 	ConvenerID = tranwrd("&id2.","_","-");
 	EPI_ID_MILLIMAN = BPID || "-&vers.-" || compress(EPISODE_ID);
@@ -917,6 +951,11 @@ data hs ;
 	type='HS';	
 	allowed = CLM_ALLOWED;
 	util_day = max(1,thru_dt-FROM_DT);
+
+	%if &label. ^= ybase %then %do;
+		format BENE_SK $20.;
+		BENE_SK = '.';
+	%end;
 
 	BPID = "&BPID1." || "-" || "&BPID2.";
 	ConvenerID = tranwrd("&id2.","_","-");
