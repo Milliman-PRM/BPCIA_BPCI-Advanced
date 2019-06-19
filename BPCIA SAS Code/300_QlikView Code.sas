@@ -1704,7 +1704,6 @@ proc sql;
 		,strip(put(a.PRFNPI,15.)) as PRFNPI_A
 		,a.HCPCS_CD as HCPCS_CD_A
 		,a.DGNSCD01 as primary_diag_cd
-		,a.admitting_diag_code
 		,a.DGNSCD02,a.DGNSCD03,a.DGNSCD04,a.DGNSCD05,a.DGNSCD06,a.DGNSCD07,a.DGNSCD08,a.DGNSCD09,a.DGNSCD10,a.DGNSCD11,a.DGNSCD12
 	from npi_level as a 
 	group by a.anchor_CCN
@@ -1717,7 +1716,6 @@ proc sql;
 			,PRFNPI_A
 			,HCPCS_CD_A
 			,primary_diag_cd
-			,a.admitting_diag_code
 			,a.DGNSCD02,a.DGNSCD03,a.DGNSCD04,a.DGNSCD05,a.DGNSCD06,a.DGNSCD07,a.DGNSCD08,a.DGNSCD09,a.DGNSCD10,a.DGNSCD11,a.DGNSCD12
 	;
 quit ; 
@@ -1753,7 +1751,6 @@ proc sql ;
 			  ,(a.allowed/2) as cap_50percent
 			  ,a.type
 			  ,a.primary_diag_cd
-			  ,a.admitting_diag_code
 			  ,a.DGNSCD02,a.DGNSCD03,a.DGNSCD04,a.DGNSCD05,a.DGNSCD06,a.DGNSCD07,a.DGNSCD08,a.DGNSCD09,a.DGNSCD10,a.DGNSCD11,a.DGNSCD12
 			  ,a.hcpcs_cd_A as hcpcs_cd
 			  ,case when a.PRFNPI_A in ("",".") then "Unknown ()"	/*20170522 Update: Change name logic and add last 4 digits of NPI to physician abbreviation*/
