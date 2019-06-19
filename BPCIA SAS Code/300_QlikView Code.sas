@@ -1422,7 +1422,8 @@ quit;
 
 proc sql;
 create table ccn_enc5 as 
-		select a.EncounterID
+		select a.ANCHOR_BEG_DT
+			,a.EncounterID
 			,a.DataYearMo
 			,a.Anchor_YearQtr
 			,a.Anchor_YearMo
@@ -1723,7 +1724,8 @@ quit ;
 proc sql ; 
 	create table npi_level_b as 
 		 select 
-		a.EncounterID
+		a.ANCHOR_BEG_DT
+		,a.EncounterID
 		,a.DataYearMo
 		,a.Anchor_YearQtr
 		,a.Anchor_YearMo
@@ -1737,7 +1739,8 @@ proc sql ;
 
 /*create various descriptive information information and attach provider names*/
 	create table npi_level1a as
-		select a.anchor_CCN
+		select a.ANCHOR_BEG_DT
+			  ,a.anchor_CCN
 			  ,a.EncounterID
 			  ,a.BPID
 			  ,a.DataYearMo
@@ -3002,7 +3005,7 @@ union all
 		,prim_diag_with_desc as primary_diag 
 		,prof_hcpcs_code_desc as primary_proc
 		,'' as msdrg
-		,case when (timeframe = 0 and type in ('Prof_ER_P','Prof_ER_S')) then -2 else timeframe end as timeframe
+		,case when (timeframe = 0 and type in ('Prof_ER_P','Prof_ER_S') and service_date <= ANCHOR_BEG_DT) then -2 else timeframe end as timeframe
 		,timeframe2
 		,case when timeframe2 = 'Anchor' then 'Anchor' else 'Post-Acute' end as timeframe3
 		,std_allowed_wage
@@ -3076,7 +3079,7 @@ union all
 		,prim_diag_with_desc as primary_diag
 		,case when substr(caretype,1,3) in ('Eme','Out','Pro','Reh') then hcpcs_with_desc else prim_proc_with_desc end as primary_proc
 		,drg_with_desc as msdrg
-		,case when (timeframe = 0 and caretype in ('Emergency - Preceding Admit','Emergency - Stand Alone')) then -2 else timeframe end as timeframe
+		,case when (timeframe = 0 and caretype in ('Emergency - Preceding Admit','Emergency - Stand Alone') and startdate <= ANCHOR_BEG_DT) then -2 else timeframe end as timeframe
 		,a.timeframe2
 		,case when a.timeframe2 = 'Anchor' then 'Anchor' else 'Post-Acute' end as timeframe3
 		,a.std_allowed_wage
@@ -3118,7 +3121,7 @@ union all
 quit;
 
 proc sql;
-	create table patient_Detail2 as 
+	create table patient_Detail2_pre as 
 	select encounterid
 	,datayearmo
 	,anchor_yearqtr
@@ -3143,8 +3146,12 @@ proc sql;
 	order by BPID, epi_id_milliman, timeframe, transfer_stay, begin_date, rank3, end_date desc;
 quit;
 
-
-
+data patient_Detail2(drop=end_date2);
+	set patient_Detail2_pre;
+	end_date2 = end_date;
+	if end_date2=. then end_date2=mdy(12,31,2099);
+	proc sort; by BPID epi_id_milliman timeframe transfer_stay begin_date rank3 end_date2;
+run;
 
 data patient_detail3 (drop=counter);
 	set patient_detail2;
