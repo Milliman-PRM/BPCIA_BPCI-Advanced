@@ -10,7 +10,7 @@ Purpose is to store longer macros that are called.
 
 %MACRO EXCLUSIONFILE;
 
-proc sort data=epi0 ; by bene_sk ANCHOR_BEG_DT ANCHOR_TYPE ANCHOR_END_DT POST_DSCH_BEG_DT POST_DSCH_END_DT; run;
+proc sort data=epi0 ; by memberid ANCHOR_BEG_DT ANCHOR_TYPE ANCHOR_END_DT POST_DSCH_BEG_DT POST_DSCH_END_DT; run;
 
 %if &label. ^= ybase %then %do;
 	*Create variables used to determine excluded episodes.;
@@ -23,13 +23,13 @@ proc sort data=epi0 ; by bene_sk ANCHOR_BEG_DT ANCHOR_TYPE ANCHOR_END_DT POST_DS
 	*Output non-MJRLE episodes that occur within 90 days of another anchor discharge to a separate file;
 	data epi0_1 excl_readm_&bpid1._&bpid2.;
 		set epi0;
-		by bene_sk;
+		by memberid;
 		retain prev_beg_date prev_end_date prev_id first_ep_mjrle;
 		format epi_exclude $32.;
 
 		epi_exclude='';
 		keep=0;
-		if first.bene_sk then do;
+		if first.memberid then do;
 			prev_beg_date = ANCHOR_BEG_DT;
 			prev_end_date = POST_DSCH_END_DT;
 			prev_id = EPI_ID_MILLIMAN;
@@ -82,7 +82,7 @@ proc sort data=epi0 ; by bene_sk ANCHOR_BEG_DT ANCHOR_TYPE ANCHOR_END_DT POST_DS
 		create table perf_epis1_&bpid1._&bpid2. as 
 		select a.*
 		from perf_epis0 as a inner join epi0_3 as b
-		on a.bene_sk=b.bene_sk 
+		on a.memberid=b.memberid 
 			and a.POST_DSCH_END_DT >= b.ANCHOR_BEG_DT
 			and a.ANCHOR_BEG_DT <= b.ANCHOR_BEG_DT;
 	quit;
@@ -101,7 +101,7 @@ proc sort data=epi0 ; by bene_sk ANCHOR_BEG_DT ANCHOR_TYPE ANCHOR_END_DT POST_DS
 		create table perf_epis3_&bpid1._&bpid2. as 
 		select a.*
 		from perf_epis2 as a inner join epi0_3 as b
-		on a.bene_sk=b.bene_sk 
+		on a.memberid=b.memberid 
 			and a.ANCHOR_BEG_DT <= b.POST_DSCH_END_DT
 			and a.ANCHOR_BEG_DT >= b.ANCHOR_BEG_DT;
 	quit;
@@ -114,18 +114,18 @@ proc sort data=epi0 ; by bene_sk ANCHOR_BEG_DT ANCHOR_TYPE ANCHOR_END_DT POST_DS
 		where a.EPI_ID_MILLIMAN not in (select distinct EPI_ID_MILLIMAN from perf_epis3_&bpid1._&bpid2.);
 	quit;
 
-	proc sort data=perf_epis4 ; by bene_sk ANCHOR_BEG_DT ANCHOR_TYPE ANCHOR_END_DT POST_DSCH_BEG_DT POST_DSCH_END_DT; run;
+	proc sort data=perf_epis4 ; by memberid ANCHOR_BEG_DT ANCHOR_TYPE ANCHOR_END_DT POST_DSCH_BEG_DT POST_DSCH_END_DT; run;
 
 	*Repeat Milliman exclusion logic for remaining non-participating episodes;
 	data perfepi0_1 perfexcl_readm_&bpid1._&bpid2.;
 		set perf_epis4;
-		by bene_sk;
+		by memberid;
 		retain prev_beg_date prev_end_date prev_id first_ep_mjrle;
 		format epi_exclude $32.;
 
 		epi_exclude='';
 		keep=0;
-		if first.bene_sk then do;
+		if first.memberid then do;
 			prev_beg_date = ANCHOR_BEG_DT;
 			prev_end_date = POST_DSCH_END_DT;
 			prev_id = EPI_ID_MILLIMAN;
@@ -194,7 +194,7 @@ proc sort data=epi0 ; by bene_sk ANCHOR_BEG_DT ANCHOR_TYPE ANCHOR_END_DT POST_DS
 		if '3025'=< pv and pv <='3099' then delete;
 		if pv2 in ('T','R') then delete;
 		if '2000' <= pv and pv <= '2299' then delete;
-		proc sort; by bene_sk EPI_ID_MILLIMAN STAY_ADMSN_DT STAY_dschrgdt;
+		proc sort; by memberid EPI_ID_MILLIMAN STAY_ADMSN_DT STAY_dschrgdt;
 	run;
 
 	***CMS_drg and CMS_prov are merged from the episode file and assigned by CMS;
@@ -202,7 +202,7 @@ proc sort data=epi0 ; by bene_sk ANCHOR_BEG_DT ANCHOR_TYPE ANCHOR_END_DT POST_DS
 	data t1;
 		format cms_drg best12. cms_prov $6. mill_drg best12. mill_prov $6. ;
 		set ip_idx;
-		by bene_sk EPI_ID_MILLIMAN;
+		by memberid EPI_ID_MILLIMAN;
 		retain mill_prov;
 
 		cms_drg=0+ANCHOR_CODE;

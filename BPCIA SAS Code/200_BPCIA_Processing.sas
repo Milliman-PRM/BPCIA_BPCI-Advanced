@@ -287,8 +287,13 @@ data ip1 ;
 	std_allowed=STAY_STD_ALLOWED;
 
 	%if &label. ^= ybase %then %do;
-		format BENE_SK $20.;
+		format memberid BENE_SK $20.;
+		memberid = MBI_ID;
 		BENE_SK = '.';
+	%end;
+	%else %do;
+		format memberid $20.;
+		memberid = BENE_SK;
 	%end;
 
 	BPID = "&BPID1." || "-" || "&BPID2.";
