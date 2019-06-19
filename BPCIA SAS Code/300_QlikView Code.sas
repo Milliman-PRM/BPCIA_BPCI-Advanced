@@ -1278,7 +1278,7 @@ run;
 
 data ccn_enc(drop=provider_ccn0);
 set		
-		ccn_enc_ip_a (keep=GEO_BENE_SK AD_DGNS anchor_ccn EPISODE_INITIATOR BPID epi_id_milliman drg_cd type allowed std_allowed_wage provider_ccn0 admsn_dt DSCHRGDT util_day  pdgns_cd pproc_cd timeframe admitting_diag_code DGNSCD02-DGNSCD25 edac_flag)
+		ccn_enc_ip_a (keep=GEO_BENE_SK anchor_ccn EPISODE_INITIATOR BPID epi_id_milliman drg_cd type allowed std_allowed_wage provider_ccn0 admsn_dt DSCHRGDT util_day  pdgns_cd pproc_cd timeframe admitting_diag_code DGNSCD02-DGNSCD25 edac_flag)
 		ccn_enc_snf
 		ccn_enc_hha
 		ccn_enc_op
