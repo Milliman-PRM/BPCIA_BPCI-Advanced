@@ -3231,6 +3231,15 @@ data patient_detail4;
 run;
 
 
+data bpcia_episode_initiator_info;
+	set bpciaref.bpcia_episode_initiator_info;
+	djrle = sum(Double_joint_replacement_of_the_,0);
+	mjrle = sum(Major_joint_replacement_of_the_l,0);
+	comp_flag_num = max(djrle,mjrle);
+	if comp_flag_num = 1 then comp_flag='1';
+	else comp_flag = '';
+run;
+
 proc sql;
 	create table out.pat_detail_&label._&bpid1._&bpid2. as
 		select distinct
@@ -3239,9 +3248,9 @@ proc sql;
 			,b.ALL_IP as PSI_Flag
 			,b.Coronary_artery_bypass_graft as CABG_Flag
 			,b.Acute_myocardial_infarction as AMI_Flag
-			,max(b.Double_joint_replacement_of_the_,b.Major_joint_replacement_of_the_l) as Comp_Flag
+			,b.Comp_Flag
 		from patient_detail4 as a left join 
-			bpciaref.bpcia_episode_initiator_info as b
+			bpcia_episode_initiator_info as b
 			on a.BPID = b.BPCI_Advanced_ID_Number_2
 ;
 quit;
