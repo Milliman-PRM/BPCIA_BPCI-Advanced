@@ -12,8 +12,6 @@ proc printto;run;
 ***** USER INPUTS ******************************************************************************************;
 %let mode = main; *main = main interface, base = baseline interface;
 
-%let transmit_date = '19APR2019'd; *Change for every Update*;
-
 
 ****** REFERENCE PROGRAMS ***********************************************************************************;
 %include "H:\_HealthLibrary\SAS\000 - General SAS Macros.sas";
