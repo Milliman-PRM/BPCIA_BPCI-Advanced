@@ -3146,15 +3146,15 @@ proc sql;
 	order by BPID, epi_id_milliman, timeframe, transfer_stay, begin_date, rank3, end_date desc;
 quit;
 
-data patient_Detail2(drop=end_date2);
+data patient_Detail2;
 	set patient_Detail2_pre;
-	end_date2 = end_date;
-	if end_date2=. then end_date2=mdy(12,31,2099);
-	proc sort; by BPID epi_id_milliman timeframe transfer_stay begin_date rank3 end_date2;
+	end_date_drop = end_date;
+	if end_date_drop=. then end_date2=mdy(12,31,2099);
+	proc sort; by BPID epi_id_milliman timeframe transfer_stay begin_date rank3 end_date_drop;
 run;
 
 data patient_detail3 (drop=counter);
-	set patient_detail2;
+	set patient_detail2 (drop=end_date_drop);
 	by BPID epi_id_Milliman ;
 	length claimid $12 caretype_long $50.;
 	format begin_date end_date mmddyy10.;
