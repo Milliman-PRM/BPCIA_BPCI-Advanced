@@ -180,9 +180,10 @@ data epi0 out.epiexc_&label._&bpid1._&bpid2. perf_epis0;
 			else ANCHOR_CODE = '0' || compress(DRG_2018);
 		end;
 
-		format FLAG_OVERLAP BEST12. MULT_ATTR_PROVS BEST12. MBI_ID $20. BENE_GENDER $6. BENE_BIRTH_DT MMDDYY10. BENE_DEATH_DT MMDDYY10. CNT_ATTR_PGP BEST12. ;
+		format FLAG_OVERLAP BEST12. MULT_ATTR_PROVS BEST12. memberid MBI_ID $20. BENE_GENDER $6. BENE_BIRTH_DT MMDDYY10. BENE_DEATH_DT MMDDYY10. CNT_ATTR_PGP BEST12. ;
 		FLAG_OVERLAP = .;
 		MULT_ATTR_PROVS = .;
+		memberid = BENE_SK;
 		MBI_ID = '.';
 		BENE_GENDER = '.';
 		BENE_BIRTH_DT = .;
@@ -192,7 +193,8 @@ data epi0 out.epiexc_&label._&bpid1._&bpid2. perf_epis0;
 		CNT_ATTR_PGP = .;
 	%end;
 	%if &label. ^= ybase %then %do;
-		format BENE_SK $20.;
+		format memberid BENE_SK $20.;
+		memberid = MBI_ID;
 		BENE_SK = '.';
 	%end;
 
@@ -285,8 +287,13 @@ data ip1 ;
 	std_allowed=STAY_STD_ALLOWED;
 
 	%if &label. ^= ybase %then %do;
-		format BENE_SK $20.;
+		format memberid BENE_SK $20.;
+		memberid = MBI_ID;
 		BENE_SK = '.';
+	%end;
+	%else %do;
+		format memberid $20.;
+		memberid = BENE_SK;
 	%end;
 
 	BPID = "&BPID1." || "-" || "&BPID2.";
