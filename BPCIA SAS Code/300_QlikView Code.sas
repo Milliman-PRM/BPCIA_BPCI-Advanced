@@ -3133,8 +3133,8 @@ proc sql;
 	,anchor_code 
 	,Anchor_Fac_Code_Name 
 	,Episode_Initiator
+	,case when (b.timeframe = 0 and b.end_date <= a.anchor_end_dt and b.begin_date <= a.anchor_beg_dt and b.end_date^=. ) then -3 else b.timeframe end as timeframe
 	,b.*
-	,case when (b.timeframe = 0 and b.end_date <= a.anchor_end_dt and b.begin_date <= a.anchor_beg_dt  and b.end_date^=. ) then -3 else b.timeframe end as timeframe
 	,case when timeframe ^= 0 and Caretype = 'Outpatient'  then 0/*Create a Rank variable to rank Outpatient before  and Prof emergency Claims before Readmit claims if they occur on the same day*/
 			when timeframe ^= 0 and substr(Caretype,1,7) = 'Prof_ER' or substr(Caretype,1,2) = 'Em'  then 1 
 		 	when Caretype = 'Readmit' then 2
@@ -3149,7 +3149,9 @@ quit;
 data patient_Detail2;
 	set patient_Detail2_pre;
 	end_date_drop = end_date;
-	if end_date_drop=. then end_date2=mdy(12,31,2099);
+	if end_date_drop=. then end_date_drop=mdy(12,31,2099);
+	if end_date_drop=mdy(12,31,2099) and (substr(Caretype,1,7) = 'Prof_ER' or substr(Caretype,1,2) = 'Em') then end_date_drop=mdy(12,30,2099);
+	if end_date_drop=mdy(12,31,2099) and Caretype = 'Outpatient' then end_date_drop=mdy(12,29,2099);
 	proc sort; by BPID epi_id_milliman timeframe transfer_stay begin_date rank3 end_date_drop;
 run;
 
@@ -3264,7 +3266,7 @@ proc sql;
 quit;
 
 
-proc sort data=out.pat_detail_&label._&bpid1._&bpid2.; by BPID epi_id_milliman timeframe begin_date end_date; run;
+proc sort data=out.pat_detail_&label._&bpid1._&bpid2.; by BPID epi_id_milliman timeframe transfer_stay begin_date rank3 end_date_drop; run;
 
 
 /*********************************************************************************************/
