@@ -3156,7 +3156,7 @@ data patient_Detail2;
 run;
 
 data patient_detail3 (drop=counter);
-	set patient_detail2 (drop=end_date_drop);
+	set patient_detail2;
 	by BPID epi_id_Milliman ;
 	length claimid $12 caretype_long $50.;
 	format begin_date end_date mmddyy10.;
