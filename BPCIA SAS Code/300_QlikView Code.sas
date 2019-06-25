@@ -3241,15 +3241,6 @@ data bpcia_episode_initiator_info;
 	else Comp_Flag = '';
 run;
 
-data bpcia_episode_initiator_info;
-	set bpciaref.bpcia_episode_initiator_info;
-	djrle = sum(Double_joint_replacement_of_the_,0);
-	mjrle = sum(Major_joint_replacement_of_the_l,0);
-	comp_flag_num = max(djrle,mjrle);
-	if comp_flag_num = 1 then comp_flag='1';
-	else comp_flag = '';
-run;
-
 proc sql;
 	create table out.pat_detail_&label._&bpid1._&bpid2. as
 		select distinct
