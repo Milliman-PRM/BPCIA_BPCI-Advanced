@@ -2807,11 +2807,14 @@ data out.pjourney_&label._&bpid1._&bpid2. (drop=i);
 	array d(*) d1-d90 ;
 	array v(*) v1-v90 ;
 	do i=1 to 90 ;
-	if bene_death_dt ne . then do ;
-		if  anchor_end_dt + i - 1 > bene_death_dt then d(i)="Deceased";
-		if  anchor_end_dt + i - 1 >= bene_death_dt then v(i)="Deceased";
+		if bene_death_dt ne . then do ;
+			if  anchor_end_dt + i - 1 > bene_death_dt then do ;
+				d(i)="Deceased";
+				v(i)="Deceased";
+			end ;
+		else if  anchor_end_dt + i - 1 = bene_death_dt then v(i)="Deceased: " || put (bene_death_dt, mmddyy10.);
+		end ;
 	end ;
-end ;
 run ;
 
 *Create output table of all PAC and clinic visit types for all episodes as QVW filter;
