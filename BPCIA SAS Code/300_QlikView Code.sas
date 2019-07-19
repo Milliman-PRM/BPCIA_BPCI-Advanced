@@ -31,9 +31,9 @@ SET UP
 /*%let reporting_period=201806;*Change for every Update*; */
 
 * TURN ON FOR PERFORMANCE / TURN OFF FOR BASELINE *****;
-%let label = y201905; *Update with change in period;
-%let prevlabel = y201904; *Update with the prior period;
-%let reporting_period=201905;*Change for every Update*; 
+%let label = y201906; *Update with change in period;
+%let prevlabel = y201905; *Update with the prior period;
+%let reporting_period=201906;*Change for every Update*; 
 
 * UPDATE WITH EVERY PERF UPDATE *****;
 %let transmit_date = '17MAY2019'd;*Change for every Update*; 
