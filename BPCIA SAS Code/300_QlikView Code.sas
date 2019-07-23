@@ -69,6 +69,11 @@ libname out "&dataDir.\07 - Processed Data\Baseline Interface Demo";
 proc printto log="H:\BPCIA_BPCI Advanced\50 - BPCI Advanced Ongoing Reporting - 2019\Work Papers\SAS\logs\300 - Baseline Qlikview Code_&label._&sysdate..log" print=print new;
 run;
 %end;
+%else %if &mode.=dev %then %do;
+libname out "&dataDir.\07 - Processed Data\Development";
+proc printto log="H:\BPCIA_BPCI Advanced\50 - BPCI Advanced Ongoing Reporting - 2019\Work Papers\SAS\logs\300 - Dev Qlikview Code_&label._&sysdate..log" print=print new;
+run;
+%end;
 %mend modesetup;
 
 %modesetup;
@@ -4280,7 +4285,7 @@ quit;
 
 
 
-*DEMO ONLY;
+*DEMO/DEV ONLY;
 /*%Dashboard(1148,0000,0);*/
 /*%Dashboard(1167,0000,0);*/
 /*%Dashboard(1343,0000,0);*/
@@ -4290,11 +4295,6 @@ quit;
 /*%Dashboard(2607,0000,0);*/
 /*%Dashboard(5479,0002,0);*/
 
-*DEV RUN;
-/*%Dashboard(1075,0000,0);*/
-/*%Dashboard(1125,0000,0);*/
-/*%Dashboard(1148,0000,0);*/
-/*%Dashboard(1167,0000,0);*/
 
 
 ******************************************************************************************************************;

@@ -44,6 +44,12 @@ libname out2 "&dataDir.\07 - Processed Data\Baseline Interface Demo\Output";
 proc printto log="H:\BPCIA_BPCI Advanced\50 - BPCI Advanced Ongoing Reporting - 2019\Work Papers\SAS\logs\201 - Baseline Target Prices_&sysdate..log" print=print new;
 run;
 %end;
+%else %if &mode.=dev %then %do;
+libname out "&dataDir.\07 - Processed Data\Development";
+libname out2 "&dataDir.\07 - Processed Data\Development\Output";
+proc printto log="H:\BPCIA_BPCI Advanced\50 - BPCI Advanced Ongoing Reporting - 2019\Work Papers\SAS\logs\201 - Dev Target Prices_&sysdate..log" print=print new;
+run;
+%end;
 %mend modesetup;
 
 %modesetup;
@@ -1767,6 +1773,7 @@ run;
 
 %mend;
 
+*****For Development*****;
 /*
 %runhosp(1148_0000,1148_0000,1148,0000,310008);
 %runhosp(1167_0000,1167_0000,1167,0000,390173);
