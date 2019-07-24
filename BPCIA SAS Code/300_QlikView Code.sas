@@ -39,7 +39,7 @@ SET UP
 %let transmit_date = '14JUN2019'd;*Change for every Update*; 
 
 * MAIN VS BASELINE INTERFACE *****;
-%let mode = main; *main=main interface, base = baseline interface;
+%let mode = dev; *main=main interface, base = baseline interface;
 
 proc printto;run;
 
@@ -4065,26 +4065,34 @@ create table exclusions1 as
 /*			,a.DROPFLAG_RURAL_PA,a.DROPFLAG_LOS_GT_59,a.DROPFLAG_NON_HIGHEST_J1,a.DROPFLAG_NO_BENE_ENR_INFO)=1*/
 /*			then 1 else 0 end as DROPFLAG_OTHER*/
 		,case
-			when a.DROPFLAG_CJR = 1 then 1 /*facility level exclusion*/            
-			when a.DROPFLAG_NOT_CONT_ENR_AB_NO_C = 1 then 2 /*episode level exclusions*/
-			when a.DROPFLAG_ESRD = 1 then 3 /*episode level exclusions*/
-			when a.DROPFLAG_OTHER_PRIMARY_PAYER = 1 then 4 /*episode level exclusions*/
-			when a.DROPFLAG_DEATH_DUR_ANCHOR = 1 then 5 /*episode level exclusions*/
-			when a.DROPFLAG_NON_ACH = 1 then 6 /*facility level exclusion*/
-			when a.DROPFLAG_EXCLUDED_STATE = 1 then 7 /*facility level exclusion*/
-			when a.DROPFLAG_TRANS_W_CAH_CANCER = 1 then 8 /*facility level exclusion*/
-			when a.DROPFLAG_RCH_DEMO = 1 then 9 /*facility level exclusion*/
-			when a.DROPFLAG_RURAL_PA = 1 then 10 /*facility level exclusion*/
-			when a.DROPFLAG_LOS_GT_59 = 1 then 11 /*episode level exclusions*/
-			when a.DROPFLAG_NON_HIGHEST_J1 = 1 then 12 /*episode level exclusions*/
-			when a.DROPFLAG_NO_BENE_ENR_INFO = 1 then 13 /*data exclusion*/
-			when a.DROPFLAG_READMIT_EPI=1 then 14 /*Milliman exclusion*/
-			when a.DROPFLAG_MJRLE_EPI=1 then 15 /*Milliman exclusion*/
-			when a.DROPFLAG_NOT_PERF_EP_MIL=1 then 16 /*Milliman exclusion*/
-			when a.DROPFLAG_TRANS_EPI=1 then 17 /*Milliman exclusion*/
+			when a.DROPFLAG_CJR = 1 then 1 /*facility level exclusion*/
+			when a.DROPFLAG_ACO_MSSP_OVERLAP = 1 then 2 /*facility level exclusion*/
+			when a.DROPFLAG_ACO_CEC_OVERLAP = 1 then 3 /*facility level exclusion*/
+			when a.DROPFLAG_ACO_NEXTGEN_OVERLAP = 1 then 4 /*facility level exclusion*/
+			when a.DROPFLAG_ACO_VERMONTAP_OVERLAP = 1 then 5 /*facility level exclusion*/
+			when a.DROPFLAG_NOT_CONT_ENR_AB_NO_C = 1 then 6 /*episode level exclusions*/
+			when a.DROPFLAG_ESRD = 1 then 7 /*episode level exclusions*/
+			when a.DROPFLAG_OTHER_PRIMARY_PAYER = 1 then 8 /*episode level exclusions*/
+			when a.DROPFLAG_DEATH_DUR_ANCHOR = 1 then 9 /*episode level exclusions*/
+			when a.DROPFLAG_NON_ACH = 1 then 10 /*facility level exclusion*/
+			when a.DROPFLAG_EXCLUDED_STATE = 1 then 11 /*facility level exclusion*/
+			when a.DROPFLAG_TRANS_W_CAH_CANCER = 1 then 12 /*facility level exclusion*/
+			when a.DROPFLAG_RCH_DEMO = 1 then 13 /*facility level exclusion*/
+			when a.DROPFLAG_RURAL_PA = 1 then 14 /*facility level exclusion*/
+			when a.DROPFLAG_LOS_GT_59 = 1 then 15 /*episode level exclusions*/
+			when a.DROPFLAG_NON_HIGHEST_J1 = 1 then 16 /*episode level exclusions*/
+			when a.DROPFLAG_NO_BENE_ENR_INFO = 1 then 17 /*data exclusion*/
+			when a.DROPFLAG_READMIT_EPI = 1 then 18 /*Milliman exclusion*/
+			when a.DROPFLAG_MJRLE_EPI = 1 then 19 /*Milliman exclusion*/
+			when a.DROPFLAG_NOT_PERF_EP_MIL = 1 then 20 /*Milliman exclusion*/
+			when a.DROPFLAG_TRANS_EPI = 1 then 21 /*Milliman exclusion*/
             end as dropreason
 		,case
-			when a.DROPFLAG_CJR = 1 then "CJR hospital with MJRLE MS-DRG" /*facility level exclusion*/            
+			when a.DROPFLAG_CJR = 1 then "CJR hospital with MJRLE MS-DRG" /*facility level exclusion*/
+			when a.DROPFLAG_ACO_MSSP_OVERLAP = 1 then "Beneficiary aligned with Medicare Shared Savings Program Track 3 (ACO)" /*facility level exclusion*/
+			when a.DROPFLAG_ACO_CEC_OVERLAP = 1 then "Beneficiary aligned with Comprehensive ESRD Care (ACO)" /*facility level exclusion*/
+			when a.DROPFLAG_ACO_NEXTGEN_OVERLAP = 1 then "Beneficiary aligned with Next Generation (ACO)" /*facility level exclusion*/
+			when a.DROPFLAG_ACO_VERMONTAP_OVERLAP = 1 then "Beneficiary aligned with Vermont All Payer (ACO)" /*facility level exclusion*/
 			when a.DROPFLAG_NOT_CONT_ENR_AB_NO_C = 1 then "No Part A/B or in Part C" /*episode level exclusions*/
 			when a.DROPFLAG_ESRD = 1 then "ESRD" /*episode level exclusions*/
 			when a.DROPFLAG_OTHER_PRIMARY_PAYER = 1 then "Medicare not primary payer" /*episode level exclusions*/
@@ -4097,13 +4105,13 @@ create table exclusions1 as
 			when a.DROPFLAG_LOS_GT_59 = 1 then "LOS greater than 59 days" /*episode level exclusions*/
 			when a.DROPFLAG_NON_HIGHEST_J1 = 1 then "Triggering OP line not highest ranking J1" /*episode level exclusions*/
 			when a.DROPFLAG_NO_BENE_ENR_INFO = 1 then "Missing beneficiary info" /*data exclusion*/
-			when a.DROPFLAG_READMIT_EPI=1 then "Admission inclu. in prev. episode" /*Milliman exclusion*/
-			when a.DROPFLAG_MJRLE_EPI=1 then "Readmit starts new episode" /*Milliman exclusion*/
-			when a.DROPFLAG_NOT_PERF_EP_MIL=1 then "Not a performance period clinical episode" /*Milliman exclusion*/
-			when a.DROPFLAG_TRANS_EPI=1 then "Transfer incorrectly assigned" /*Milliman exclusion*/
+			when a.DROPFLAG_READMIT_EPI = 1 then "Admission inclu. in prev. episode" /*Milliman exclusion*/
+			when a.DROPFLAG_MJRLE_EPI = 1 then "Readmit starts new episode" /*Milliman exclusion*/
+			when a.DROPFLAG_NOT_PERF_EP_MIL = 1 then "Not a performance period clinical episode" /*Milliman exclusion*/
+			when a.DROPFLAG_TRANS_EPI = 1 then "Transfer incorrectly assigned" /*Milliman exclusion*/
 			end as exclusion_description length=100
 		, case when a.DROPFLAG_READMIT_EPI=1 or a.DROPFLAG_MJRLE_EPI=1 or a.DROPFLAG_NOT_PERF_EP_MIL=1 or a.DROPFLAG_TRANS_EPI=1 then "MIL" else "CMS" end as source length=50
-		,case when a.BENE_SRNM_NAME in ("","~") then "Unknown"
+		, case when a.BENE_SRNM_NAME in ("","~") then "Unknown"
 			else propcase(STRIP(a.BENE_SRNM_NAME)||", "||STRIP(a.BENE_GVN_NAME)) 
 			end as PATIENT_NAME format = $255. length=255
 	from out.epiexc_perf_&label._&bpid1._&bpid2.	as a
@@ -4121,6 +4129,10 @@ data out.exclusions_&label._&bpid1._&bpid2. ;
 	set exclusions1;
 	*CMS exclusions;
 	DROPFLAG_CJR = 0;
+	DROPFLAG_ACO_MSSP_OVERLAP = 0;
+	DROPFLAG_ACO_CEC_OVERLAP = 0;
+	DROPFLAG_ACO_NEXTGEN_OVERLAP = 0;
+	DROPFLAG_ACO_VERMONTAP_OVERLAP =0;
 	DROPFLAG_NOT_CONT_ENR_AB_NO_C = 0;
 	DROPFLAG_ESRD = 0;
 	DROPFLAG_OTHER_PRIMARY_PAYER = 0;
@@ -4133,6 +4145,7 @@ data out.exclusions_&label._&bpid1._&bpid2. ;
 	DROPFLAG_LOS_GT_59 = 0;
 	DROPFLAG_NON_HIGHEST_J1 = 0;
 	DROPFLAG_NO_BENE_ENR_INFO = 0;
+	DROPFLAG_ACO = 0; *flag for combined ACO overlap;
 	DROPFLAG_OTHER = 0; *flag for combined category;
 	*Milliman- calculated exclusions;
 	DROPFLAG_READMIT_ANCHOR_DRG_MIL = 0;
@@ -4142,23 +4155,28 @@ data out.exclusions_&label._&bpid1._&bpid2. ;
 	
 	*Flags with hierarchy applied (only one flag = 1 for each episode);
 	if dropreason = 1 then DROPFLAG_CJR = 1;
-	else if dropreason = 2 then DROPFLAG_NOT_CONT_ENR_AB_NO_C = 1;
-	else if dropreason = 3 then DROPFLAG_ESRD = 1;
-	else if dropreason = 4 then DROPFLAG_OTHER_PRIMARY_PAYER = 1;
-	else if dropreason = 5 then DROPFLAG_DEATH_DUR_ANCHOR = 1;
-	else if dropreason = 6 then DROPFLAG_NON_ACH = 1;
-	else if dropreason = 7 then DROPFLAG_EXCLUDED_STATE = 1;
-	else if dropreason = 8 then DROPFLAG_TRANS_W_CAH_CANCER = 1;
-	else if dropreason = 9 then DROPFLAG_RCH_DEMO = 1;
-	else if dropreason = 10 then DROPFLAG_RURAL_PA = 1;
-	else if dropreason = 11 then DROPFLAG_LOS_GT_59 = 1;
-	else if dropreason = 12 then DROPFLAG_NON_HIGHEST_J1 = 1;
-	else if dropreason = 13 then DROPFLAG_NO_BENE_ENR_INFO = 1;
-	else if dropreason = 14 then DROPFLAG_READMIT_ANCHOR_DRG_MIL = 1;
-	else if dropreason = 15 then DROPFLAG_READMIT_NEW_EP_MIL = 1;
-	else if dropreason = 16 then DROPFLAG_NOT_PERF_EP_MIL = 1;
-	else if dropreason = 17 then DROPFLAG_TRANS_EPI_MIL = 1;
+	else if dropreason = 2 then DROPFLAG_ACO_MSSP_OVERLAP = 1;
+	else if dropreason = 3 then DROPFLAG_ACO_CEC_OVERLAP = 1;
+	else if dropreason = 4 then DROPFLAG_ACO_NEXTGEN_OVERLAP = 1;
+	else if dropreason = 5 then DROPFLAG_ACO_VERMONTAP_OVERLAP = 1;
+	else if dropreason = 6 then DROPFLAG_NOT_CONT_ENR_AB_NO_C = 1;
+	else if dropreason = 7 then DROPFLAG_ESRD = 1;
+	else if dropreason = 8 then DROPFLAG_OTHER_PRIMARY_PAYER = 1;
+	else if dropreason = 9 then DROPFLAG_DEATH_DUR_ANCHOR = 1;
+	else if dropreason = 10 then DROPFLAG_NON_ACH = 1;
+	else if dropreason = 11 then DROPFLAG_EXCLUDED_STATE = 1;
+	else if dropreason = 12 then DROPFLAG_TRANS_W_CAH_CANCER = 1;
+	else if dropreason = 13 then DROPFLAG_RCH_DEMO = 1;
+	else if dropreason = 14 then DROPFLAG_RURAL_PA = 1;
+	else if dropreason = 15 then DROPFLAG_LOS_GT_59 = 1;
+	else if dropreason = 16 then DROPFLAG_NON_HIGHEST_J1 = 1;
+	else if dropreason = 17 then DROPFLAG_NO_BENE_ENR_INFO = 1;
+	else if dropreason = 18 then DROPFLAG_READMIT_ANCHOR_DRG_MIL = 1;
+	else if dropreason = 19 then DROPFLAG_READMIT_NEW_EP_MIL = 1;
+	else if dropreason = 20 then DROPFLAG_NOT_PERF_EP_MIL = 1;
+	else if dropreason = 21 then DROPFLAG_TRANS_EPI_MIL = 1;
 
+	DROPFLAG_ACO = max(DROPFLAG_ACO_MSSP_OVERLAP, DROPFLAG_ACO_CEC_OVERLAP, DROPFLAG_ACO_NEXTGEN_OVERLAP, DROPFLAG_ACO_VERMONTAP_OVERLAP);
 	DROPFLAG_OTHER = max(DROPFLAG_NON_ACH,DROPFLAG_EXCLUDED_STATE,DROPFLAG_TRANS_W_CAH_CANCER,DROPFLAG_RCH_DEMO,
 			DROPFLAG_RURAL_PA,DROPFLAG_LOS_GT_59,DROPFLAG_NON_HIGHEST_J1,DROPFLAG_NO_BENE_ENR_INFO,DROPFLAG_NOT_PERF_EP_MIL,DROPFLAG_TRANS_EPI_MIL);
 run;
@@ -4187,79 +4205,79 @@ quit;
 *MACRO RUNS;
 
 
-%Dashboard(1125,0000,0);
-%Dashboard(1148,0000,0);
-%Dashboard(1167,0000,0);
-%Dashboard(1209,0000,0);
-%Dashboard(1343,0000,0);
-%Dashboard(1368,0000,0);
-%Dashboard(1374,0004,0);
-%Dashboard(1374,0008,0);
-%Dashboard(1374,0009,0);
-%Dashboard(1686,0002,0);
-%Dashboard(1688,0002,0);
-%Dashboard(1696,0002,0);
-%Dashboard(1710,0002,0);
-%Dashboard(1958,0000,0);
-%Dashboard(2070,0000,0);
-%Dashboard(2374,0000,0);
-%Dashboard(2376,0000,0);
-%Dashboard(2378,0000,0);
-%Dashboard(2379,0000,0);
-%Dashboard(1075,0000,0);
-%Dashboard(2594,0000,0);
-%Dashboard(2048,0000,0);
-%Dashboard(2049,0000,0);
-%Dashboard(2607,0000,0);
-%Dashboard(5038,0000,0);
-%Dashboard(5050,0000,0);
-%Dashboard(2587,0000,0);
-%Dashboard(2589,0000,0);
-%Dashboard(5154,0000,0);
-%Dashboard(5282,0000,0);
-%Dashboard(2631,0000,0);
-%Dashboard(5037,0000,0);
-%Dashboard(5478,0002,0);
-%Dashboard(5043,0000,0);
-%Dashboard(5479,0002,0);
-%Dashboard(5480,0002,0);
-%Dashboard(5215,0003,0);
-%Dashboard(5215,0002,0);
-%Dashboard(5229,0000,0);
-%Dashboard(5263,0000,0);
-%Dashboard(5264,0000,0);
-%Dashboard(5481,0002,0);
-%Dashboard(5394,0000,0);
-%Dashboard(5395,0000,0);
-%Dashboard(5397,0002,0);
-%Dashboard(5397,0005,0);
-%Dashboard(5397,0004,0);
-%Dashboard(5397,0008,0);
-%Dashboard(5397,0003,0);
-%Dashboard(5397,0006,0);
-%Dashboard(5397,0009,0);
-%Dashboard(5397,0010,0);
-%Dashboard(5916,0002,0);
-%Dashboard(6049,0002,0);
-%Dashboard(6050,0002,0);
-%Dashboard(6051,0002,0);
-%Dashboard(6052,0002,0);
-%Dashboard(6053,0002,0);
-%Dashboard(5397,0007,0);
-%Dashboard(1102,0000,0);
-%Dashboard(1105,0000,0);
-%Dashboard(1106,0000,0);
-%Dashboard(1103,0000,0);
-%Dashboard(1104,0000,0);
-%Dashboard(5392,0004,0);
-%Dashboard(6054,0002,0);
-%Dashboard(6055,0002,0);
-%Dashboard(6056,0002,0);
-%Dashboard(6057,0002,0);
-%Dashboard(6058,0002,0);
-%Dashboard(6059,0002,0);
-%Dashboard(5746,0002,0);
-%Dashboard(1191,0002,0);
+/*%Dashboard(1125,0000,0);*/
+/*%Dashboard(1148,0000,0);*/
+/*%Dashboard(1167,0000,0);*/
+/*%Dashboard(1209,0000,0);*/
+/*%Dashboard(1343,0000,0);*/
+/*%Dashboard(1368,0000,0);*/
+/*%Dashboard(1374,0004,0);*/
+/*%Dashboard(1374,0008,0);*/
+/*%Dashboard(1374,0009,0);*/
+/*%Dashboard(1686,0002,0);*/
+/*%Dashboard(1688,0002,0);*/
+/*%Dashboard(1696,0002,0);*/
+/*%Dashboard(1710,0002,0);*/
+/*%Dashboard(1958,0000,0);*/
+/*%Dashboard(2070,0000,0);*/
+/*%Dashboard(2374,0000,0);*/
+/*%Dashboard(2376,0000,0);*/
+/*%Dashboard(2378,0000,0);*/
+/*%Dashboard(2379,0000,0);*/
+/*%Dashboard(1075,0000,0);*/
+/*%Dashboard(2594,0000,0);*/
+/*%Dashboard(2048,0000,0);*/
+/*%Dashboard(2049,0000,0);*/
+/*%Dashboard(2607,0000,0);*/
+/*%Dashboard(5038,0000,0);*/
+/*%Dashboard(5050,0000,0);*/
+/*%Dashboard(2587,0000,0);*/
+/*%Dashboard(2589,0000,0);*/
+/*%Dashboard(5154,0000,0);*/
+/*%Dashboard(5282,0000,0);*/
+/*%Dashboard(2631,0000,0);*/
+/*%Dashboard(5037,0000,0);*/
+/*%Dashboard(5478,0002,0);*/
+/*%Dashboard(5043,0000,0);*/
+/*%Dashboard(5479,0002,0);*/
+/*%Dashboard(5480,0002,0);*/
+/*%Dashboard(5215,0003,0);*/
+/*%Dashboard(5215,0002,0);*/
+/*%Dashboard(5229,0000,0);*/
+/*%Dashboard(5263,0000,0);*/
+/*%Dashboard(5264,0000,0);*/
+/*%Dashboard(5481,0002,0);*/
+/*%Dashboard(5394,0000,0);*/
+/*%Dashboard(5395,0000,0);*/
+/*%Dashboard(5397,0002,0);*/
+/*%Dashboard(5397,0005,0);*/
+/*%Dashboard(5397,0004,0);*/
+/*%Dashboard(5397,0008,0);*/
+/*%Dashboard(5397,0003,0);*/
+/*%Dashboard(5397,0006,0);*/
+/*%Dashboard(5397,0009,0);*/
+/*%Dashboard(5397,0010,0);*/
+/*%Dashboard(5916,0002,0);*/
+/*%Dashboard(6049,0002,0);*/
+/*%Dashboard(6050,0002,0);*/
+/*%Dashboard(6051,0002,0);*/
+/*%Dashboard(6052,0002,0);*/
+/*%Dashboard(6053,0002,0);*/
+/*%Dashboard(5397,0007,0);*/
+/*%Dashboard(1102,0000,0);*/
+/*%Dashboard(1105,0000,0);*/
+/*%Dashboard(1106,0000,0);*/
+/*%Dashboard(1103,0000,0);*/
+/*%Dashboard(1104,0000,0);*/
+/*%Dashboard(5392,0004,0);*/
+/*%Dashboard(6054,0002,0);*/
+/*%Dashboard(6055,0002,0);*/
+/*%Dashboard(6056,0002,0);*/
+/*%Dashboard(6057,0002,0);*/
+/*%Dashboard(6058,0002,0);*/
+/*%Dashboard(6059,0002,0);*/
+/*%Dashboard(5746,0002,0);*/
+/*%Dashboard(1191,0002,0);*/
 
 
 
@@ -4286,14 +4304,14 @@ quit;
 
 
 *DEMO/DEV ONLY;
-/*%Dashboard(1148,0000,0);*/
-/*%Dashboard(1167,0000,0);*/
-/*%Dashboard(1343,0000,0);*/
-/*%Dashboard(1368,0000,0);*/
-/*%Dashboard(2379,0000,0);*/
-/*%Dashboard(2587,0000,0);*/
-/*%Dashboard(2607,0000,0);*/
-/*%Dashboard(5479,0002,0);*/
+%Dashboard(1148,0000,0);
+%Dashboard(1167,0000,0);
+%Dashboard(1343,0000,0);
+%Dashboard(1368,0000,0);
+%Dashboard(2379,0000,0);
+%Dashboard(2587,0000,0);
+%Dashboard(2607,0000,0);
+%Dashboard(5479,0002,0);
 
 
 
