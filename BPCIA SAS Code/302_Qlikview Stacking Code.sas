@@ -25,7 +25,7 @@ Setup
 ********************;
 ****** USER INPUTS ******************************************************************************************;
 /*%let label = ybase; *Baseline/Performance data label;*/
-%let label = y201905;
+%let label = y201906;
 
 %let mode=main; *Base=Baseline Interface, Main=Main Interface;
 
