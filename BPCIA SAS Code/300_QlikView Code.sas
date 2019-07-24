@@ -4145,6 +4145,7 @@ data out.exclusions_&label._&bpid1._&bpid2. ;
 	DROPFLAG_LOS_GT_59 = 0;
 	DROPFLAG_NON_HIGHEST_J1 = 0;
 	DROPFLAG_NO_BENE_ENR_INFO = 0;
+	DROPFLAG_ACO = 0; *flag for combined ACO overlap;
 	DROPFLAG_OTHER = 0; *flag for combined category;
 	*Milliman- calculated exclusions;
 	DROPFLAG_READMIT_ANCHOR_DRG_MIL = 0;
