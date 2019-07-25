@@ -222,8 +222,19 @@ run;
 
 	data out.all_&file._demo;
 		set 
-		%if &mode.=main %then %do ;
 
+		%if &mode.=base %then %do ;
+			out.&file._ybase_&bpid1._0000
+			out.&file._ybase_&bpid2._0000
+			out.&file._ybase_&bpid3._0000
+			out.&file._ybase_&bpid4._0000
+			out.&file._ybase_&bpid5._0000
+			out.&file._ybase_&bpid6._0000
+			out.&file._ybase_&bpid7._0000
+			out.&file._ybase_&bpid8._0002 ;
+		%end ;
+
+		%else %do ;
 			%if &file = exclusions %then %do;
 				out.&file._&file2._&bpid1._0000
 				out.&file._&file2._&bpid2._0000
@@ -253,17 +264,6 @@ run;
 				out.&file._&file2._&bpid7._0000
 				out.&file._&file2._&bpid8._0002;
 			%end;
-		%end ;
-
-		%else %if &mode.=base %then %do ;
-			out.&file._ybase_&bpid1._0000
-			out.&file._ybase_&bpid2._0000
-			out.&file._ybase_&bpid3._0000
-			out.&file._ybase_&bpid4._0000
-			out.&file._ybase_&bpid5._0000
-			out.&file._ybase_&bpid6._0000
-			out.&file._ybase_&bpid7._0000
-			out.&file._ybase_&bpid8._0002 ;
 		%end ;
 
 		*20180610 Update - Overwrite BPID;
@@ -358,7 +358,7 @@ run;
 %stack_output_demo(comp,&label.);
 
 *ONLY RUN EXCLUSIONS FOR MAIN DEMOS, NOT BASELINE;
-%if &mode.=main %then %do ;
+%if &mode.^=base %then %do ;
 %stack_output_demo(exclusions,&label.);
 %end ;
 
@@ -375,25 +375,7 @@ run;
 /*%stack_output_demo(tp_variability,&label.); *20170831 Update: Add new target price variability*;*/
 
 *performance file (needs to be rerun outside of macro to incorporate PMR and baseline benchmark variables;
-%if &mode.=main %then %do ;
-data out.all_perf_demo;
-	set out.all_perf;
-	if BPID in ("&bpid1.-0000","&bpid2.-0000","&bpid3.-0000","&bpid4.-0000","&bpid5.-0000","&bpid6.-0000","&bpid7.-0000","&bpid8.-0002");
-
-	*20180610 Update - Overwrite BPID;
-	if BPID ="&bpid1.-0000" then BPID = "1111-0000";
-	else if BPID = "&bpid2.-0000" then BPID = "2222-0000";
-	else if BPID = "&bpid3.-0000" then BPID = "3333-0000";
-	else if BPID = "&bpid4.-0000" then BPID = "4444-0000";
-	else if BPID = "&bpid5.-0000" then BPID = "5555-0000";
-	else if BPID = "&bpid6.-0000" then BPID = "6666-0000";
-	else if BPID = "&bpid7.-0000" then BPID = "7777-0000";
-	else if BPID = "&bpid8.-0002" then BPID = "8888-0000";
-
-run;
-%end ;
-
-%else %if &mode.=base %then %do ;
+%if &mode.=base %then %do ;
 data perf_demo ;
 	set		out.perf_ybase_&bpid1._0000
 			out.perf_ybase_&bpid2._0000
@@ -445,6 +427,25 @@ data out.all_perf_demo;
 run;
 %end ;
 
+%else %do ;
+data out.all_perf_demo;
+	set out.all_perf;
+	if BPID in ("&bpid1.-0000","&bpid2.-0000","&bpid3.-0000","&bpid4.-0000","&bpid5.-0000","&bpid6.-0000","&bpid7.-0000","&bpid8.-0002");
+
+	*20180610 Update - Overwrite BPID;
+	if BPID ="&bpid1.-0000" then BPID = "1111-0000";
+	else if BPID = "&bpid2.-0000" then BPID = "2222-0000";
+	else if BPID = "&bpid3.-0000" then BPID = "3333-0000";
+	else if BPID = "&bpid4.-0000" then BPID = "4444-0000";
+	else if BPID = "&bpid5.-0000" then BPID = "5555-0000";
+	else if BPID = "&bpid6.-0000" then BPID = "6666-0000";
+	else if BPID = "&bpid7.-0000" then BPID = "7777-0000";
+	else if BPID = "&bpid8.-0002" then BPID = "8888-0000";
+
+run;
+%end ;
+
+
 ******* EXPORT QVW_FILES *******;
 %sas_2_csv(out.all_epi_detail_demo,epi_detail_demo.csv);
 %sas_2_csv(out.all_pjourney_demo,pjourney_demo.csv);
@@ -457,7 +458,7 @@ run;
 %sas_2_csv(out.all_comp_demo,comp_demo.csv);
 
 *ONLY EXPORT FOR MAIN INTERFACE DEMO;
-%if &mode.=main %then %do ;
+%if &mode.^=base %then %do ;
 %sas_2_csv(out.all_exclusions_demo,exclusions_demo.csv);
 %end ;
 
