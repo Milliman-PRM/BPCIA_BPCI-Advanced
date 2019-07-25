@@ -39,7 +39,7 @@ SET UP
 %let transmit_date = '14JUN2019'd;*Change for every Update*; 
 
 * MAIN VS BASELINE INTERFACE *****;
-%let mode = dev; *main=main interface, base = baseline interface;
+%let mode = main; *main=main interface, base = baseline interface;
 
 proc printto;run;
 
@@ -3756,7 +3756,16 @@ create table episode_detail_12 as
 			,b.excess_op_ed_days
 			,b.excess_obs_days
 			,b.total_excess_days
-		%if &mode. = main %then %do;
+		%if &mode.=base %then %do;
+			,case when clinical_episode_abbr2 not in('AMI') then '-'
+			when b.total_excess_days >0 then "Yes"
+			when b.total_excess_days =0 then "No" else "N/A"
+			end as excess_days_status2
+			,case when clinical_episode_abbr2 not in('MJRLE','DJRLE') then '-'
+				else complication_status end as complication_status2
+			,mortality_CABG as mortality_CABG2
+		%end;
+		%else %do;
 			,case when perf_period_epi_flag=. then '-'
 			when clinical_episode_abbr2 not in('AMI') then '-'
 			when b.total_excess_days >0 then "Yes"
@@ -3767,15 +3776,6 @@ create table episode_detail_12 as
 				else complication_status end as complication_status2
 			,case when perf_period_epi_flag=. then '-'
 				else mortality_CABG end as mortality_CABG2
-		%end;
-		%else %if &mode.=base %then %do;
-			,case when clinical_episode_abbr2 not in('AMI') then '-'
-			when b.total_excess_days >0 then "Yes"
-			when b.total_excess_days =0 then "No" else "N/A"
-			end as excess_days_status2
-			,case when clinical_episode_abbr2 not in('MJRLE','DJRLE') then '-'
-				else complication_status end as complication_status2
-			,mortality_CABG as mortality_CABG2
 		%end;
 		from episode_detail_12 as a
 			left join all_cause_days as b
@@ -3793,14 +3793,14 @@ create table episode_detail_12 as
 
 		create table episode_detail_14 as
 		select distinct a.*
-		%if &mode.=main %then %do;
-			,case when perf_period_epi_flag=. then "-"
-				when b.unplanned_readmit_flag>0 then "Yes"
+		%if &mode.=base %then %do;
+			,case when b.unplanned_readmit_flag>0 then "Yes"
 				when b.unplanned_readmit_flag=0 then "No"
 				else "N/A" end as unplanned_readmit_status
 		%end;
-		%else %if &mode.=base %then %do;
-			,case when b.unplanned_readmit_flag>0 then "Yes"
+		%else %do;
+			,case when perf_period_epi_flag=. then "-"
+				when b.unplanned_readmit_flag>0 then "Yes"
 				when b.unplanned_readmit_flag=0 then "No"
 				else "N/A" end as unplanned_readmit_status
 		%end;
@@ -3815,21 +3815,21 @@ proc sql;
 	create table out.pat_detail_&label._&bpid1._&bpid2. as
 		select distinct a.*
 						,b.perf_period_epi_flag
-						%if &mode.=main %then %do;
+						%if &mode.=base %then %do;
+						,a.readm_cand as readm_cand2
+						,case when a.readm_cand=1 and b.unplanned_readmit_status='Yes' and
+							((caretype_long='Anchor Hospital Stay' and msdrg^='') or caretype_long='Readmit') then 1
+							else 0 end as elig_readm_cand_with_unplanned
+						,case when a.edac_flag='Yes' and excess_days_status2='Yes' then 1
+							else 0 end as elig_edac_cand_with_edac
+						%end;
+						%else %do;
 						,case when b.perf_period_epi_flag=. then 0
 							else a.readm_cand end as readm_cand2
 						,case when b.perf_period_epi_flag^=. and a.readm_cand=1 and b.unplanned_readmit_status='Yes' and
 							((caretype_long='Anchor Hospital Stay' and msdrg^='') or caretype_long='Readmit') then 1
 							else 0 end as elig_readm_cand_with_unplanned
 						,case when b.perf_period_epi_flag^=. and a.edac_flag='Yes' and excess_days_status2='Yes' then 1
-							else 0 end as elig_edac_cand_with_edac
-						%end;
-						%else %if &mode.=base %then %do;
-						,a.readm_cand as readm_cand2
-						,case when a.readm_cand=1 and b.unplanned_readmit_status='Yes' and
-							((caretype_long='Anchor Hospital Stay' and msdrg^='') or caretype_long='Readmit') then 1
-							else 0 end as elig_readm_cand_with_unplanned
-						,case when a.edac_flag='Yes' and excess_days_status2='Yes' then 1
 							else 0 end as elig_edac_cand_with_edac
 						%end;
 		from out.pat_detail_&label._&bpid1._&bpid2. as a
@@ -4304,14 +4304,14 @@ quit;
 
 
 *DEMO/DEV ONLY;
-%Dashboard(1148,0000,0);
-%Dashboard(1167,0000,0);
-%Dashboard(1343,0000,0);
-%Dashboard(1368,0000,0);
-%Dashboard(2379,0000,0);
-%Dashboard(2587,0000,0);
-%Dashboard(2607,0000,0);
-%Dashboard(5479,0002,0);
+/*%Dashboard(1148,0000,0);*/
+/*%Dashboard(1167,0000,0);*/
+/*%Dashboard(1343,0000,0);*/
+/*%Dashboard(1368,0000,0);*/
+/*%Dashboard(2379,0000,0);*/
+/*%Dashboard(2587,0000,0);*/
+/*%Dashboard(2607,0000,0);*/
+/*%Dashboard(5479,0002,0);*/
 
 
 
