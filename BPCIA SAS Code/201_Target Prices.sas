@@ -1744,8 +1744,8 @@ data out2.tp_&label._&bpid1._&bpid2.;
 	if PRIOR_HOSP_W_ANY_IP_FLAG_90_orig=1 then PRIOR_HOSP_W_ANY_IP_FLAG_90='Yes'; else PRIOR_HOSP_W_ANY_IP_FLAG_90='No';
 
 	if HCC_CNT=0 then HCC_COUNT='0';
-	else if HCC_CNT<=3 then HCC_COUNT='1-3';
-	else if HCC_CNT<=6 then HCC_COUNT='4-6';
+	else if HCC_CNT<=3 then HCC_COUNT='1 to 3';
+	else if HCC_CNT<=6 then HCC_COUNT='4 to 6';
 	else if HCC_CNT>=7 then HCC_COUNT='7+';
 
 	if HCC18_orig=1 then HCC18='Yes'; else HCC18='No';
