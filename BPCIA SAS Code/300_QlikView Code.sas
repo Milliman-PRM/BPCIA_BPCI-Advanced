@@ -1190,6 +1190,7 @@ create table Episode_Detail_7 as
 			end as PATIENT_NAME format = $255. length=255
 			%end;
 			,b.CNT_ATTR_PGP
+			,b.BPID || "_" || b.BENE_SK as BPID_Member
 			from episode_detail_7 as a 
 			left join out.epi_&label._&bpid1._&bpid2. as b
 			on a.epi_id_milliman = b.epi_id_milliman
@@ -4179,9 +4180,21 @@ data out.exclusions_&label._&bpid1._&bpid2. ;
 	DROPFLAG_ACO = max(DROPFLAG_ACO_MSSP_OVERLAP, DROPFLAG_ACO_CEC_OVERLAP, DROPFLAG_ACO_NEXTGEN_OVERLAP, DROPFLAG_ACO_VERMONTAP_OVERLAP);
 	DROPFLAG_OTHER = max(DROPFLAG_NON_ACH,DROPFLAG_EXCLUDED_STATE,DROPFLAG_TRANS_W_CAH_CANCER,DROPFLAG_RCH_DEMO,
 			DROPFLAG_RURAL_PA,DROPFLAG_LOS_GT_59,DROPFLAG_NON_HIGHEST_J1,DROPFLAG_NO_BENE_ENR_INFO,DROPFLAG_NOT_PERF_EP_MIL,DROPFLAG_TRANS_EPI_MIL);
+
+	BPID_Member = BPID || "_" || BENE_SK;
 run;
 
 %end;
+
+***********************************************************;
+*Create a unique table for Qlikview with BPID_Member, BPID, and BENE_SK;
+data BPID_Member_&label._&bpid1._&bpid2.;
+	set out.epi_detail_&label._&bpid1._&bpid2. (keep= BPID_Member BPID BENE_SK)
+		%if &label ^= ybase %then %do; out.exclusions_&label._&bpid1._&bpid2. (keep= BPID_Member BPID BENE_SK) %end;
+		;
+	proc sort nodupkey; by BPID_Member BPID BENE_SK;
+run;
+
 /*********************************************************************************************/
 /*********************************************************************************************/
 

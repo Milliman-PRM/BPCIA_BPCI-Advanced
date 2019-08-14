@@ -90,6 +90,7 @@ libname bench "R:\client work\CMS_PAC_Bundle_Processing\Benchmark Releases\v.201
 %stack_output(pat_detail);
 %stack_output(exclusions);
 %stack_output(comp);
+%stack_output(bpid_member);
 
 *not for qlikview;
 /*%stack_output(provider);*/
@@ -166,6 +167,7 @@ run;
 %separate(exclusions);
 %separate(pat_detail);
 %separate(comp);
+%separate(bpid_member);
 
 ******* EXPORT QVW_FILES *******;
 %macro exp(num);
@@ -179,6 +181,7 @@ run;
 %sas_2_csv(out.all_exclusions_&num.,exclusions_&num..csv);
 %sas_2_csv(out.all_pat_detail_&num.,patient_detail_&num..csv);
 %sas_2_csv(out.all_comp_&num.,comp_&num..csv);
+%sas_2_csv(out.all_bpid_member_&num.,bpid_member_&num..csv);
 
 %mend exp;
 
@@ -343,6 +346,10 @@ run;
 	%if &file = provider %then %do;
 		prov_counter= _N_;
 	%end;
+	%if &file = bpid_member %then %do;
+		BENE_SK = 123456789;
+		BPID_Member = BPID || "_" || BENE_SK;
+	%end;
 	run;
 
 %mend stack_output_demo;
@@ -356,6 +363,7 @@ run;
 %stack_output_demo(util,&label.);
 %stack_output_demo(phys_summ,&label.);
 %stack_output_demo(comp,&label.);
+%stack_output_demo(bpid_member,&label.);
 
 *ONLY RUN EXCLUSIONS FOR MAIN DEMOS, NOT BASELINE;
 %if &mode.^=base %then %do ;
@@ -456,6 +464,7 @@ run;
 %sas_2_csv(out.all_perf_demo,performance_demo.csv);
 %sas_2_csv(out.all_phys_summ_demo,phys_summary_demo.csv);
 %sas_2_csv(out.all_comp_demo,comp_demo.csv);
+%sas_2_csv(out.all_bpid_member_demo,bpid_member_demo.csv);
 
 *ONLY EXPORT FOR MAIN INTERFACE DEMO;
 %if &mode.^=base %then %do ;
@@ -514,6 +523,7 @@ run;
 %stack_output(pat_detail);
 %stack_output(exclusions);
 %stack_output(comp);
+%stack_output(bpid_member);
 
 *not for qlikview;
 /*%stack_output(provider);*/
@@ -579,6 +589,7 @@ run;
 %sas_2_csv(out.all_pat_detail_&name.,patient_detail.csv);
 %sas_2_csv(out.all_exclusions_&name.,exclusions.csv);
 %sas_2_csv(out.all_comp_&name.,comp.csv);
+%sas_2_csv(out.all_bpid_member_&name.,bpid_member.csv);
 
 *not for qlikview;
 /*%sas_2_csv(out.all_provider,provider.csv);*/
