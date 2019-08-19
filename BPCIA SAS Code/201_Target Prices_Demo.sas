@@ -109,13 +109,13 @@ run;
 %MACRO EXPORT;
 %if &mode.=main %then %do;
 	proc export data= All_Target_Prices
-        outfile= "R:\data\HIPAA\BPCIA_BPCI Advanced\08 - Target Price Data\Demo\Target Prices Demo_&sysdate..csv"
+        outfile= "R:\data\HIPAA\BPCIA_BPCI Advanced\08 - Target Price Data\Demo\Target Prices Demo.csv"
         dbms=csv replace; 
 	run;
 %end;
 %else %if &mode.=base %then %do;
 	proc export data= All_Target_Prices
-        outfile= "R:\data\HIPAA\BPCIA_BPCI Advanced\08 - Target Price Data\Demo\Baseline Target Prices Demo_&sysdate..csv"
+        outfile= "R:\data\HIPAA\BPCIA_BPCI Advanced\08 - Target Price Data\Demo\Baseline Target Prices Demo.csv"
         dbms=csv replace; 
 	run;
 %end;
