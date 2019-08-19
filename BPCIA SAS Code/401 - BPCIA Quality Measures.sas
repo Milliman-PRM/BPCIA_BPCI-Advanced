@@ -294,6 +294,9 @@ data bpcia.Quality_Measure_latest_&name. ;
 				%end;
 				%else %do ; 
 				where BPID in (&NON_PMR_EI_lst.) ; 
+				%end;
+				%else %do ; 
+				where BPID in (&DEV_EI_lst.) ; 
 				%end; 
 		run ; 
 
