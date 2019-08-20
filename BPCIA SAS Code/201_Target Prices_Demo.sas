@@ -106,30 +106,17 @@ data All_Target_Prices;
 run;
 
 
-data All_Target_Prices_Baseline;
-	set All_Target_Prices;
-	if substr(EPI_ID_MILLIMAN,11,1) = 'B';
-run;
-
 %MACRO EXPORT;
 %if &mode.=main %then %do;
 	proc export data= All_Target_Prices
-        outfile= "R:\data\HIPAA\BPCIA_BPCI Advanced\08 - Target Price Data\Demo\Target Prices Demo_&sysdate..csv"
+        outfile= "R:\data\HIPAA\BPCIA_BPCI Advanced\08 - Target Price Data\Demo\Target Prices Demo.csv"
         dbms=csv replace; 
-	run;
-	proc export data= All_Target_Prices_Baseline
-	    outfile= "R:\data\HIPAA\BPCIA_BPCI Advanced\08 - Target Price Data\Demo\Target Prices Base Demo_&sysdate..csv"
-	    dbms=csv replace; 
 	run;
 %end;
 %else %if &mode.=base %then %do;
 	proc export data= All_Target_Prices
-        outfile= "R:\data\HIPAA\BPCIA_BPCI Advanced\08 - Target Price Data\Demo\Baseline Target Prices Demo_&sysdate..csv"
+        outfile= "R:\data\HIPAA\BPCIA_BPCI Advanced\08 - Target Price Data\Demo\Baseline Target Prices Demo.csv"
         dbms=csv replace; 
-	run;
-	proc export data= All_Target_Prices_Baseline
-	    outfile= "R:\data\HIPAA\BPCIA_BPCI Advanced\08 - Target Price Data\Demo\Baseline Target Prices Base Demo_&sysdate..csv"
-	    dbms=csv replace; 
 	run;
 %end;
 %mend EXPORT;
