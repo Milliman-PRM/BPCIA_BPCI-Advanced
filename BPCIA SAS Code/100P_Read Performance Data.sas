@@ -17,9 +17,9 @@ data temp_DME;
 infile "&file." dlm="," missover dsd lrecl=1000 firstobs = 2 ;
 input
 EPISODE_ID	:
+CLAIMNO: $50.
 LINEITEM: $9.
 STD_COST_EPI_TOTAL :
-CLAIMNO: $50.
 MBI_ID	:$20.
 CURHIC_UNEQ	:$20.
 BENE_SK :$20.
@@ -72,8 +72,8 @@ data temp_HHA;
 infile "&file." dlm="," missover dsd lrecl=1000 firstobs = 2 ;
 input
 EPISODE_ID :
-STD_COST_EPI_TOTAL :
 CLAIMNO : $50.
+STD_COST_EPI_TOTAL :
 MBI_ID :$20.
 CURHIC_UNEQ :$20.
 BENE_SK :$20.
@@ -404,8 +404,8 @@ data temp_HS;
 infile "&file." dlm="," missover dsd lrecl=1000 firstobs = 2 ;
 input
 EPISODE_ID:
-STD_COST_EPI_TOTAL :
 CLAIMNO : $50.
+STD_COST_EPI_TOTAL :
 MBI_ID :$20.
 CURHIC_UNEQ :$20.
 BENE_SK :$20.
@@ -564,9 +564,9 @@ data temp_OP;
 infile "&file." dlm="," missover dsd lrecl=1000 firstobs = 2 ;
 input
 EPISODE_ID :
+CLAIMNO : $50.
 LINEITEM :
 STD_COST_EPI_TOTAL :
-CLAIMNO : $50.
 MBI_ID :$20.
 CURHIC_UNEQ :$20.
 BENE_SK :$20.
@@ -632,9 +632,9 @@ data temp_PB;
 infile "&file." dlm="," missover dsd lrecl=1000 firstobs = 2 ;
 input
 EPISODE_ID :
+CLAIMNO : $50.
 LINEITEM :
 STD_COST_EPI_TOTAL :
-CLAIMNO : $50.
 MBI_ID :$20.
 CURHIC_UNEQ :$20.
 BENE_SK :$20.
@@ -691,8 +691,8 @@ data temp_SNF;
 infile "&file." dlm="," missover dsd lrecl=1000 firstobs = 2 ;
 input
 EPISODE_ID :
-STD_COST_EPI_TOTAL :
 CLAIMNO : $50.
+STD_COST_EPI_TOTAL :
 MBI_ID :$20.
 CURHIC_UNEQ :$20.
 BENE_SK :$20.
@@ -926,9 +926,9 @@ DISABLED_HCC110 :
 DISABLED_HCC176 :
 WINSORIZE_EPI_1_99 :
 EPI_STD_PMT_FCTR_WIN_1_99 :
+ANCHOR_CLAIMNO : $50.
 MULT_ATTR_PROVS :
 CNT_ATTR_PGP :
-ANCHOR_CLAIMNO : $50.
 
 ;
 
