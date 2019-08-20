@@ -31,12 +31,12 @@ SET UP
 /*%let reporting_period=201806;*Change for every Update*; */
 
 * TURN ON FOR PERFORMANCE / TURN OFF FOR BASELINE *****;
-%let label = y201906; *Update with change in period;
-%let prevlabel = y201905; *Update with the prior period;
-%let reporting_period=201906;*Change for every Update*; 
+%let label = y201907; *Update with change in period;
+%let prevlabel = y201906; *Update with the prior period;
+%let reporting_period=201907;*Change for every Update*; 
 
 * UPDATE WITH EVERY PERF UPDATE *****;
-%let transmit_date = '14JUN2019'd;*Change for every Update*; 
+%let transmit_date = '19JUL2019'd;*Change for every Update*; 
 
 * MAIN VS BASELINE INTERFACE *****;
 %let mode = main; *main=main interface, base = baseline interface;
