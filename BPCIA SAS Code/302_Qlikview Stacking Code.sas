@@ -76,6 +76,9 @@ libname bench "R:\client work\CMS_PAC_Bundle_Processing\Benchmark Releases\v.201
 		%else %if &file = provider %then %do;
 			prov_counter = _N_;
 		%end;
+		%else %if &file = bpid_member %then %do;
+			proc sort nodupkey; by BPID_Member BPID BENE_SK;
+		%end;
 	run;
 
 %mend stack_output;
