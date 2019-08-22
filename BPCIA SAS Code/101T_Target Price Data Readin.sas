@@ -326,9 +326,9 @@ Step 3 - out tables, limit TP_Components to BPIDs in the Data Tracker, and expor
 		/* partition to decrease interface size */
 		data out.&table._pmr out.&table._oth out.&table._cc out.&table._1;
 			set out.&table._all;
+			if initiator_bpid in (&DEV_EI_1st.) then output out.&table_dev;
 			if initiator_bpid in (&PMR_EI_lst.) then output out.&table._pmr;
 			else if initiator_bpid in (&NON_PMR_EI_lst.) then output out.&table._oth;
-			else if initiator_bpid in (&DEV_EI_1st.) then output out.&table_dev;
 			else if initiator_bpid in (&CCF_lst.) then output out.&table._ccf;
 			
 
