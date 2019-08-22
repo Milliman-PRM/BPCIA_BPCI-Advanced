@@ -238,9 +238,12 @@ quit;
 	%if &name. = Premier %then %do ;
 				where BPID in (&PMR_EI_lst.) ; 
 	%end;
-	%else %do ; 
+	%else %if &name. = Milliman %then %do ; 
 				where BPID in (&NON_PMR_EI_lst.) ; 
-	%end; 
+				%end;
+				%else %do ; 
+				where BPID in (&DEV_EI_lst.) ; 
+				%end;
 		run ; 
 
 
@@ -262,6 +265,7 @@ quit;
 
 /*%Quality_Measure_full(Premier) ; */
 /*%Quality_Measure_full(Milliman) ; */
+/*%Quality_Measure_full(Dev) ; */
 
 /*%sas_2_csv(bpcia.Quality_Measure_full,BPCIA Quality Measures Full.csv) ; */
 /**/
@@ -292,8 +296,11 @@ data bpcia.Quality_Measure_latest_&name. ;
 	%if &name. = Premier %then %do ;
 				where BPID in (&PMR_EI_lst.) ; 
 				%end;
-				%else %do ; 
+				%else %if &name. = Milliman %then %do ; 
 				where BPID in (&NON_PMR_EI_lst.) ; 
+				%end;
+				%else %do ; 
+				where BPID in (&DEV_EI_lst.) ; 
 				%end; 
 		run ; 
 
@@ -303,6 +310,7 @@ data bpcia.Quality_Measure_latest_&name. ;
 
 /*%Quality_Measure_latest(Premier) ; */
 /*%Quality_Measure_latest(Milliman) ; */
+/*%Quality_Measure_latest(Dev) ; */
 /**/
 /*%sas_2_csv(bpcia.Quality_Measure_latest_date,BPCIA_Quality_Measures_Latest_Date.csv) ; */
 
