@@ -730,7 +730,7 @@ data 	op_pre_&label._&bpid1._&bpid2.
 		partbexc1_&label._&bpid1._&bpid2.
 		noopccn 
 		er_&label._&bpid1._&bpid2.;
-	merge op(in=a) epi(in=b) ; by EPI_ID_MILLIMAN ;
+	merge o2p(in=a) epi(in=b) ; by EPI_ID_MILLIMAN ;
 	if a and b=0 then output noopccn ;
 	if a and b;	
 	
@@ -873,7 +873,7 @@ data bcarrier4;
 			 bcarrier3_1 ;	
 run ; 
 
-proc sort data=bcarrier1 out=pb; by EPI_ID_MILLIMAN BENE_SK EXPNSDT1 CLAIMNO; run;
+proc sort data=bcarrier4 out=pb; by EPI_ID_MILLIMAN BENE_SK EXPNSDT1 CLAIMNO; run;
 
 *** Capturing Part B recs for CCN by merging against screened episode file, removing non-episodal claims  *** ;
 data out.pb_&label._&bpid1._&bpid2.
