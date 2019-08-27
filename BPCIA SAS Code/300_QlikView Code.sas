@@ -1517,9 +1517,15 @@ create table ccn_enc10 as
 					when type in ('HS') then 'Hospice'
 					when type in ('OP_ER') then 'Emergency'
 					when type in ('OP_Rehab') then 'Rehab'
-					when type in ('OP_Ambulance','OP_Other','OP_PartBRx','OP_PartBRx-Chemotherapy','OP_Pathology'
-								 ,'OP_Radiology-CT','OP_Radiology-Gen','OP_Radiology-MRI','OP_Radiology-PET'
-								 ,'OP_Surgery-ASC','OP_Surgery-OP') then 'Outpatient'
+					when type in ('OP_Observation') then 'Observation'
+					when type in ('OP_Ambulance') then  'Outpatient - Ambulance'
+					when type in ('OP_Other') then  'Outpatient - Other'
+					when type in ('OP_PartBRx','OP_PartBRx-Chemotherapy') then  'Outpatient - Part B Drugs'
+					when type in ('OP_Pathology') then  'Outpatient - Pathology'
+					when type in ('OP_Radiology-CT','OP_Radiology-Gen','OP_Radiology-MRI','OP_Radiology-PET') then  'Outpatient - Radiology'
+					when type in ('OP_Surgery-ASC','OP_Surgery-OP') then  'Outpatient - Surgery'
+					when type in ('OP_Cardiovascular') then  'Outpatient - Cardiovascular'
+					when type in ('DME') then  'Outpatient - DME'
 					end as CareType length =50
 			  ,case when type in ('OP_ER') and a.at_npi = . and b.Provider_Last_Name__Legal_Name_ = "" then "Unknown ()"
 			   	  when type in ('OP_ER') and a.at_npi ^= . and b.Provider_Last_Name__Legal_Name_ = ""  and Provider_Organization_Name__Leg ^="" then strip(propcase(Provider_Organization_Name__Leg))||" ("||strip(put(a.at_npi,best12.))||")"
@@ -1850,18 +1856,49 @@ create table npi_level2 as
 ;
 quit ; 
 
-
-proc sql;
-create table npi_level3 as	
+/*add procedure code description to NPI-level data and create output dataset*/
+	create table npi_level3 as	
 		select a.*
 			,case when a.hcpcs_cd = "" then "" 
 			 else lowcase(b.proc_desc) 
 			 end as prof_hcpcs_desc
-		    ,case when hcpcs_cd ="" then ""
-			  	when hcpcs_cd ^="" and lowcase(b.proc_desc)  = "" then strip(hcpcs_cd)
-				else strip(hcpcs_cd)||": "||strip(lowcase(b.proc_desc))
-				end as prof_hcpcs_code_desc
+		from npi_level2 as a
+		left join cjrref.Hcpcs_final as b
+		on a.hcpcs_cd = b.proc and b.Year = year(a.service_date);
+	quit;
 
+		data npi_level3a ;
+		set npi_level3 ;
+		where prof_hcpcs_desc ^= ''; 
+		run ; 
+
+		proc sql;
+		create table npi_level3b as
+		select a.*
+				,case when a.hcpcs_cd = "" then "" 
+			 else lowcase(b.proc_desc) 
+			 end as prof_hcpcs_desc1
+		from npi_level3 as a
+		left join cjrref.HCPCS_final as b
+		on a.HCPCS_CD = b.proc and b.earliest_year = 1
+		where a.prof_hcpcs_desc = '' 
+		;
+		quit;
+
+		data npi_level3c(drop=prof_hcpcs_desc1) ;
+				set npi_level3b (drop=prof_hcpcs_desc) ;
+				prof_hcpcs_desc=prof_hcpcs_desc1 ;
+		run ; 
+
+		data npi_level3d;
+				set npi_level3a 
+					 npi_level3c ;	
+		run ;
+
+
+proc sql;
+create table npi_level3e as	
+		select a.*
 			,case when type in ('DME') then "DME Supplier"
 				when type not in ('DME') and c.Physician_type = "" then "Other" 
 				else c.Physician_type end as physician_role
@@ -1870,9 +1907,7 @@ create table npi_level3 as
 			   	  else 'No' end as Op_MD_flag
 			,case when calculated physician_role in ('Attending MD','Attending & Operating MD') then 'Yes'
 			   	  else 'No' end as At_MD_flag
-		from npi_level2 as a
-		left join ref.HCPCS as b
-		on a.hcpcs_cd = b.proc
+		from npi_level3d as a
 		left join dataprov_d as c
 		on strip(a.provider_npi)=strip(c.provider_npi)
 		and a.EncounterID = c.EncounterID
@@ -3123,7 +3158,7 @@ union all
 		,'' as provider_specialty
 		,case when TRANSFER_STAY=. then 0 else TRANSFER_STAY end as TRANSFER_STAY
 	from out.ccn_enc_&label._&bpid1._&bpid2. as a
-	where timeframe2 ^= 'Anchor' or (timeframe2 = 'Anchor' and caretype in ('Emergency - Preceding Admit','Emergency - Stand Alone','Rehab','Outpatient','Home Health','Hospice','LTCH','SNF','IRF'))
+	where timeframe2 ^= 'Anchor' or (timeframe2 = 'Anchor' and caretype in ('Emergency - Preceding Admit','Emergency - Stand Alone','Rehab','Home Health','Hospice','LTCH','SNF','IRF') and substr(caretype,1,10) ='Outpatient')
 
 	order by BPID, epi_id_milliman, begin_date;
 
@@ -3144,7 +3179,7 @@ proc sql;
 	,Episode_Initiator
 	,case when (b.timeframe = 0 and b.end_date <= a.anchor_end_dt and b.begin_date <= a.anchor_beg_dt and b.end_date^=. ) then -3 else b.timeframe end as timeframe
 	,b.*
-	,case when timeframe ^= 0 and Caretype = 'Outpatient'  then 0/*Create a Rank variable to rank Outpatient before  and Prof emergency Claims before Readmit claims if they occur on the same day*/
+	,case when timeframe ^= 0 and substr(Caretype,1,10) = 'Outpatient'  then 0/*Create a Rank variable to rank Outpatient before  and Prof emergency Claims before Readmit claims if they occur on the same day*/
 			when timeframe ^= 0 and substr(Caretype,1,7) = 'Prof_ER' or substr(Caretype,1,2) = 'Em'  then 1 
 		 	when Caretype = 'Readmit' then 2
 			else 3 end as rank3
@@ -3195,6 +3230,8 @@ data patient_detail3 (drop=counter);
 	else if substr(caretype,1,4)='Path' then caretype_long= 'Pathology';
 	else if substr(caretype,1,7)='Prof_IP' then caretype_long= 'Professional - Inpatient';
 	else if substr(caretype,1,7)='Prof_Su' then caretype_long= 'Professional - Surgery';
+	else if substr(caretype,1,7)='Prof_Ob' then caretype_long= 'Professional - Observation';
+	else if substr(caretype,1,7)='Prof_La' then caretype_long= 'Professional - Laboratory';
 	else if substr(caretype,1,7)='Prof_An' then caretype_long= 'Professional - Anesthesia';
 	else if substr(caretype,1,7)='Prof_Ra' then caretype_long= 'Professional - Radiology';
 	else if substr(caretype,1,9)='Prof_Path' then caretype_long= 'Professional - Pathology';
@@ -3206,7 +3243,7 @@ data patient_detail3 (drop=counter);
 	else if substr(caretype,1,4)='Radi' then caretype_long= 'Radiology';
 	else if substr(caretype,1,5)='Rehab' then caretype_long= 'Outpatient - Rehab';
 	else if substr(caretype,1,4)='Anch' then caretype_long= 'Anchor Hospital Stay';
-	else if substr(caretype,1,2)='OP' then caretype_long= 'Outpatient';
+/*	else if substr(caretype,1,2)='OP' then caretype_long= 'Outpatient';*/
 	else if substr(caretype,1,3)='DME' then caretype_long= 'DME';
 	else if substr(caretype,1,13)='Emergency - P' then caretype_long= 'Emergency - Preceding Admit';
 	else if substr(caretype,1,13)='Emergency - S' then caretype_long= 'Emergency - Stand Alone';
