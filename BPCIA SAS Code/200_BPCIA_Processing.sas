@@ -65,6 +65,7 @@ libname tp "&dataDir.\08 - Target Price Data";
 
 libname ref "H:\Nonclient\Medicare Bundled Payment Reference\General\SAS Datasets" ;
 libname bpcia 'H:\Nonclient\Medicare Bundled Payment Reference\Program - BPCIA\SAS Datasets';
+libname cjrref "H:\Nonclient\Medicare Bundled Payment Reference\Program - CJR\SAS Datasets";
 
 %macro modesetup;
 %if &mode.=main %then %do;
@@ -680,7 +681,7 @@ data op ;
 	format costgrp type $50.;
 	set %if &label. = ybase %then %do; in.op_&label._&id1. %end; %else %do; in.op_&label._&id2. %end; (rename=(PROVIDER=PROVIDER_NUM));
 	new_rev = put(REV_CNTR,3.);
-	type = compress('OP_' || put(new_rev,$revcode.));
+/*	type = compress('OP_' || put(new_rev,$revcode.));*/
 	allowed = LINE_ALLOWED;
 	std_allowed = LINE_STD_ALLOWED;
 	util_day = max(1,thru_dt-FROM_DT);
@@ -709,14 +710,27 @@ data op ;
 
 run;
 
-proc sort data=op ; by EPI_ID_MILLIMAN BENE_SK REV_DT CLAIMNO ;
+********************************************************added new step for new REV mapping ;
+proc sql;
+create table op2 as
+select a.*
+		,b.rev_mapping as type length =50 
+from op as a
+left join cjrref.REV_final as b
+on a.rev_cntr = b.new_rev 
+;
+quit;
+
+***************************************************************************************************;
+
+proc sort data=op2 ; by EPI_ID_MILLIMAN BENE_SK REV_DT CLAIMNO ;
 
 *** Capturing OP recs for CCN by merging against screened episode file. *** ;
 data 	op_pre_&label._&bpid1._&bpid2.
 		partbexc1_&label._&bpid1._&bpid2.
 		noopccn 
 		er_&label._&bpid1._&bpid2.;
-	merge op(in=a) epi(in=b) ; by EPI_ID_MILLIMAN ;
+	merge o2p(in=a) epi(in=b) ; by EPI_ID_MILLIMAN ;
 	if a and b=0 then output noopccn ;
 	if a and b;	
 	
@@ -788,7 +802,7 @@ data bcarrier1 ;
 	format costgrp type $50.;
 	format LINEITEM $9.;
 	set %if &label. = ybase %then %do; in.pb_&label._&id1. %end; %else %do; in.pb_&label._&id2. %end; (rename=(LINEITEM=LINEITEM2));
-	type = compress('Prof_' || put(HCPCS_CD,$hcpcs.));
+/*	type = compress('Prof_' || put(HCPCS_CD,$hcpcs.));*/
 	util_day = max(1,thru_dt-FROM_DT);
 
 	BPID = "&BPID1." || "-" || "&BPID2.";
@@ -817,7 +831,49 @@ data bcarrier1 ;
 
 run;
 
-proc sort data=bcarrier1 out=pb; by EPI_ID_MILLIMAN BENE_SK EXPNSDT1 CLAIMNO; run;
+********************************************************added new step for new HCPCS mapping ;
+
+/* Joins PB codes (HCPCS) to SAS out File with new mapping */
+proc sql;
+create table bcarrier2 as
+select a.*
+		,b.hcpcs_mapping as type length =50 
+from bcarrier1 as a
+left join cjrref.HCPCS_final as b
+on a.HCPCS_CD = b.proc and b.Year = year(a.expnsdt1)
+;
+quit;
+
+data bcarrier2_1 ;
+set bcarrier2 ;
+where type ^= ''; 
+run ; 
+
+/* Captures any missing HCPCS that might not have a year */
+proc sql;
+create table bcarrier3 as
+select a.*
+		,b.hcpcs_mapping as type1 length =50 
+from bcarrier2 as a
+left join cjrref.HCPCS_final as b
+on a.HCPCS_CD = b.proc and b.earliest_year = 1
+where a.type = '' 
+;
+quit;
+
+data bcarrier3_1(drop=type1) ;
+		set bcarrier3 (drop=type) ;
+		type=type1 ;
+		
+run ; 
+
+/*Stacks the two datasets together to form one BCarrier Filer */
+data bcarrier4;
+		set bcarrier2_1 
+			 bcarrier3_1 ;	
+run ; 
+
+proc sort data=bcarrier4 out=pb; by EPI_ID_MILLIMAN BENE_SK EXPNSDT1 CLAIMNO; run;
 
 *** Capturing Part B recs for CCN by merging against screened episode file, removing non-episodal claims  *** ;
 data out.pb_&label._&bpid1._&bpid2.
@@ -1619,7 +1675,7 @@ quit;
 %runhosp(2607_0000,2607_0000,2607,0000,223700669);
 %runhosp(1931_0001,5479_0001,5479,0002,310051);
 */
-/*
+
 %runhosp(1125_0000,1125_0000,1125,0000,070025);
 %runhosp(1148_0000,1148_0000,1148,0000,310008);
 %runhosp(1167_0000,1167_0000,1167,0000,390173);
@@ -1711,7 +1767,7 @@ quit;
 %runhosp(5424_0001,6059_0001,6059,0002,330397);
 %runhosp(1907_0000,5746_0001,5746,0002,100007);
 %runhosp(1191_0001,1191_0001,1191,0002,61440790);
-*/
+
 %MACRO CLINOUT;
 %if &label. ^= ybase %then %do;
 	%if &mode. ^= dev %then %do;
