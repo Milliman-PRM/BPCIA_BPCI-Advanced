@@ -1,11 +1,3 @@
-******** Send Email when SAS is complete ********;
-*Enabling the SMTP e-mail interface;
-options emailsys = SMTP;
-*Specifying a single SMTP server;
-options emailhost = smtp.milliman.com;
-* Add to and from email addresses;
-%let to_email = shachi.mistry@milliman.com;
-%let from_email = shachi.mistry@milliman.com;
 
 %let _sdtm=%sysfunc(datetime());
 options mprint nospool;
@@ -17,10 +9,10 @@ libname in "&dataDir.\06 - Imported Raw Data";
 *FULL;
 libname out "&dataDir.\07 - Processed Data";
 *DEV;
-/*libname out "&dataDir.\07 - Processed Data\20180718 Testing";*/
+/*libname out "&dataDir.\07 - Processed Data\Development";*/
 
-libname out2 "R:\data\HIPAA\BPCIA_BPCI Advanced\07 - Processed Data\Past files for checking\20190328";
-libname check "R:\data\HIPAA\BPCIA_BPCI Advanced\07 - Processed Data\Past files for checking\20190425";
+libname out2 "R:\data\HIPAA\BPCIA_BPCI Advanced\07 - Processed Data\Past files for checking\20190829";
+libname check "R:\data\HIPAA\BPCIA_BPCI Advanced\07 - Processed Data\Past files for checking\20191001";
 
 
 %include "H:\_HealthLibrary\SAS\000 - General SAS Macros.sas";
@@ -686,15 +678,3 @@ proc printto;run;
 
 %put It took &_runtm minutes to run the program;
 
-* Email Report ;
-filename myemail EMAIL
-to="&to_email."
-from = "&from_email."
-subject="SAS run complete";
-
-data _null_;
-file myemail;
-put "It took &_runtm. minutes to run the program";
-
-run;
-filename myemail clear;

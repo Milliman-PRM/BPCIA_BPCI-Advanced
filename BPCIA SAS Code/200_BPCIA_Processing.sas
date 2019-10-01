@@ -17,7 +17,7 @@ options mprint;
 %let mode = main; *main = main interface, base = baseline interface;
 
 *%let label = ybase; *Turn on for baseline data, turn off for quarterly data;
-%let label = y201907; *Turn off for baseline data, turn on for quarterly data;
+%let label = y201908; *Turn off for baseline data, turn on for quarterly data;
 
 
 %let vers = P; *B for baseline, P for Performance;
@@ -52,6 +52,7 @@ options mprint;
 
 %include "H:\OCM - Oncology Care Model\44 - Oncology Care Model 2019\Work Papers\SAS\000_Additional_IP_Readmissions_Formats.sas" ;
 %include "H:\BPCIA_BPCI Advanced\50 - BPCI Advanced Ongoing Reporting - 2019\Work Papers\SAS\299_200 Macro Support.sas" ;
+
 
 
 proc printto;run;
@@ -678,7 +679,7 @@ Outpatient Hospital Claims
 
 data op ;
 	format ConvenerID BPID $9. EPI_ID_MILLIMAN $32. ;
-	format costgrp type $50.;
+	format costgrp $50.;
 	set %if &label. = ybase %then %do; in.op_&label._&id1. %end; %else %do; in.op_&label._&id2. %end; (rename=(PROVIDER=PROVIDER_NUM));
 	new_rev = put(REV_CNTR,3.);
 /*	type = compress('OP_' || put(new_rev,$revcode.));*/
@@ -730,7 +731,7 @@ data 	op_pre_&label._&bpid1._&bpid2.
 		partbexc1_&label._&bpid1._&bpid2.
 		noopccn 
 		er_&label._&bpid1._&bpid2.;
-	merge o2p(in=a) epi(in=b) ; by EPI_ID_MILLIMAN ;
+	merge op2(in=a) epi(in=b) ; by EPI_ID_MILLIMAN ;
 	if a and b=0 then output noopccn ;
 	if a and b;	
 	
@@ -799,7 +800,7 @@ Carrier (Professional Part B) Claims
 
 data bcarrier1 ;
 	format ConvenerID BPID $9. EPI_ID_MILLIMAN $32. ;
-	format costgrp type $50.;
+	format costgrp $50.;
 	format LINEITEM $9.;
 	set %if &label. = ybase %then %do; in.pb_&label._&id1. %end; %else %do; in.pb_&label._&id2. %end; (rename=(LINEITEM=LINEITEM2));
 /*	type = compress('Prof_' || put(HCPCS_CD,$hcpcs.));*/

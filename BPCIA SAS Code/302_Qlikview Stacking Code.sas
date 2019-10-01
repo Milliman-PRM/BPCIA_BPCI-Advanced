@@ -1,4 +1,4 @@
-******** Send Email when SAS is complete ********;
+/******** Send Email when SAS is complete ********;
 *Enabling the SMTP e-mail interface;
 options emailsys = SMTP;
 *Specifying a single SMTP server;
@@ -6,7 +6,7 @@ options emailhost = smtp.milliman.com;
 * Add to and from email addresses;
 %let to_email = shachi.mistry@milliman.com;
 %let from_email = shachi.mistry@milliman.com;
-
+*/
 %let _sdtm=%sysfunc(datetime());
 options mprint nospool;
 ****************************************
@@ -25,7 +25,7 @@ Setup
 ********************;
 ****** USER INPUTS ******************************************************************************************;
 /*%let label = ybase; *Baseline/Performance data label;*/
-%let label = y201907;
+%let label = y201908;
 
 %let mode=main; *Base=Baseline Interface, Main=Main Interface;
 
@@ -76,6 +76,9 @@ libname bench "R:\client work\CMS_PAC_Bundle_Processing\Benchmark Releases\v.201
 		%else %if &file = provider %then %do;
 			prov_counter = _N_;
 		%end;
+		%else %if &file = bpid_member %then %do;
+			proc sort nodupkey; by BPID_Member BPID BENE_SK;
+		%end;
 	run;
 
 %mend stack_output;
@@ -90,6 +93,7 @@ libname bench "R:\client work\CMS_PAC_Bundle_Processing\Benchmark Releases\v.201
 %stack_output(pat_detail);
 %stack_output(exclusions);
 %stack_output(comp);
+%stack_output(bpid_member);
 
 *not for qlikview;
 /*%stack_output(provider);*/
@@ -166,6 +170,7 @@ run;
 %separate(exclusions);
 %separate(pat_detail);
 %separate(comp);
+%separate(bpid_member);
 
 ******* EXPORT QVW_FILES *******;
 %macro exp(num);
@@ -179,6 +184,7 @@ run;
 %sas_2_csv(out.all_exclusions_&num.,exclusions_&num..csv);
 %sas_2_csv(out.all_pat_detail_&num.,patient_detail_&num..csv);
 %sas_2_csv(out.all_comp_&num.,comp_&num..csv);
+%sas_2_csv(out.all_bpid_member_&num.,bpid_member_&num..csv);
 
 %mend exp;
 
@@ -343,6 +349,10 @@ run;
 	%if &file = provider %then %do;
 		prov_counter= _N_;
 	%end;
+	%if &file = bpid_member %then %do;
+		BENE_SK = 123456789;
+		BPID_Member = BPID || "_" || BENE_SK;
+	%end;
 	run;
 
 %mend stack_output_demo;
@@ -356,6 +366,7 @@ run;
 %stack_output_demo(util,&label.);
 %stack_output_demo(phys_summ,&label.);
 %stack_output_demo(comp,&label.);
+%stack_output_demo(bpid_member,&label.);
 
 *ONLY RUN EXCLUSIONS FOR MAIN DEMOS, NOT BASELINE;
 %if &mode.^=base %then %do ;
@@ -456,6 +467,7 @@ run;
 %sas_2_csv(out.all_perf_demo,performance_demo.csv);
 %sas_2_csv(out.all_phys_summ_demo,phys_summary_demo.csv);
 %sas_2_csv(out.all_comp_demo,comp_demo.csv);
+%sas_2_csv(out.all_bpid_member_demo,bpid_member_demo.csv);
 
 *ONLY EXPORT FOR MAIN INTERFACE DEMO;
 %if &mode.^=base %then %do ;
@@ -514,6 +526,7 @@ run;
 %stack_output(pat_detail);
 %stack_output(exclusions);
 %stack_output(comp);
+%stack_output(bpid_member);
 
 *not for qlikview;
 /*%stack_output(provider);*/
@@ -579,6 +592,7 @@ run;
 %sas_2_csv(out.all_pat_detail_&name.,patient_detail.csv);
 %sas_2_csv(out.all_exclusions_&name.,exclusions.csv);
 %sas_2_csv(out.all_comp_&name.,comp.csv);
+%sas_2_csv(out.all_bpid_member_&name.,bpid_member.csv);
 
 *not for qlikview;
 /*%sas_2_csv(out.all_provider,provider.csv);*/
@@ -599,12 +613,6 @@ run;
 *** FULL RUN ***;
 %stacking(R:\data\HIPAA\BPCIA_BPCI Advanced\80 - Qlikview\Outfiles);
 
-*** DEMO RUN ***;
-
-/*%stackingdemo(R:\data\HIPAA\BPCIA_BPCI Advanced\80 - Qlikview\Outfiles,1148,1167,1343,1368,2379,2587,2607,5479);*/
-*** BASELINE DEMO RUN ***;
-%stackingdemo(R:\data\HIPAA\BPCIA_BPCI Advanced\80 - Qlikview\Outfiles\Baseline Demo,1148,1167,1343,1368,2379,2587,2607,5479);
-
 *** DEVELOPMENT RUN ***;
 /*%stacking(R:\data\HIPAA\BPCIA_BPCI Advanced\80 - Qlikview\Outfiles\Development);*/
 
@@ -613,6 +621,12 @@ run;
 
 *** MILLIMAN RUN ***;
 %stacking_pre_other(R:\data\HIPAA\BPCIA_BPCI Advanced\80 - Qlikview\Outfiles\Milliman, MIL);
+
+*** DEMO RUN ***;
+%stackingdemo(R:\data\HIPAA\BPCIA_BPCI Advanced\80 - Qlikview\Outfiles,1148,1167,1343,1368,2379,2587,2607,5479);
+
+*** BASELINE DEMO RUN ***;
+/*%stackingdemo(R:\data\HIPAA\BPCIA_BPCI Advanced\80 - Qlikview\Outfiles\Baseline Demo,1148,1167,1343,1368,2379,2587,2607,5479);*/
 
 *** CCF RUN ***;
 /*%stacking_pre_other(R:\data\HIPAA\BPCIA_BPCI Advanced\80 - Qlikview\Outfiles\CCF, CCF);*/
@@ -627,7 +641,7 @@ run;
 proc printto;run;
 
 %put It took &_runtm minutes to run the program;
-
+/*
 * Email Report ;
 filename myemail EMAIL
 to="&to_email."
