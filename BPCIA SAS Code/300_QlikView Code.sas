@@ -1,12 +1,12 @@
-******** Send Email when SAS is complete ********;
+/********* Send Email when SAS is complete ********;
 *Enabling the SMTP e-mail interface;
 options emailsys = SMTP;
 *Specifying a single SMTP server;
 options emailhost = smtp.milliman.com;
 * Add to and from email addresses;
-%let to_email = shachi.mistry@milliman.com;
-%let from_email = shachi.mistry@milliman.com;
-
+%let to_email = feven.asefaha@milliman.com;
+%let from_email = feven.asefaha@milliman.com;
+*/
 %let _sdtm=%sysfunc(datetime());
 options minoperator mprint nospool;
 ****************************************
@@ -31,12 +31,12 @@ SET UP
 /*%let reporting_period=201806;*Change for every Update*; */
 
 * TURN ON FOR PERFORMANCE / TURN OFF FOR BASELINE *****;
-%let label = y201907; *Update with change in period;
-%let prevlabel = y201906; *Update with the prior period;
-%let reporting_period=201907;*Change for every Update*; 
+%let label = y201908; *Update with change in period;
+%let prevlabel = y201907; *Update with the prior period;
+%let reporting_period=201908;*Change for every Update*; 
 
 * UPDATE WITH EVERY PERF UPDATE *****;
-%let transmit_date = '19JUL2019'd;*Change for every Update*; 
+%let transmit_date = '16AUG2019'd;*Change for every Update*; 
 
 * MAIN VS BASELINE INTERFACE *****;
 %let mode = main; *main=main interface, base = baseline interface;
@@ -80,6 +80,7 @@ run;
 
 libname ref "H:\Nonclient\Medicare Bundled Payment Reference\General\SAS Datasets" ;
 libname bpciaref "H:\Nonclient\Medicare Bundled Payment Reference\Program - BPCIA\SAS Datasets"; 
+libname cjrref "H:\Nonclient\Medicare Bundled Payment Reference\Program - CJR\SAS Datasets";
 libname bench "R:\client work\CMS_PAC_Bundle_Processing\Benchmark Releases\v.201811";
 
 ****** EXPORT INFO *****************************************************************************************;
@@ -1190,6 +1191,7 @@ create table Episode_Detail_7 as
 			end as PATIENT_NAME format = $255. length=255
 			%end;
 			,b.CNT_ATTR_PGP
+			,b.BPID || "_" || b.BENE_SK as BPID_Member
 			from episode_detail_7 as a 
 			left join out.epi_&label._&bpid1._&bpid2. as b
 			on a.epi_id_milliman = b.epi_id_milliman
@@ -1857,6 +1859,7 @@ create table npi_level2 as
 quit ; 
 
 /*add procedure code description to NPI-level data and create output dataset*/
+proc sql;
 	create table npi_level3 as	
 		select a.*
 			,case when a.hcpcs_cd = "" then "" 
@@ -1893,6 +1896,10 @@ quit ;
 		data npi_level3d;
 				set npi_level3a 
 					 npi_level3c ;	
+			format prof_hcpcs_code_desc $249.;
+			if hcpcs_cd = '' then prof_hcpcs_code_desc = "";
+			else if lowcase(prof_hcpcs_desc) = "" then prof_hcpcs_code_desc = strip(hcpcs_cd);
+			else prof_hcpcs_code_desc = strip(hcpcs_cd)||": "||strip(lowcase(prof_hcpcs_desc));
 		run ;
 
 
@@ -1920,7 +1927,7 @@ create table npi_level3e as
 create table npi_level_ER_0 as
 			select distinct a.*
 					,1 as IP_visit_flag
-			from npi_level3 as a
+			from npi_level3e as a
 			left join ccn_enc11 as b
 			on a.epi_id_milliman = b.epi_id_milliman and (a.service_date = b.startdate or sum(a.service_date,1) = b.startdate)
 			where a.type = "Prof_ER" and b.type in ("IP_d","IP_s","IP_Idx")
@@ -1931,7 +1938,7 @@ create table npi_level4 as
 		  select distinct 
 				 a.*
 				,b.IP_visit_flag
-		    from npi_level3 as a
+		    from npi_level3e as a
 			left join npi_level_ER_0 as b
 			on a.epi_id_milliman = b.epi_id_milliman and a.service_date = b.service_date and a.type = b.type
    ;
@@ -3121,7 +3128,7 @@ union all
 		,'' as operating_name
 		,ER_Physician
 		,prim_diag_with_desc as primary_diag
-		,case when substr(caretype,1,3) in ('Eme','Out','Pro','Reh') then hcpcs_with_desc else prim_proc_with_desc end as primary_proc
+		,case when substr(caretype,1,3) in ('Eme','Out','Pro','Reh','Obs') then hcpcs_with_desc else prim_proc_with_desc end as primary_proc
 		,drg_with_desc as msdrg
 		,case when (timeframe = 0 and caretype in ('Emergency - Preceding Admit','Emergency - Stand Alone') and startdate <= ANCHOR_BEG_DT) then -2 else timeframe end as timeframe
 		,a.timeframe2
@@ -3158,7 +3165,7 @@ union all
 		,'' as provider_specialty
 		,case when TRANSFER_STAY=. then 0 else TRANSFER_STAY end as TRANSFER_STAY
 	from out.ccn_enc_&label._&bpid1._&bpid2. as a
-	where timeframe2 ^= 'Anchor' or (timeframe2 = 'Anchor' and caretype in ('Emergency - Preceding Admit','Emergency - Stand Alone','Rehab','Home Health','Hospice','LTCH','SNF','IRF') and substr(caretype,1,10) ='Outpatient')
+	where timeframe2 ^= 'Anchor' or (timeframe2 = 'Anchor' and (caretype in ('Emergency - Preceding Admit','Emergency - Stand Alone','Rehab','Home Health','Hospice','LTCH','SNF','IRF','Observation') or substr(caretype,1,10) ='Outpatient'))
 
 	order by BPID, epi_id_milliman, begin_date;
 
@@ -3195,7 +3202,7 @@ data patient_Detail2;
 	end_date_drop = end_date;
 	if end_date_drop=. then end_date_drop=mdy(12,31,2099);
 	if end_date_drop=mdy(12,31,2099) and (substr(Caretype,1,7) = 'Prof_ER' or substr(Caretype,1,2) = 'Em') then end_date_drop=mdy(12,30,2099);
-	if end_date_drop=mdy(12,31,2099) and Caretype = 'Outpatient' then end_date_drop=mdy(12,29,2099);
+	if end_date_drop=mdy(12,31,2099) and substr(Caretype,1,10) = 'Outpatient' then end_date_drop=mdy(12,29,2099);
 	proc sort; by BPID epi_id_milliman timeframe transfer_stay begin_date rank3 end_date_drop;
 run;
 
@@ -4216,9 +4223,21 @@ data out.exclusions_&label._&bpid1._&bpid2. ;
 	DROPFLAG_ACO = max(DROPFLAG_ACO_MSSP_OVERLAP, DROPFLAG_ACO_CEC_OVERLAP, DROPFLAG_ACO_NEXTGEN_OVERLAP, DROPFLAG_ACO_VERMONTAP_OVERLAP);
 	DROPFLAG_OTHER = max(DROPFLAG_NON_ACH,DROPFLAG_EXCLUDED_STATE,DROPFLAG_TRANS_W_CAH_CANCER,DROPFLAG_RCH_DEMO,
 			DROPFLAG_RURAL_PA,DROPFLAG_LOS_GT_59,DROPFLAG_NON_HIGHEST_J1,DROPFLAG_NO_BENE_ENR_INFO,DROPFLAG_NOT_PERF_EP_MIL,DROPFLAG_TRANS_EPI_MIL);
+
+	BPID_Member = BPID || "_" || BENE_SK;
 run;
 
 %end;
+
+***********************************************************;
+*Create a unique table for Qlikview with BPID_Member, BPID, and BENE_SK;
+data out.BPID_Member_&label._&bpid1._&bpid2.;
+	set out.epi_detail_&label._&bpid1._&bpid2. (keep= BPID_Member BPID BENE_SK)
+		%if &label ^= ybase %then %do; out.exclusions_&label._&bpid1._&bpid2. (keep= BPID_Member BPID BENE_SK) %end;
+		;
+	proc sort nodupkey; by BPID_Member BPID BENE_SK;
+run;
+
 /*********************************************************************************************/
 /*********************************************************************************************/
 
@@ -4242,79 +4261,79 @@ quit;
 *MACRO RUNS;
 
 
-/*%Dashboard(1125,0000,0);*/
-/*%Dashboard(1148,0000,0);*/
-/*%Dashboard(1167,0000,0);*/
-/*%Dashboard(1209,0000,0);*/
-/*%Dashboard(1343,0000,0);*/
-/*%Dashboard(1368,0000,0);*/
-/*%Dashboard(1374,0004,0);*/
-/*%Dashboard(1374,0008,0);*/
-/*%Dashboard(1374,0009,0);*/
-/*%Dashboard(1686,0002,0);*/
-/*%Dashboard(1688,0002,0);*/
-/*%Dashboard(1696,0002,0);*/
-/*%Dashboard(1710,0002,0);*/
-/*%Dashboard(1958,0000,0);*/
-/*%Dashboard(2070,0000,0);*/
-/*%Dashboard(2374,0000,0);*/
-/*%Dashboard(2376,0000,0);*/
-/*%Dashboard(2378,0000,0);*/
-/*%Dashboard(2379,0000,0);*/
-/*%Dashboard(1075,0000,0);*/
-/*%Dashboard(2594,0000,0);*/
-/*%Dashboard(2048,0000,0);*/
-/*%Dashboard(2049,0000,0);*/
-/*%Dashboard(2607,0000,0);*/
-/*%Dashboard(5038,0000,0);*/
-/*%Dashboard(5050,0000,0);*/
-/*%Dashboard(2587,0000,0);*/
-/*%Dashboard(2589,0000,0);*/
-/*%Dashboard(5154,0000,0);*/
-/*%Dashboard(5282,0000,0);*/
-/*%Dashboard(2631,0000,0);*/
-/*%Dashboard(5037,0000,0);*/
-/*%Dashboard(5478,0002,0);*/
-/*%Dashboard(5043,0000,0);*/
-/*%Dashboard(5479,0002,0);*/
-/*%Dashboard(5480,0002,0);*/
-/*%Dashboard(5215,0003,0);*/
-/*%Dashboard(5215,0002,0);*/
-/*%Dashboard(5229,0000,0);*/
-/*%Dashboard(5263,0000,0);*/
-/*%Dashboard(5264,0000,0);*/
-/*%Dashboard(5481,0002,0);*/
-/*%Dashboard(5394,0000,0);*/
-/*%Dashboard(5395,0000,0);*/
-/*%Dashboard(5397,0002,0);*/
-/*%Dashboard(5397,0005,0);*/
-/*%Dashboard(5397,0004,0);*/
-/*%Dashboard(5397,0008,0);*/
-/*%Dashboard(5397,0003,0);*/
-/*%Dashboard(5397,0006,0);*/
-/*%Dashboard(5397,0009,0);*/
-/*%Dashboard(5397,0010,0);*/
-/*%Dashboard(5916,0002,0);*/
-/*%Dashboard(6049,0002,0);*/
-/*%Dashboard(6050,0002,0);*/
-/*%Dashboard(6051,0002,0);*/
-/*%Dashboard(6052,0002,0);*/
-/*%Dashboard(6053,0002,0);*/
-/*%Dashboard(5397,0007,0);*/
-/*%Dashboard(1102,0000,0);*/
-/*%Dashboard(1105,0000,0);*/
-/*%Dashboard(1106,0000,0);*/
-/*%Dashboard(1103,0000,0);*/
-/*%Dashboard(1104,0000,0);*/
-/*%Dashboard(5392,0004,0);*/
-/*%Dashboard(6054,0002,0);*/
-/*%Dashboard(6055,0002,0);*/
-/*%Dashboard(6056,0002,0);*/
-/*%Dashboard(6057,0002,0);*/
-/*%Dashboard(6058,0002,0);*/
-/*%Dashboard(6059,0002,0);*/
-/*%Dashboard(5746,0002,0);*/
-/*%Dashboard(1191,0002,0);*/
+%Dashboard(1125,0000,0);
+%Dashboard(1148,0000,0);
+%Dashboard(1167,0000,0);
+%Dashboard(1209,0000,0);
+%Dashboard(1343,0000,0);
+%Dashboard(1368,0000,0);
+%Dashboard(1374,0004,0);
+%Dashboard(1374,0008,0);
+%Dashboard(1374,0009,0);
+%Dashboard(1686,0002,0);
+%Dashboard(1688,0002,0);
+%Dashboard(1696,0002,0);
+%Dashboard(1710,0002,0);
+%Dashboard(1958,0000,0);
+%Dashboard(2070,0000,0);
+%Dashboard(2374,0000,0);
+%Dashboard(2376,0000,0);
+%Dashboard(2378,0000,0);
+%Dashboard(2379,0000,0);
+%Dashboard(1075,0000,0);
+%Dashboard(2594,0000,0);
+%Dashboard(2048,0000,0);
+%Dashboard(2049,0000,0);
+%Dashboard(2607,0000,0);
+%Dashboard(5038,0000,0);
+%Dashboard(5050,0000,0);
+%Dashboard(2587,0000,0);
+%Dashboard(2589,0000,0);
+%Dashboard(5154,0000,0);
+%Dashboard(5282,0000,0);
+%Dashboard(2631,0000,0);
+%Dashboard(5037,0000,0);
+%Dashboard(5478,0002,0);
+%Dashboard(5043,0000,0);
+%Dashboard(5479,0002,0);
+%Dashboard(5480,0002,0);
+%Dashboard(5215,0003,0);
+%Dashboard(5215,0002,0);
+%Dashboard(5229,0000,0);
+%Dashboard(5263,0000,0);
+%Dashboard(5264,0000,0);
+%Dashboard(5481,0002,0);
+%Dashboard(5394,0000,0);
+%Dashboard(5395,0000,0);
+%Dashboard(5397,0002,0);
+%Dashboard(5397,0005,0);
+%Dashboard(5397,0004,0);
+%Dashboard(5397,0008,0);
+%Dashboard(5397,0003,0);
+%Dashboard(5397,0006,0);
+%Dashboard(5397,0009,0);
+%Dashboard(5397,0010,0);
+%Dashboard(5916,0002,0);
+%Dashboard(6049,0002,0);
+%Dashboard(6050,0002,0);
+%Dashboard(6051,0002,0);
+%Dashboard(6052,0002,0);
+%Dashboard(6053,0002,0);
+%Dashboard(5397,0007,0);
+%Dashboard(1102,0000,0);
+%Dashboard(1105,0000,0);
+%Dashboard(1106,0000,0);
+%Dashboard(1103,0000,0);
+%Dashboard(1104,0000,0);
+%Dashboard(5392,0004,0);
+%Dashboard(6054,0002,0);
+%Dashboard(6055,0002,0);
+%Dashboard(6056,0002,0);
+%Dashboard(6057,0002,0);
+%Dashboard(6058,0002,0);
+%Dashboard(6059,0002,0);
+%Dashboard(5746,0002,0);
+%Dashboard(1191,0002,0);
 
 
 
@@ -4362,7 +4381,7 @@ quit;
 proc printto;run;
 
 %put It took &_runtm minutes to run the program;
-
+/*
 * Email Report ;
 filename myemail EMAIL
 to="&to_email."
