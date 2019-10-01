@@ -9,7 +9,7 @@ Code to create the Qaulity Measure for the BPCI Advanced
 libname bpcia "H:\Nonclient\Medicare Bundled Payment Reference\Program - BPCIA\SAS Datasets";
 libname out "R:\data\HIPAA\BPCIA_BPCI Advanced\07 - Processed Data";
 %include "H:\Nonclient\Medicare Bundled Payment Reference\Program - BPCIA\SAS Code\000 - BPCIA_Interface_BPIDs.sas";
-%let mode=base ; *Main=Main Interface, Base=Baseline Interface ;
+%let mode=main ; *Main=Main Interface, Base=Baseline Interface ;
 
 *********************************************************;
 *Baseline Out Library;
@@ -172,12 +172,19 @@ quit;
 
 /*Macro Calls for the Qaulity Measures*/
 
+   /*MACRO CALLS FOR - QM - 20190730 */;
+  %Quality_Measure(quality_measure_QM_20190730,MORT_30_CABG, CABG 30-Day Mortality Rate, Mort, 20190730,0,1) ; 
+  %Quality_Measure(quality_measure_QM_20190730,PSI_90_SAFETY, Patient Safety Indicators , PSI, 20190730,0,1) ; 
+  %Quality_Measure(quality_measure_QM_20190730,COMP_HIP_KNEE, THA/TKA Complication Rate, Comp, 20190730,0,1) ; 
+  %Quality_Measure(measure_unplanned_QM_20190730,EDAC_30_AMI, Excess Days in Acute Care 30 Days after AMI Hospitalization ,Heart, 20190730,0,1) ; 
+  %Quality_Measure(measure_unplanned_QM_20190730,READM_30_HOSP_WIDE, All-Cause 30-Day Unplanned Hospital Readmission Rate, Readmit, 20190730,0,1) ; 
+
   /*MACRO CALLS FOR - QM - 20181008 */;
-  %Quality_Measure(quality_measure_QM_20181008,MORT_30_CABG, CABG 30-Day Mortality Rate, Mort, 20181008,0,1) ; 
-  %Quality_Measure(quality_measure_QM_20181008,PSI_90_SAFETY, Patient Safety Indicators , PSI, 20181008,0,1) ; 
-  %Quality_Measure(quality_measure_QM_20181008,COMP_HIP_KNEE, THA/TKA Complication Rate, Comp, 20181008,0,1) ; 
-  %Quality_Measure(measure_unplanned_QM_20181008,EDAC_30_AMI, Excess Days in Acute Care 30 Days after AMI Hospitalization ,Heart, 20181008,0,1) ; 
-  %Quality_Measure(measure_unplanned_QM_20181008,READM_30_HOSP_WIDE, All-Cause 30-Day Unplanned Hospital Readmission Rate, Readmit, 20181008,0,1) ; 
+  %Quality_Measure(quality_measure_QM_20181008,MORT_30_CABG, CABG 30-Day Mortality Rate, Mort, 20181008,0,0) ; 
+  %Quality_Measure(quality_measure_QM_20181008,PSI_90_SAFETY, Patient Safety Indicators , PSI, 20181008,0,0) ; 
+  %Quality_Measure(quality_measure_QM_20181008,COMP_HIP_KNEE, THA/TKA Complication Rate, Comp, 20181008,0,0) ; 
+  %Quality_Measure(measure_unplanned_QM_20181008,EDAC_30_AMI, Excess Days in Acute Care 30 Days after AMI Hospitalization ,Heart, 20181008,0,0) ; 
+  %Quality_Measure(measure_unplanned_QM_20181008,READM_30_HOSP_WIDE, All-Cause 30-Day Unplanned Hospital Readmission Rate, Readmit, 20181008,0,0) ; 
 
 /*MACRO CALLS FOR - QM - 20180523*/;
   %Quality_Measure(quality_measure_QM_20180523,MORT_30_CABG, CABG 30-Day Mortality Rate, Mort, 20180523,0,0) ; 
@@ -250,25 +257,25 @@ quit;
 	proc sort 
 				data = Quality_Measure_&name.
 							out= bpcia.Quality_Measure_&name. ;
-				by   BPID CCN Measure Measure_Period_Start   ;
+				by   BPID CCN Measure max_date_flag   ;
 	run ; 
 
 	proc sort 
 				data = Quality_Measure_&name._0
 							out=bpcia.Quality_Measure_full ;
-				by   BPID CCN Measure Measure_Period_Start   ;
+				by   BPID CCN Measure max_date_flag   ;
 	run ; 
 
 %sas_2_csv(bpcia.Quality_Measure_&name.,BPCIA Quality Measures &name..csv) ; 
 
 %mend Quality_Measure_full;
 
-/*%Quality_Measure_full(Premier) ; */
-/*%Quality_Measure_full(Milliman) ; */
+%Quality_Measure_full(Premier) ; 
+%Quality_Measure_full(Milliman) ; 
 /*%Quality_Measure_full(Dev) ; */
 
-/*%sas_2_csv(bpcia.Quality_Measure_full,BPCIA Quality Measures Full.csv) ; */
-/**/
+%sas_2_csv(bpcia.Quality_Measure_full,BPCIA Quality Measures Full.csv) ; 
+
   %macro Quality_Measure_latest(name);
 data Quality_Measure_latest_date (keep=CCN BPID Measure Anchor_Facility Measure_Pcnt_RAW_Not_Rounded ); 
 set bpcia.Quality_Measure_full ; 
@@ -308,11 +315,11 @@ data bpcia.Quality_Measure_latest_&name. ;
 
 %mend Quality_Measure_latest;
 
-/*%Quality_Measure_latest(Premier) ; */
-/*%Quality_Measure_latest(Milliman) ; */
+%Quality_Measure_latest(Premier) ; 
+%Quality_Measure_latest(Milliman) ; 
 /*%Quality_Measure_latest(Dev) ; */
-/**/
-/*%sas_2_csv(bpcia.Quality_Measure_latest_date,BPCIA_Quality_Measures_Latest_Date.csv) ; */
+
+%sas_2_csv(bpcia.Quality_Measure_latest_date,BPCIA_Quality_Measures_Latest_Date.csv) ; 
 
 
 %macro Quality_Measure_demo(bpid1,bpid2,bpid3,bpid4,bpid5,bpid6,bpid7,bpid8);
@@ -371,7 +378,7 @@ data bpcia.Quality_Measure_latest_&name. ;
 
 %mend Quality_Measure_demo;
 
-%Quality_Measure_demo(1148,1167,1343,1368,2379,2587,2607,5479) ; 
+*%Quality_Measure_demo(1148,1167,1343,1368,2379,2587,2607,5479) ; 
 
 
   %macro Quality_Measure_latest_demo;
@@ -404,6 +411,6 @@ run ;
 
 %mend Quality_Measure_latest_demo;
 
-%Quality_Measure_latest_demo ; 
+*%Quality_Measure_latest_demo ; 
 
 
