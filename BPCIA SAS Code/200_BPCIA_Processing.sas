@@ -20,14 +20,14 @@ options mprint;
 *%let vers = B; *B for baseline, P for Performance;
 
 /*turn on for performance */
-*%let mode = main; *main = main interface, base = baseline interface, recon = reconciliation;
-*%let label = y202002; *Turn off for baseline data, turn on for quarterly data;
-*%let vers = P; *B for baseline, P for Performance;
+%let mode = main; *main = main interface, base = baseline interface, recon = reconciliation;
+%let label = y202002; *Turn off for baseline data, turn on for quarterly data;
+%let vers = P; *B for baseline, P for Performance;
 
 /*turn on for recon */
-%let mode = recon; *main = main interface, base = baseline interface, recon = reconciliation;
-%let label = pp1Initial; *Turn off for baseline data, turn on for quarterly data;
-%let vers = P; *B for baseline, P for Performance;
+*%let mode = recon; *main = main interface, base = baseline interface, recon = reconciliation;
+*%let label = pp1Initial; *Turn off for baseline data, turn on for quarterly data;
+*%let vers = P; *B for baseline, P for Performance;
 
 
 
@@ -119,8 +119,24 @@ quit;
 
 %MACRO RunHosp(id1,id2,bpid1,bpid2,prov);
 
-data TP_Components;
+data TP_Components_all_V2;
 	set tp.TP_Components_all;
+	format MEASURE_YEAR $10.;
+MEASURE_YEAR = 'MY1 & MY2';
+run;
+
+data TP_Components_my3_all_V2;
+	set tp.TP_Components_my3_all;
+	format MEASURE_YEAR $10.;
+MEASURE_YEAR = 'MY3';
+run;
+
+data TP_Components_all_combined;
+set TP_Components_my3_all_V2 TP_Components_all_V2;
+run;
+
+data TP_Components;
+	set TP_Components_all_combined;
 	format ccn_join $6.;
 	ccn_join = ASSOC_ACH_CCN;
 	if ccn_join = '' then ccn_join = CCN_TIN;
@@ -132,15 +148,15 @@ data TP_Components;
 run; 
 
 proc sort data=TP_Components;
-	by INITIATOR_BPID EPI_CAT EPI_TYPE ccn_join descending rel_dt descending epi_start descending epi_end;
+	by MEASURE_YEAR INITIATOR_BPID EPI_CAT EPI_TYPE ccn_join descending rel_dt descending epi_start descending epi_end;
 run;
 
 proc sort nodupkey data=TP_Components out=TP_Components_forBase;
-	by INITIATOR_BPID EPI_CAT EPI_TYPE ccn_join;
+	by MEASURE_YEAR INITIATOR_BPID EPI_CAT EPI_TYPE ccn_join;
 run;
 
 proc sort nodupkey data=TP_Components;
-	by INITIATOR_BPID EPI_CAT EPI_TYPE ccn_join rel_dt epi_start epi_end;
+	by MEASURE_YEAR INITIATOR_BPID EPI_CAT EPI_TYPE ccn_join rel_dt epi_start epi_end;
 run;
 
 data bpcia_performance_episodes;
@@ -274,7 +290,8 @@ proc sql;
 		on a.BPID = b.INITIATOR_BPID
 		and a.EPISODE_GROUP_NAME = b.EPI_CAT
 		and a.anchor_type_upper = b.EPI_TYPE
-		and a.anc_ccn = b.ccn_join;
+		and a.anc_ccn = b.ccn_join
+		and A.MEASURE_YEAR = B.MEASURE_YEAR;
 quit;
 
 data tempepi_prea tempepi_preb;
@@ -292,7 +309,8 @@ run;
 			and a.EPISODE_GROUP_NAME = b.EPI_CAT
 			and a.anchor_type_upper = b.EPI_TYPE
 			and a.anc_ccn = b.ccn_join
-			and b.epi_start <= a.ANCHOR_END_DT <= b.epi_end;
+			and b.epi_start <= a.ANCHOR_END_DT <= b.epi_end
+			and A.MEASURE_YEAR = B.MEASURE_YEAR;
 	quit;
 %end;
 %else %do;
@@ -303,7 +321,8 @@ run;
 			on a.BPID = b.INITIATOR_BPID
 			and a.EPISODE_GROUP_NAME = b.EPI_CAT
 			and a.anchor_type_upper = b.EPI_TYPE
-			and a.anc_ccn = b.ccn_join;
+			and a.anc_ccn = b.ccn_join
+			and A.MEASURE_YEAR = B.MEASURE_YEAR;
 	quit;
 %end;
 
@@ -314,7 +333,8 @@ proc sql;
 		on a.BPID = b.INITIATOR_BPID
 		and a.EPISODE_GROUP_NAME = b.EPI_CAT
 		and a.anchor_type_upper = b.EPI_TYPE
-		and a.anc_ccn = b.ccn_join;
+		and a.anc_ccn = b.ccn_join
+		and A.MEASURE_YEAR = B.MEASURE_YEAR;
 quit;
 
 data epi_pre;
@@ -1700,9 +1720,9 @@ quit;
 
 
 *delete work datasets;
-proc datasets lib=work memtype=data kill;
-run;
-quit;
+*proc datasets lib=work memtype=data kill;
+*run;
+*quit;
 
 %mend;
 
@@ -1719,8 +1739,10 @@ quit;
 %runhosp(1931_0001,5479_0001,5479,0002,310051);
 
 */
-*%runhosp(1125_0000,1125_0000,1125,0000,070025);  /* removed 2/24/2020 by Shashi Parmar */
 
+%runhosp(1167_0000,1167_0000,1167,0000,390173);
+*%runhosp(1125_0000,1125_0000,1125,0000,070025);  /* removed 2/24/2020 by Shashi Parmar */
+/*
 %runhosp(1148_0000,1148_0000,1148,0000,310008);
 %runhosp(1167_0000,1167_0000,1167,0000,390173);
 %runhosp(1209_0000,1209_0000,1209,0000,420004);
@@ -1811,7 +1833,7 @@ quit;
 %runhosp(6059_0001,6059_0001,6059,0002,330397);
 %runhosp(1191_0001,1191_0001,1191,0002,61440790);
 %runhosp(2302_0000,2302_0000,2302,0000,110074);
-
+*/
 
 %MACRO CLINOUT;
 %if &label. ^= ybase and &mode. ^= recon %then %do;
