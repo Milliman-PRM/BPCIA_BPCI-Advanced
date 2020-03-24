@@ -39,11 +39,12 @@ run;
 
 %mend Comp; 
 
-%Comp (QM_20181008,0) ; 
-%Comp (QM_20180523,0) ; 
-%Comp (QM_201611,1) ; 
-%Comp (QM_201605,1) ; 
-%Comp (QM_201505,1) ; 
+%Comp (QM_20190730,0) ; 
+/*%Comp (QM_20181008,0) ; */
+/*%Comp (QM_20180523,0) ; */
+/*%Comp (QM_201611,1) ; */
+/*%Comp (QM_201605,1) ; */
+/*%Comp (QM_201505,1) ; */
 
 
 %macro Unplanned (QM,code) ; 
@@ -79,19 +80,20 @@ run;
 
 %mend Unplanned ; 
 
-%Unplanned (QM_20181008,0) ; 
-%Unplanned (QM_20180523,0) ; 
-%Unplanned (QM_201611,1) ; 
-%Unplanned (QM_201605,1) ; 
+%Unplanned (QM_20190730,0) ; 
+/*%Unplanned (QM_20181008,0) ; */
+/*%Unplanned (QM_20180523,0) ; */
+/*%Unplanned (QM_201611,1) ; */
+/*%Unplanned (QM_201605,1) ; */
 
 /* Importing the unique Anchor CCN's from the BPCIA Target Price Summary Table */
-PROC IMPORT
-		OUT=bpcia.BPCIA_Quality_Measure_CCN
-		DATAFILE="&location.\Unique anchor CCN's BPCIA.xls" 
-		 DBMS=xls 
-		 REPLACE;
-		 SHEET = 'Unique Anchor CCNs' ;
-		 GETNAMES= YES;
-RUN;
+/*PROC IMPORT*/
+/*		OUT=bpcia.BPCIA_Quality_Measure_CCN*/
+/*		DATAFILE="&location.\Unique anchor CCN's BPCIA.xls" */
+/*		 DBMS=xls */
+/*		 REPLACE;*/
+/*		 SHEET = 'Unique Anchor CCNs' ;*/
+/*		 GETNAMES= YES;*/
+/*RUN;*/
 
 

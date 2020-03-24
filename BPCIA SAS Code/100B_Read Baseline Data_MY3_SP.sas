@@ -12,7 +12,7 @@ options mprint;
 /****
 Durable Medical Equipment - Detail
  *****/
-%macro DME(file, i);
+%macro DME_MY3(file, i);
 data temp_DME;
 infile "&file." dlm="," missover dsd lrecl=1000 firstobs = 2 ;
 input
@@ -20,9 +20,10 @@ EPISODE_ID	:
 CLAIMNO: $50.
 LINEITEM: $9.
 STD_COST_EPI_TOTAL :
+MBI_ID	:$20.
 CURHIC_UNEQ	:$20.
 HCPCS_CD	: $9.
-BENE_SK: $20.
+BENE_SK :$20.
 LINE_STD_ALLOWED:
 LINE_ALLOWED :
 FROM_DT	:date9.
@@ -53,19 +54,19 @@ LINEDGNS : $20.
 
 run;
 
-data DME_&sub2._&BPID._&i. ;
+data DME_&sub2._&BPID._&i._MY3 ;
  set temp_DME; 
 BENE_SK = compress(BENE_SK,",");
 CLAIMNO = compress(CLAIMNO,",");
 run ;
 
 
-%mend DME;
+%mend DME_MY3;
 
 /****
 Home Health Agency - Detail
  *****/
-%macro HHA(file, i);
+%macro HHA_MY3(file, i);
 
 data temp_HHA;
 infile "&file." dlm="," missover dsd lrecl=1000 firstobs = 2 ;
@@ -73,8 +74,9 @@ input
 EPISODE_ID :
 CLAIMNO : $50.
 STD_COST_EPI_TOTAL :
+MBI_ID :$20.
 CURHIC_UNEQ :$20.
-BENE_SK : $20.
+BENE_SK :$20.
 STD_ALLOWED :
 CLM_ALLOWED :
 FROM_DT :date9.
@@ -166,7 +168,7 @@ REV_DT08 :date9.
 REV_DT09 :date9.
 REV_DT10 :date9.
 REV_DT11 :date9.
-REV_DT12 : date9.
+REV_DT12 :date9.
 REV_DT13 :date9.
 REV_DT14 :date9.
 REV_DT15 :date9.
@@ -204,15 +206,15 @@ HCPSCD01: $20.
 HCPSCD02: $20.
 HCPSCD03: $20.
 HCPSCD04: $20.
-HCPSCD05 :$20.
-HCPSCD06 :$20.
-HCPSCD07 :$20.
-HCPSCD08 :$20.
-HCPSCD09 :$20.
-HCPSCD10 :$20.
-HCPSCD11: $20.
-HCPSCD12: $20.
-HCPSCD13: $20.
+HCPSCD05 : $20.
+HCPSCD06 : $20.
+HCPSCD07 : $20.
+HCPSCD08 : $20.
+HCPSCD09 : $20.
+HCPSCD10 : $20.
+HCPSCD11 : $20.
+HCPSCD12 : $20.
+HCPSCD13 : $20.
 HCPSCD14 : $20.
 HCPSCD15 : $20.
 HCPSCD16 : $20.
@@ -220,7 +222,7 @@ HCPSCD17 : $20.
 HCPSCD18 : $20.
 HCPSCD19 : $20.
 HCPSCD20 : $20.
-HCPSCD21: $20.
+HCPSCD21 : $20.
 HCPSCD22 : $20.
 HCPSCD23 : $20.
 HCPSCD24 : $20.
@@ -237,10 +239,10 @@ HCPSCD34 : $20.
 HCPSCD35 : $20.
 HCPSCD36 : $20.
 HCPSCD37 : $20.
-HCPSCD38 :$20.
-HCPSCD39 :$20.
-HCPSCD40 :$20.
-HCPSCD41 :$20.
+HCPSCD38 : $20.
+HCPSCD39 : $20.
+HCPSCD40 : $20.
+HCPSCD41 : $20.
 HCPSCD42 : $20.
 HCPSCD43 : $20.
 HCPSCD44 : $20.
@@ -387,25 +389,26 @@ format FROM_DT  THRU_DT mmddyy10.;
 
 run;
 
-data HHA_&sub2._&BPID._&i. ;
+data HHA_&sub2._&BPID._&i._MY3;
  set temp_HHA; 
 BENE_SK = compress(BENE_SK,",");
 CLAIMNO = compress(CLAIMNO,",");
 run ;
-%mend HHA;
+%mend HHA_MY3;
 
 /****
 Hospice
  *****/
-%macro HS(file, i);
+%macro HS_MY3(file, i);
 data temp_HS;
 infile "&file." dlm="," missover dsd lrecl=1000 firstobs = 2 ;
 input
 EPISODE_ID:
 CLAIMNO : $50.
 STD_COST_EPI_TOTAL :
+MBI_ID :$20.
 CURHIC_UNEQ :$20.
-BENE_SK : $20.
+BENE_SK :$20.
 STD_ALLOWED :
 CLM_ALLOWED :
 FROM_DT : date9.
@@ -453,31 +456,33 @@ format FROM_DT  THRU_DT mmddyy10.;
 
 run;
 
-data HS_&sub2._&BPID._&i. ;
+data HS_&sub2._&BPID._&i._MY3 ;
  set temp_HS; 
 BENE_SK = compress(BENE_SK,",");
 CLAIMNO = compress(CLAIMNO,",");
 run ;
-%mend HS;
+%mend HS_MY3;
 
 /****
 Inpatient -Detail 
  *****/
-%macro IP(file, i);
+%macro IP_MY3(file, i);
 data temp_IP;
 infile "&file." dlm="," missover dsd lrecl=1000 firstobs = 2 ;
 input
 EPISODE_ID:
 IP_STAY_ID :
 STD_COST_EPI_TOTAL :
-CURHIC_UNEQ : $20.
-STAY_DRG_CD :
+MBI_ID :$20.
+CURHIC_UNEQ :$20.
+BENE_SK :$20.
 PROVIDER : $20.
+PTNTCNTL : $20.
 STAY_ADMSN_DT :date9.
+STAY_DRG_CD : /*best12.*/
 STAY_DSCHRGDT :date9.
 STAY_FROM_DT :date9.
 STAY_THRU_DT :date9.
-BENE_SK : $20.
 STAY_STD_ALLOWED :
 STAY_PMT_AMT :
 STAY_PRPAYAMT :
@@ -538,21 +543,22 @@ DGNSCD25 :$20.
 PRCDRCD25 :$20.
 TYPE_ADM :
 SRC_ADMS : $1. 
+
 ;
-format STAY_ADMSN_DT -- STAY_THRU_DT mmddyy10.;
+format STAY_ADMSN_DT STAY_DSCHRGDT STAY_FROM_DT STAY_THRU_DT mmddyy10.;
 
 run;
 
-data IP_&sub2._&BPID._&i. ;
+data IP_&sub2._&BPID._&i._MY3 ;
  set temp_IP; 
 BENE_SK = compress(BENE_SK,",");
 run ;
-%mend IP;
+%mend IP_MY3;
 
 /****
 Outpatient - Detail 
  *****/
-%macro OP(file, i);
+%macro OP_MY3(file, i);
 
 data temp_OP;
 infile "&file." dlm="," missover dsd lrecl=1000 firstobs = 2 ;
@@ -561,16 +567,17 @@ EPISODE_ID :
 CLAIMNO : $50.
 LINEITEM :
 STD_COST_EPI_TOTAL :
+MBI_ID :$20.
 CURHIC_UNEQ :$20.
 HCPCS_CD :$20.
-BENE_SK : $20.
+BENE_SK :$20.
 LINE_STD_ALLOWED :
 LINE_ALLOWED :
-AT_NPI :
-OP_NPI :
 FROM_DT :date9.
 THRU_DT :date9.
 PROVIDER : $20.
+AT_NPI :
+OP_NPI :
 DGNSCD01 : $20.
 DGNSCD02 : $20.
 DGNSCD03 : $20.
@@ -609,17 +616,17 @@ format FROM_DT  THRU_DT REV_DT mmddyy10.;
 
 run;
 
-data OP_&sub2._&BPID._&i. ;
+data OP_&sub2._&BPID._&i._MY3 ;
  set temp_OP; 
 BENE_SK = compress(BENE_SK,",");
 CLAIMNO = compress(CLAIMNO,",");
 run ;
-%mend OP;
+%mend OP_MY3;
 
 /****
 Carrier (Physician/Supplier Part B) - Detail
  *****/
-%macro PB(file, i);
+%macro PB_MY3(file, i);
 
 data temp_PB;
 infile "&file." dlm="," missover dsd lrecl=1000 firstobs = 2 ;
@@ -628,10 +635,11 @@ EPISODE_ID :
 CLAIMNO : $50.
 LINEITEM :
 STD_COST_EPI_TOTAL :
-CURHIC_UNEQ : $20.
+MBI_ID :$20.
+CURHIC_UNEQ :$20.
 HCPCS_CD : $20.
 PLCSRVC :
-BENE_SK : $20.
+BENE_SK :$20.
 LINE_STD_ALLOWED :
 LINE_ALLOWED :
 FROM_DT :date9.
@@ -666,17 +674,17 @@ LINEDGNS : $20.
 
 run;
 
-data PB_&sub2._&BPID._&i. ;
+data PB_&sub2._&BPID._&i._MY3 ;
  set temp_PB; 
 BENE_SK = compress(BENE_SK,",");
 CLAIMNO = compress(CLAIMNO,",");
 run ;
-%mend PB;
+%mend PB_MY3;
 
 /****
 Skilled Nursing Facility - Detail 
  *****/
-%macro SNF(file, i);
+%macro SNF_MY3(file, i);
 
 data temp_SNF;
 infile "&file." dlm="," missover dsd lrecl=1000 firstobs = 2 ;
@@ -684,8 +692,9 @@ input
 EPISODE_ID :
 CLAIMNO : $50.
 STD_COST_EPI_TOTAL :
-CURHIC_UNEQ : $20.
-BENE_SK : $20.
+MBI_ID :$20.
+CURHIC_UNEQ :$20.
+BENE_SK :$20.
 STD_ALLOWED :
 CLM_ALLOWED :
 FROM_DT : date9.
@@ -725,6 +734,7 @@ DGNSCD22 : $20.
 DGNSCD23 : $20.
 DGNSCD24 : $20.
 DGNSCD25 : $20.
+
 ;
 
  format FROM_DT THRU_DT mmddyy10.;
@@ -732,17 +742,17 @@ DGNSCD25 : $20.
 
 run;
 
-data SNF_&sub2._&BPID._&i. ;
+data SNF_&sub2._&BPID._&i._MY3 ;
  set temp_SNF; 
 BENE_SK = compress(BENE_SK,",");
 CLAIMNO = compress(CLAIMNO,",");
 run ;
-%mend SNF;
+%mend SNF_MY3;
 
 /****
 Clinical Episode-Level File - Applicable for Baseline Period Only
  *****/
-%macro EPI(file, i);
+%macro EPI_MY3(file, i);
 
 data temp_EPI;
 infile "&file." dlm="," missover dsd lrecl=1000 firstobs = 2 ;
@@ -750,22 +760,26 @@ input
 ATTRIBUTED_PVDR_GROUP_ID :
 EPISODE_ID :
 ANCHOR_PROVIDER :
-ANCHOR_TYPE :  $20.
 EPISODE_GROUP_NAME :  $225.
-BENE_SK : $20.
-CURHIC_UNEQ :  $20.
-BENE_GENDER : $6.
+BENE_SK :$20.
+MBI_ID :$20.
+BENE_GVN_NAME : $32.
+BENE_MDL_NAME : $32.
+BENE_SRNM_NAME : $32.
+CURHIC_UNEQ :$20.
+BENE_GENDER : $6. 
 BENE_AGE :
 BENE_BIRTH_DT : date9.
 BENE_DEATH_DT : date9.
+ANCHOR_TYPE :  $20.
 ANCHOR_STAY_ID :
 ANCHOR_LINEITEM :
 ANCHOR_TRIGGER_CD : $20.
-DRG_2019 :
-ANCHOR_APC :
-ANCHOR_APC_PMT_RATE :
-ANCHOR_C_APC_FLAG :
-PERF_APC :
+DRG_2019 : 
+ANCHOR_APC: 
+ANCHOR_APC_PMT_RATE : 
+ANCHOR_C_APC_FLAG : 
+PERF_APC : 
 PERF_APC_PMT_RATE :
 PERF_C_APC_FLAG :
 ANCHOR_AT_NPI :
@@ -783,13 +797,13 @@ TRANS_IP_STAY_3 :
 TRANS_IP_STAY_4 :
 TRANS_IP_STAY_5 :
 TRANS_IP_STAY_6 :
-TRANS_IP_STAY_7 :
-TRANS_IP_STAY_8 :
-TRANS_IP_STAY_9 :
-TRANS_IP_STAY_10 :
-TRANS_IP_STAY_11 :
-TRANS_IP_STAY_12 :
-TRANS_IP_STAY_13 :
+TRANS_IP_STAY_7 : 
+TRANS_IP_STAY_8 : 
+TRANS_IP_STAY_9 : 
+TRANS_IP_STAY_10 : 
+TRANS_IP_STAY_11 : 
+TRANS_IP_STAY_12 : 
+TRANS_IP_STAY_13 : 
 DEATH_DUR_POSTDSCHRG :
 TOT_STD_ALLOWED :
 TOT_RAW_ALLOWED :
@@ -802,11 +816,15 @@ TOT_STD_ALLOWED_HS :
 TOT_STD_ALLOWED_HH_NONRAP :
 ORIGDS :
 LTI :
-FRACTURE_FLAG :
-TKA_FLAG :
-TKA_FRACTURE_FLAG :
+FRACTURE_FLAG :  
+KNEE_ARTHRO_FLAG : 
+KNEE_ARTHRO_FRACTURE_FLAG : 
+HEM_STROKE_FLAG : 
+IBD_FISTULA_FLAG : 
+IBD_UC_FLAG : 
 ANY_DUAL :
-PRIOR_HOSP_W_ANY_IP_FLAG_90 :
+PRIOR_PAC_FLAG : 
+PRIOR_HOSP_W_NON_PAC_IP_FLAG_90 : 
 HCC1 :
 HCC2 :
 HCC6 :
@@ -899,22 +917,26 @@ DISABLED_HCC54 :
 DISABLED_HCC55 :
 DISABLED_HCC110 :
 DISABLED_HCC176 :
-EPI_STD_PMT_FCTR :
+EPI_STD_PMT_FCTR : 
 WINSORIZE_EPI_1_99 :
-EPI_STD_PMT_FCTR_WIN_1_99 :
+EPI_STD_PMT_FCTR_WIN_1_99 : 
 ANCHOR_CLAIMNO : $50.
+
+
+
 
 ;
 
-format ANCHOR_BEG_DT -- POST_DSCH_END_DT mmddyy10.;
+format ANCHOR_BEG_DT ANCHOR_END_DT POST_DSCH_BEG_DT POST_DSCH_END_DT mmddyy10.;
+format BENE_BIRTH_DT BENE_DEATH_DT mmddyy10.;
 
 run;
 
-data EPI_&sub2._&BPID._&i. ;
+data EPI_&sub2._&BPID._&i._MY3 ;
  set temp_EPI; 
 BENE_SK = compress(BENE_SK,",");
 ANCHOR_CLAIMNO = compress(ANCHOR_CLAIMNO,",");
 run ;
-%mend EPI;
+%mend EPI_MY3;
 
 

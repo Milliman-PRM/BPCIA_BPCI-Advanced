@@ -10,8 +10,7 @@ options mprint;
 proc printto;run;
 
 ***** USER INPUTS ******************************************************************************************;
-*%let mode = main; *main = main interface, base = baseline interface;
-%let mode = recon; *main = main interface, base = baseline interface;
+%let mode = base; *main = main interface, base = baseline interface;
 
 
 ****** REFERENCE PROGRAMS ***********************************************************************************;
@@ -19,7 +18,7 @@ proc printto;run;
 %include "H:\_HealthLibrary\SAS\000 - General SAS Macros_64bit.sas";
 
 %let main = H:\Nonclient\Medicare Bundled Payment Reference\Program - BPCIA\SAS Code;
-%include "&main.\000 - Formats - BPCIA.sas";
+%include "&main.\000 - Formats - BPCIA_MY3.sas";
 
 %include "H:\Nonclient\Medicare Bundled Payment Reference\Program - BPCIA\SAS Code\000 - BPCIA_Interface_BPIDs.sas";
 
@@ -30,38 +29,25 @@ proc printto;run;
 libname tp "&dataDir.\08 - Target Price Data";
 
 libname ref "H:\Nonclient\Medicare Bundled Payment Reference\Program - BPCIA\SAS Datasets" ;
-libname bpciaref "H:\Nonclient\Medicare Bundled Payment Reference\Program - BPCIA\SAS Datasets" ;
-libname genref "H:\Nonclient\Medicare Bundled Payment Reference\General\SAS Datasets" ;
-libname cjrref "H:\Nonclient\Medicare Bundled Payment Reference\Program - CJR\SAS Datasets" ;
 
 
 %macro modesetup;
 %if &mode.=main %then %do;
 libname out "&dataDir.\07 - Processed Data\";
 libname out2 "&dataDir.\07 - Processed Data\Output";
-libname out3 "&dataDir.\07 - Processed Data\Output_Demo";
-proc printto log="H:\BPCIA_BPCI Advanced\50 - BPCI Advanced Ongoing Reporting - 2020\Work Papers\SAS\logs\201 - Target Prices_&sysdate..log" print=print new;
+proc printto log="H:\BPCIA_BPCI Advanced\50 - BPCI Advanced Ongoing Reporting - 2019\Work Papers\SAS\logs\201 - Target Prices_&sysdate..log" print=print new;
 run;
 %end;
 %else %if &mode.=base %then %do;
-libname out "&dataDir.\07 - Processed Data\Baseline Interface Demo";
-libname out2 "&dataDir.\07 - Processed Data\Baseline Interface Demo\Output";
-libname out3 "&dataDir.\07 - Processed Data\Baseline Interface Demo\Output_Demo";
-proc printto log="H:\BPCIA_BPCI Advanced\50 - BPCI Advanced Ongoing Reporting - 2020\Work Papers\SAS\logs\201 - Baseline Target Prices_&sysdate..log" print=print new;
+libname out "&dataDir.\07 - Processed Data\Baseline Interface";
+libname out2 "&dataDir.\07 - Processed Data\Baseline Interface\Output";
+proc printto log="H:\BPCIA_BPCI Advanced\50 - BPCI Advanced Ongoing Reporting - 2019\Work Papers\SAS\logs\201 - Baseline Target Prices_&sysdate..log" print=print new;
 run;
 %end;
 %else %if &mode.=dev %then %do;
 libname out "&dataDir.\07 - Processed Data\Development";
 libname out2 "&dataDir.\07 - Processed Data\Development\Output";
-libname out3 "&dataDir.\07 - Processed Data\Development\Output_Demo";
-proc printto log="H:\BPCIA_BPCI Advanced\50 - BPCI Advanced Ongoing Reporting - 2020\Work Papers\SAS\logs\201 - Dev Target Prices_&sysdate..log" print=print new;
-run;
-%end;
-%else %if &mode.=recon %then %do;
-libname out "&dataDir.\07 - Processed Data\Recon";
-libname out2 "&dataDir.\07 - Processed Data\Recon\Output";
-libname out3 "&dataDir.\07 - Processed Data\Recon\Output_Demo";
-proc printto log="H:\BPCIA_BPCI Advanced\50 - BPCI Advanced Ongoing Reporting - 2020\Work Papers\SAS\logs\201 - Recon Target Prices_&sysdate..log" print=print new;
+proc printto log="H:\BPCIA_BPCI Advanced\50 - BPCI Advanced Ongoing Reporting - 2019\Work Papers\SAS\logs\201 - Dev Target Prices_&sysdate..log" print=print new;
 run;
 %end;
 %mend modesetup;
@@ -76,10 +62,18 @@ Calculation of Adjusted Target Prices
 ********************;
 
 data Peer_Group_pre Peer_Group_pre_baseline;
-	set tp.Peer_Group_all;
+	set ref.Peer_Group_MY3;
 	format ccn_join $6.;
 	ccn_join = CCN;
-	if length(compress(ccn_join)) = 5 then ccn_join = '0' || ccn_join;
+	if length(compress(ccn_join)) = 5 then ccn_join = '0' || compress(ccn_join);
+
+	format time_period $32. epi_start epi_end MMDDYY10.;
+	time_period='Baseline MY3';
+	rel_dt=0;
+	epi_start=mdy(10,1,2014);
+	epi_end=mdy(9,30,2018);
+
+	epi_dropped_flag=1;
 
 	output Peer_Group_pre;
 	if epi_dropped_flag = 1 then output Peer_Group_pre_baseline;
@@ -102,39 +96,57 @@ proc sort nodupkey data=Peer_Group_pre_baseline out=Peer_Group_baseline;
 run;
 
 data PAT_Factors;
-	set ref.PAT_Factors;
+	set ref.PAT_Factors_MY3;
 	anchor_type='ip';
 	if substr(Clinical_Episode,1,2) = 'OP' then anchor_type='op';
+	if substr(Clinical_Episode,1,2) = 'MS' then anchor_type='ms';
+
 	if anchor_type='op' then do;
-		if Clinical_Episode = 'OP - Back & neck except spinal fusion' then Clinical_Episode = 'Back & neck except spinal fusion';
-		if Clinical_Episode = 'OP - Cardiac defibrillator' then Clinical_Episode = 'Cardiac defibrillator';
-		if Clinical_Episode = 'OP - Percutaneous coronary intervention' then Clinical_Episode = 'Percutaneous coronary intervention';
+		if Clinical_Episode = 'OP-Back & neck except spinal fusion' then Clinical_Episode = 'Back & neck except spinal fusion';
+		if Clinical_Episode = 'OP-Cardiac defibrillator' then Clinical_Episode = 'Cardiac defibrillator';
+		if Clinical_Episode = 'OP-Percutaneous coronary intervention' then Clinical_Episode = 'Percutaneous coronary intervention';
 	end;
+	if anchor_type='ms' then Clinical_Episode = 'Major joint replacement of the lower extremity';
 
 	if Clinical_Episode = "Disorders Of Liver Except Malignancy, Cirrhosis Or Alcoholic Hepatitis" then
 		Clinical_Episode = "Disorders of liver except malignancy, cirrhosis or alcoholic hepatitis" ;
+
+	output;
+	if anchor_type='ms' then do;
+		anchor_type='ip'; output;
+		anchor_type='op'; output;
+	end;
 run;
 
 proc sort nodupkey data=PAT_Factors out=PAT_Factors_forBase;
-	by Clinical_Episode anchor_type AMC Urban_Rural Safety_Net Bed_Size Census_Div Year Quarter;
+	by Clinical_Episode anchor_type MTH Urban_Rural Safety_Net Bed_Size Census_Div Year Quarter;
 run;
 
 data PAT_Factors_baseline;
-	set ref.PAT_Factors_baseline;
+	set ref.PAT_Factors_baseline_MY3;
 	anchor_type='ip';
 	if substr(Clinical_Episode,1,2) = 'OP' then anchor_type='op';
+	if substr(Clinical_Episode,1,2) = 'MS' then anchor_type='ms';
+
 	if anchor_type='op' then do;
-		if Clinical_Episode = 'OP - Back & neck except spinal fusion' then Clinical_Episode = 'Back & neck except spinal fusion';
-		if Clinical_Episode = 'OP - Cardiac defibrillator' then Clinical_Episode = 'Cardiac defibrillator';
-		if Clinical_Episode = 'OP - Percutaneous coronary intervention' then Clinical_Episode = 'Percutaneous coronary intervention';
+		if Clinical_Episode = 'OP-Back & neck except spinal fusion' then Clinical_Episode = 'Back & neck except spinal fusion';
+		if Clinical_Episode = 'OP-Cardiac defibrillator' then Clinical_Episode = 'Cardiac defibrillator';
+		if Clinical_Episode = 'OP-Percutaneous coronary intervention' then Clinical_Episode = 'Percutaneous coronary intervention';
 	end;
+	if anchor_type='ms' then Clinical_Episode = 'Major joint replacement of the lower extremity';
 
 	if Clinical_Episode = "Disorders Of Liver Except Malignancy, Cirrhosis Or Alcoholic Hepatitis" then
 		Clinical_Episode = "Disorders of liver except malignancy, cirrhosis or alcoholic hepatitis" ;
+
+	output;
+	if anchor_type='ms' then do;
+		anchor_type='ip'; output;
+		anchor_type='op'; output;
+	end;
 run;
 
 data TP_Components;
-	set tp.TP_Components_all;
+	set tp.TP_Components_MY3_all;
 	format ccn_join $6.;
 	ccn_join = ASSOC_ACH_CCN;
 	if ccn_join = '' then ccn_join = CCN_TIN;
@@ -158,7 +170,7 @@ proc sort nodupkey data=TP_Components;
 run;
 
 data TP_Risk_Adj_Parameters;
-	set ref.TP_Risk_Adj_Parameters;
+	set ref.TP_Risk_Parameters_MY3;
 
 	if Clinical_Episode_Category = "Disorders Of Liver Except Malignancy, Cirrhosis Or Alcoholic Hepatitis" then
 		Clinical_Episode_Category = "Disorders of liver except malignancy, cirrhosis or alcoholic hepatitis" ;
@@ -169,7 +181,7 @@ proc sort nodupkey data=TP_Risk_Adj_Parameters out=TP_Risk_Adj_Parameters_forBas
 run;
 
 data TP_Risk_Adj_Parameters_baseline;
-	set ref.TP_Risk_Adj_Parameters_baseline;
+	set ref.TP_Risk_Parameters_MY3;
 
 	if Clinical_Episode_Category = "Disorders Of Liver Except Malignancy, Cirrhosis Or Alcoholic Hepatitis" then
 		Clinical_Episode_Category = "Disorders of liver except malignancy, cirrhosis or alcoholic hepatitis" ;
@@ -188,7 +200,7 @@ data temp0;
 
 	if ANCHOR_TYPE = 'ip' then anchor_type_upper = 'IP';
 	else if ANCHOR_TYPE = 'op' then anchor_type_upper = 'OP';
-	else anchor_type_upper = ANCHOR_TYPE;
+	if EPISODE_GROUP_NAME = 'Major joint replacement of the lower extremity' then anchor_type_upper = 'MS';
 
 	HCC54=0;
 	HCC55=0;
@@ -200,7 +212,7 @@ run;
 
 proc sql;
 	create table temp1_pre as
-	select a.*, b.EPI_DROPPED_FLAG as EPI_DROPPED_FLAG
+	select a.*, b.EPI_DROPPED_FLAG
 	from temp0 as a 
 		left join TP_Components_forBase as b
 			on a.BPID = b.INITIATOR_BPID
@@ -215,40 +227,43 @@ data temp1_prea temp1_preb;
 	else output temp1_preb;
 run;
 
-%if &label. ^= ybase %then %do;
+/*%if &label. ^= ybase %then %do;*/
+/*	proc sql;*/
+/*		create table temp1a_pre as*/
+/*		select a.*, b.ACADEMIC, b.URBAN_RURAL, b.SAFETY_NET, b.BED_SIZE, b.CENSUS as CENSUS_Pre*/
+/*		from temp1_prea as a left join Peer_Group as b*/
+/*		on a.anc_ccn = b.ccn_join*/
+/*			and b.epi_start <= a.ANCHOR_BEG_DT <= b.epi_end;*/
+/*	quit;*/
+/*%end;*/
+/*%else %do;*/
 	proc sql;
 		create table temp1a_pre as
-		select a.*, b.ACADEMIC, b.URBAN_RURAL, b.SAFETY_NET, b.BED_SIZE, b.CENSUS as CENSUS_Pre
-		from temp1_prea as a left join Peer_Group as b
-		on a.anc_ccn = b.ccn_join
-			and b.epi_start <= a.ANCHOR_END_DT <= b.epi_end;
-	quit;
-%end;
-%else %do;
-	proc sql;
-		create table temp1a_pre as
-		select a.*, b.ACADEMIC, b.URBAN_RURAL, b.SAFETY_NET, b.BED_SIZE, b.CENSUS as CENSUS_Pre
+		select a.*, b.Major_Teaching_Hospital, b.Urban as URBAN_RURAL, b.SAFETY_NET, b.BED_SIZE as BED_SIZE_join, b.CENSUS_Division as CENSUS_Pre
 		from temp1_prea as a left join Peer_Group_forBase as b
 		on a.anc_ccn = b.ccn_join;
 	quit;
-%end;
+/*%end;*/
 
 data temp1a;
 	set temp1a_pre;
+	format BED_SIZE $11.;
 	CENSUS = input(CENSUS_Pre,12.);
+	if BED_SIZE_join = 'Extra' then BED_SIZE = 'Extra Large';
+	else Bed_SIZE = BED_SIZE_join;
 run;
 
-%if &label. ^= ybase %then %do;
-	proc sql;
-		create table temp2a as
-		select a.*, b.*
-		from temp1a as a left join TP_Risk_Adj_Parameters as b
-		on a.EPISODE_GROUP_NAME = b.Clinical_Episode_Category
-			and a.anchor_type_upper = b.Clinical_Episode_Type
-			and b.epi_start <= a.ANCHOR_END_DT <= b.epi_end;
-	quit;
-%end;
-%else %do;
+/*%if &label. ^= ybase %then %do;*/
+/*	proc sql;*/
+/*		create table temp2a as*/
+/*		select a.*, b.**/
+/*		from temp1a as a left join TP_Risk_Adj_Parameters as b*/
+/*		on a.EPISODE_GROUP_NAME = b.Clinical_Episode_Category*/
+/*			and a.anchor_type_upper = b.Clinical_Episode_Type*/
+/*			and b.epi_start <= a.ANCHOR_BEG_DT <= b.epi_end;*/
+/*	quit;*/
+/*%end;*/
+/*%else %do;*/
 proc sql;
 		create table temp2a as
 		select a.*, b.*
@@ -256,49 +271,49 @@ proc sql;
 		on a.EPISODE_GROUP_NAME = b.Clinical_Episode_Category
 			and a.anchor_type_upper = b.Clinical_Episode_Type;
 	quit;
-%end;
+/*%end;*/
 
-%if &label. ^= ybase %then %do;
-	proc sql;
-		create table temp3a_pre as
-		select a.*, b.PAT_Factor as PAT_New
-		from temp2a as a left join PAT_Factors as b
-		on a.EPISODE_GROUP_NAME = b.Clinical_Episode
-			and a.ANCHOR_TYPE=b.anchor_type
-			and a.ACADEMIC=b.AMC
-			and a.URBAN_RURAL=b.Urban_Rural
-			and a.SAFETY_NET=b.Safety_Net
-			and a.BED_SIZE=b.Bed_Size
-			and a.CENSUS=b.Census_Div
-			and year(a.POST_DSCH_END_DT)=b.Year
-			and qtr(a.POST_DSCH_END_DT)=b.Quarter
-			and b.epi_start <= a.ANCHOR_END_DT <= b.epi_end;
-	quit;
-
-	proc sql;
-		create table temp3a as
-		select a.*, b.PAT_Factor as PAT_2019Q3
-		from temp3a_pre as a left join PAT_Factors as b
-		on a.EPISODE_GROUP_NAME = b.Clinical_Episode
-			and a.ANCHOR_TYPE=b.anchor_type
-			and a.ACADEMIC=b.AMC
-			and a.URBAN_RURAL=b.Urban_Rural
-			and a.SAFETY_NET=b.Safety_Net
-			and a.BED_SIZE=b.Bed_Size
-			and a.CENSUS=b.Census_Div
-			and b.Year=2019
-			and b.Quarter=3
-			and b.epi_start <= a.ANCHOR_END_DT <= b.epi_end;
-	quit;
-%end;
-%else %do;
+/*%if &label. ^= ybase %then %do;*/
+/*	proc sql;*/
+/*		create table temp3a_pre as*/
+/*		select a.*, b.PAT_Factor as PAT_New*/
+/*		from temp2a as a left join PAT_Factors as b*/
+/*		on a.EPISODE_GROUP_NAME = b.Clinical_Episode*/
+/*			and a.ANCHOR_TYPE=b.anchor_type*/
+/*			and a.ACADEMIC=b.AMC*/
+/*			and a.URBAN_RURAL=b.Urban_Rural*/
+/*			and a.SAFETY_NET=b.Safety_Net*/
+/*			and a.BED_SIZE=b.Bed_Size*/
+/*			and a.CENSUS=b.Census_Div*/
+/*			and year(a.POST_DSCH_END_DT)=b.Year*/
+/*			and qtr(a.POST_DSCH_END_DT)=b.Quarter*/
+/*			and b.epi_start <= a.ANCHOR_BEG_DT <= b.epi_end;*/
+/*	quit;*/
+/**/
+/*	proc sql;*/
+/*		create table temp3a as*/
+/*		select a.*, b.PAT_Factor as PAT_2019Q3*/
+/*		from temp3a_pre as a left join PAT_Factors as b*/
+/*		on a.EPISODE_GROUP_NAME = b.Clinical_Episode*/
+/*			and a.ANCHOR_TYPE=b.anchor_type*/
+/*			and a.ACADEMIC=b.AMC*/
+/*			and a.URBAN_RURAL=b.Urban_Rural*/
+/*			and a.SAFETY_NET=b.Safety_Net*/
+/*			and a.BED_SIZE=b.Bed_Size*/
+/*			and a.CENSUS=b.Census_Div*/
+/*			and b.Year=2019*/
+/*			and b.Quarter=3*/
+/*			and b.epi_start <= a.ANCHOR_BEG_DT <= b.epi_end;*/
+/*	quit;*/
+/*%end;*/
+/*%else %do;*/
 	proc sql;
 		create table temp3a_pre as
 		select a.*, b.PAT_Factor as PAT_New
 		from temp2a as a left join PAT_Factors_forBase as b
 		on a.EPISODE_GROUP_NAME = b.Clinical_Episode
 			and a.ANCHOR_TYPE=b.anchor_type
-			and a.ACADEMIC=b.AMC
+			and a.Major_Teaching_Hospital=b.MTH
 			and a.URBAN_RURAL=b.Urban_Rural
 			and a.SAFETY_NET=b.Safety_Net
 			and a.BED_SIZE=b.Bed_Size
@@ -309,22 +324,67 @@ proc sql;
 
 	proc sql;
 		create table temp3a as
-		select a.*, b.PAT_Factor as PAT_2019Q3
+		select a.*, b.PAT_Factor as PAT_2020Q3
 		from temp3a_pre as a left join PAT_Factors_forBase as b
 		on a.EPISODE_GROUP_NAME = b.Clinical_Episode
 			and a.ANCHOR_TYPE=b.anchor_type
-			and a.ACADEMIC=b.AMC
+			and a.Major_Teaching_Hospital=b.MTH
 			and a.URBAN_RURAL=b.Urban_Rural
 			and a.SAFETY_NET=b.Safety_Net
 			and a.BED_SIZE=b.Bed_Size
 			and a.CENSUS=b.Census_Div
-			and b.Year=2019
+			and b.Year=2020
 			and b.Quarter=3;
 	quit;
-%end;
+/*%end;*/
 
-%if &label. ^= ybase %then %do;
-	proc sql;
+
+/*%if &label. ^= ybase %then %do;*/
+/*	proc sql;*/
+/*		create table temp4a as*/
+/*		select a.*, */
+/*			b.PGP_ACH,*/
+/*			b.CCN_TIN,*/
+/*			b.ASSOC_ACH_CCN,*/
+/*			b.CCN_JOIN,*/
+/*			b.EPI_TYPE,*/
+/*			b.EPI_CAT,*/
+/*			b.EPI_COUNT,*/
+/*			b.COUNT_GT_40,*/
+/*			b.EPI_CAT_ADJ,*/
+/*			b.EPI_CAT_SHORT,*/
+/*			b.EPI_CAT_2,*/
+/*			b.EPI_SPEND,*/
+/*			b.AMT,*/
+/*			b.ACH_EFF,*/
+/*			b.SBS,*/
+/*			b.PCMA,*/
+/*			b.PAT,*/
+/*			b.HBP,*/
+/*			b.PGP_EFF,*/
+/*			b.PGP_OFFSET,*/
+/*			b.PGP_OFFSET_ADJ,*/
+/*			b.PGP_ACH_PCMA,*/
+/*			b.CASE_MIX,*/
+/*			b.PGP_ACH_BNCHMRK,*/
+/*			b.TARGET_PRICE,*/
+/*			b.PAYMENT_RATIO,*/
+/*			b.TARGET_PRICE_REAL,*/
+/*			b.EPI_INDEX,*/
+/*			b.BPID_CHANGE,*/
+/*			b.EPI_DROPPED_FLAG,*/
+/*			b.TIME_PERIOD*/
+/*		from temp3a as a */
+/*			left join TP_Components as b*/
+/*				on a.BPID = b.INITIATOR_BPID*/
+/*				and a.EPISODE_GROUP_NAME = b.EPI_CAT*/
+/*				and a.anchor_type_upper = b.EPI_TYPE*/
+/*				and a.anc_ccn = b.ccn_join*/
+/*				and b.epi_start <= a.ANCHOR_BEG_DT <= b.epi_end;*/
+/*	quit;*/
+/*%end;*/
+/*%else %do;*/
+proc sql;
 		create table temp4a as
 		select a.*, 
 			b.PGP_ACH,
@@ -343,6 +403,7 @@ proc sql;
 			b.ACH_EFF,
 			b.SBS,
 			b.PCMA,
+			b.PAT_Adj as PAT_Historical_Adj,
 			b.PAT,
 			b.HBP,
 			b.PGP_EFF,
@@ -363,240 +424,231 @@ proc sql;
 				on a.BPID = b.INITIATOR_BPID
 				and a.EPISODE_GROUP_NAME = b.EPI_CAT
 				and a.anchor_type_upper = b.EPI_TYPE
-				and a.anc_ccn = b.ccn_join
-				and b.epi_start <= a.ANCHOR_END_DT <= b.epi_end;
-	quit;
-%end;
-%else %do;
-proc sql;
-		create table temp4a as
-		select a.*, 
-			b.PGP_ACH,
-			b.CCN_TIN,
-			b.ASSOC_ACH_CCN,
-			b.CCN_JOIN,
-			b.EPI_TYPE,
-			b.EPI_CAT,
-			b.EPI_COUNT,
-			b.COUNT_GT_40,
-			b.EPI_CAT_ADJ,
-			b.EPI_CAT_SHORT,
-			b.EPI_CAT_2,
-			b.EPI_SPEND,
-			b.AMT,
-			b.ACH_EFF,
-			b.SBS,
-			b.PCMA,
-			b.PAT,
-			b.HBP,
-			b.PGP_EFF,
-			b.PGP_OFFSET,
-			b.PGP_OFFSET_ADJ,
-			b.PGP_ACH_PCMA,
-			b.CASE_MIX,
-			b.PGP_ACH_BNCHMRK,
-			b.TARGET_PRICE,
-			b.PAYMENT_RATIO,
-			b.TARGET_PRICE_REAL,
-			b.EPI_INDEX,
-			b.BPID_CHANGE,
-			b.EPI_DROPPED_FLAG,
-			b.TIME_PERIOD
-		from temp3a as a 
-			left join TP_Components_forBase as b
-				on a.BPID = b.INITIATOR_BPID
-				and a.EPISODE_GROUP_NAME = b.EPI_CAT
-				and a.anchor_type_upper = b.EPI_TYPE
 				and a.anc_ccn = b.ccn_join;
 	quit;
-%end;
+/*%end;*/
 
 data temp5a;
 	set temp4a;
 	format DRG_CODE BEST12.;
-	%if &label. = ybase %then %do; 
-		DRG_CODE=DRG_2019; 
-	%end;
-	%else %do;
+/*	%if &label. = ybase %then %do; */
+/*		DRG_CODE=DRG_2018; */
+/*	%end;*/
+/*	%else %do;*/
 		if ANCHOR_TYPE = 'ip' then DRG_CODE = input(ANCHOR_CODE,$20.);
 		else DRG_CODE = . ;
-	%end;
+/*	%end;*/
 
 	Epi_Year = year(POST_DSCH_END_DT);
 	Epi_Qtr = qtr(POST_DSCH_END_DT);
 	Epi_Half = 1;
 	if Epi_Qtr in (3,4) then Epi_Half = 2;
 
+	DRG_CD_061=0;
 	DRG_CD_062=0;
 	DRG_CD_063=0;
 	DRG_CD_064=0;
-	DRG_CD_065=0;
 	DRG_CD_066=0;
+	DRG_CD_100=0;
+	DRG_CD_177=0;
 	DRG_CD_178=0;
 	DRG_CD_179=0;
 	DRG_CD_191=0;
 	DRG_CD_192=0;
 	DRG_CD_193=0;
-	DRG_CD_194=0;
 	DRG_CD_195=0;
 	DRG_CD_202=0;
 	DRG_CD_203=0;
+	DRG_CD_216=0;
 	DRG_CD_217=0;
 	DRG_CD_218=0;
 	DRG_CD_219=0;
-	DRG_CD_220=0;
 	DRG_CD_221=0;
+	DRG_CD_222=0;
 	DRG_CD_223=0;
 	DRG_CD_224=0;
 	DRG_CD_225=0;
 	DRG_CD_226=0;
-	DRG_CD_227=0;
+	DRG_CD_231=0;
 	DRG_CD_232=0;
 	DRG_CD_233=0;
 	DRG_CD_234=0;
 	DRG_CD_235=0;
-	DRG_CD_236=0;
-	DRG_CD_243=0;
+	DRG_CD_242=0;
 	DRG_CD_244=0;
-	DRG_CD_247=0;
+	DRG_CD_246=0;
 	DRG_CD_248=0;
 	DRG_CD_249=0;
 	DRG_CD_250=0;
 	DRG_CD_251=0;
 	DRG_CD_266=0;
-	DRG_CD_267=0;
-	DRG_CD_273=0;
-	DRG_CD_274=0;
 	DRG_CD_281=0;
 	DRG_CD_282=0;
 	DRG_CD_292=0;
 	DRG_CD_293=0;
-	DRG_CD_309=0;
+	DRG_CD_308=0;
 	DRG_CD_310=0;
-	DRG_CD_330=0;
+	DRG_CD_329=0;
 	DRG_CD_331=0;
-	DRG_CD_378=0;
+	DRG_CD_377=0;
 	DRG_CD_379=0;
-	DRG_CD_389=0;
+	DRG_CD_385=0;
+	DRG_CD_387=0;
+	DRG_CD_388=0;
 	DRG_CD_390=0;
-	DRG_CD_442=0;
+	DRG_CD_441=0;
 	DRG_CD_443=0;
+	DRG_CD_453=0;
 	DRG_CD_454=0;
 	DRG_CD_455=0;
-	DRG_CD_460=0;
-	DRG_CD_462=0;
-	DRG_CD_470=0;
+	DRG_CD_459=0;
+	DRG_CD_461=0;
+	DRG_CD_469=0;
+	DRG_CD_471=0;
 	DRG_CD_472=0;
 	DRG_CD_473=0;
-	DRG_CD_481=0;
+	DRG_CD_480=0;
 	DRG_CD_482=0;
-	DRG_CD_493=0;
+	DRG_CD_492=0;
 	DRG_CD_494=0;
+	DRG_CD_518=0;
 	DRG_CD_519=0;
-	DRG_CD_520=0;
+	DRG_CD_533=0;
 	DRG_CD_534=0;
 	DRG_CD_535=0;
-	DRG_CD_536=0;
-	DRG_CD_603=0;
-	DRG_CD_683=0;
+	DRG_CD_602=0;
+	DRG_CD_619=0;
+	DRG_CD_620=0;
+	DRG_CD_682=0;
 	DRG_CD_684=0;
-	DRG_CD_690=0;
-	DRG_CD_871=0;
+	DRG_CD_689=0;
+	DRG_CD_870=0;
 	DRG_CD_872=0;
-	APC_5193=0;
+
+	APC_5115=0;
+	APC_5192=0;
 	APC_5194=0;
-	APC_5232=0;
+	APC_5231=0;
 	APC_5432=0;
 
+	FY_2018=0;
+	FY2018_DRG_453=0;
+	FY2018_DRG_454=0;
+	FY2018_DRG_455=0;
+	FY2018_DRG_459=0;
+	FY2018_DRG_471=0;
+	FY2018_DRG_472=0;
+	FY2018_DRG_473=0;
+
+	if DRG_CODE = 061 then DRG_CD_061=1;
 	if DRG_CODE = 062 then DRG_CD_062=1;
 	if DRG_CODE = 063 then DRG_CD_063=1;
 	if DRG_CODE = 064 then DRG_CD_064=1;
-	if DRG_CODE = 065 then DRG_CD_065=1;
 	if DRG_CODE = 066 then DRG_CD_066=1;
+	if DRG_CODE = 100 then DRG_CD_100=1;
+	if DRG_CODE = 177 then DRG_CD_177=1;
 	if DRG_CODE = 178 then DRG_CD_178=1;
 	if DRG_CODE = 179 then DRG_CD_179=1;
 	if DRG_CODE = 191 then DRG_CD_191=1;
 	if DRG_CODE = 192 then DRG_CD_192=1;
 	if DRG_CODE = 193 then DRG_CD_193=1;
-	if DRG_CODE = 194 then DRG_CD_194=1;
 	if DRG_CODE = 195 then DRG_CD_195=1;
 	if DRG_CODE = 202 then DRG_CD_202=1;
 	if DRG_CODE = 203 then DRG_CD_203=1;
+	if DRG_CODE = 216 then DRG_CD_216=1;
 	if DRG_CODE = 217 then DRG_CD_217=1;
 	if DRG_CODE = 218 then DRG_CD_218=1;
 	if DRG_CODE = 219 then DRG_CD_219=1;
-	if DRG_CODE = 220 then DRG_CD_220=1;
 	if DRG_CODE = 221 then DRG_CD_221=1;
+	if DRG_CODE = 222 then DRG_CD_222=1;
 	if DRG_CODE = 223 then DRG_CD_223=1;
 	if DRG_CODE = 224 then DRG_CD_224=1;
 	if DRG_CODE = 225 then DRG_CD_225=1;
 	if DRG_CODE = 226 then DRG_CD_226=1;
-	if DRG_CODE = 227 then DRG_CD_227=1;
+	if DRG_CODE = 231 then DRG_CD_231=1;
 	if DRG_CODE = 232 then DRG_CD_232=1;
 	if DRG_CODE = 233 then DRG_CD_233=1;
 	if DRG_CODE = 234 then DRG_CD_234=1;
 	if DRG_CODE = 235 then DRG_CD_235=1;
-	if DRG_CODE = 236 then DRG_CD_236=1;
-	if DRG_CODE = 243 then DRG_CD_243=1;
+	if DRG_CODE = 242 then DRG_CD_242=1;
 	if DRG_CODE = 244 then DRG_CD_244=1;
-	if DRG_CODE = 247 then DRG_CD_247=1;
+	if DRG_CODE = 246 then DRG_CD_246=1;
 	if DRG_CODE = 248 then DRG_CD_248=1;
 	if DRG_CODE = 249 then DRG_CD_249=1;
 	if DRG_CODE = 250 then DRG_CD_250=1;
 	if DRG_CODE = 251 then DRG_CD_251=1;
 	if DRG_CODE = 266 then DRG_CD_266=1;
-	if DRG_CODE = 267 then DRG_CD_267=1;
-	if DRG_CODE = 273 then DRG_CD_273=1;
-	if DRG_CODE = 274 then DRG_CD_274=1;
 	if DRG_CODE = 281 then DRG_CD_281=1;
 	if DRG_CODE = 282 then DRG_CD_282=1;
 	if DRG_CODE = 292 then DRG_CD_292=1;
 	if DRG_CODE = 293 then DRG_CD_293=1;
-	if DRG_CODE = 309 then DRG_CD_309=1;
+	if DRG_CODE = 308 then DRG_CD_308=1;
 	if DRG_CODE = 310 then DRG_CD_310=1;
-	if DRG_CODE = 330 then DRG_CD_330=1;
+	if DRG_CODE = 329 then DRG_CD_329=1;
 	if DRG_CODE = 331 then DRG_CD_331=1;
-	if DRG_CODE = 378 then DRG_CD_378=1;
+	if DRG_CODE = 377 then DRG_CD_377=1;
 	if DRG_CODE = 379 then DRG_CD_379=1;
-	if DRG_CODE = 389 then DRG_CD_389=1;
+	if DRG_CODE = 385 then DRG_CD_385=1;
+	if DRG_CODE = 387 then DRG_CD_387=1;
+	if DRG_CODE = 388 then DRG_CD_388=1;
 	if DRG_CODE = 390 then DRG_CD_390=1;
-	if DRG_CODE = 442 then DRG_CD_442=1;
+	if DRG_CODE = 441 then DRG_CD_441=1;
 	if DRG_CODE = 443 then DRG_CD_443=1;
+	if DRG_CODE = 453 then DRG_CD_453=1;
 	if DRG_CODE = 454 then DRG_CD_454=1;
 	if DRG_CODE = 455 then DRG_CD_455=1;
-	if DRG_CODE = 460 then DRG_CD_460=1;
-	if DRG_CODE = 462 then DRG_CD_462=1;
-	if DRG_CODE = 470 then DRG_CD_470=1;
+	if DRG_CODE = 459 then DRG_CD_459=1;
+	if DRG_CODE = 461 then DRG_CD_461=1;
+	if DRG_CODE = 469 then DRG_CD_469=1;
+	if DRG_CODE = 471 then DRG_CD_471=1;
 	if DRG_CODE = 472 then DRG_CD_472=1;
 	if DRG_CODE = 473 then DRG_CD_473=1;
-	if DRG_CODE = 481 then DRG_CD_481=1;
+	if DRG_CODE = 480 then DRG_CD_480=1;
 	if DRG_CODE = 482 then DRG_CD_482=1;
-	if DRG_CODE = 493 then DRG_CD_493=1;
+	if DRG_CODE = 492 then DRG_CD_492=1;
 	if DRG_CODE = 494 then DRG_CD_494=1;
+	if DRG_CODE = 518 then DRG_CD_518=1;
 	if DRG_CODE = 519 then DRG_CD_519=1;
-	if DRG_CODE = 520 then DRG_CD_520=1;
+	if DRG_CODE = 533 then DRG_CD_533=1;
 	if DRG_CODE = 534 then DRG_CD_534=1;
 	if DRG_CODE = 535 then DRG_CD_535=1;
-	if DRG_CODE = 536 then DRG_CD_536=1;
-	if DRG_CODE = 603 then DRG_CD_603=1;
-	if DRG_CODE = 683 then DRG_CD_683=1;
+	if DRG_CODE = 602 then DRG_CD_602=1;
+	if DRG_CODE = 619 then DRG_CD_619=1;
+	if DRG_CODE = 620 then DRG_CD_620=1;
+	if DRG_CODE = 682 then DRG_CD_682=1;
 	if DRG_CODE = 684 then DRG_CD_684=1;
-	if DRG_CODE = 690 then DRG_CD_690=1;
-	if DRG_CODE = 871 then DRG_CD_871=1;
+	if DRG_CODE = 689 then DRG_CD_689=1;
+	if DRG_CODE = 870 then DRG_CD_870=1;
 	if DRG_CODE = 872 then DRG_CD_872=1;
-	if PERF_APC = 5193 then APC_5193=1;
+	*if ANCHOR_TYPE='op' and EPISODE_GROUP_NAME = 'Major joint replacement of the lower extremity' then DRG_CD_470=1;
+
+	if PERF_APC = 5115 then APC_5115=1;
+	if PERF_APC = 5192 then APC_5192=1;
 	if PERF_APC = 5194 then APC_5194=1;
-	if PERF_APC = 5232 then APC_5232=1;
+	if PERF_APC = 5231 then APC_5231=1;
 	if PERF_APC = 5432 then APC_5432=1;
+
+	if ANCHOR_END_DT >= mdy(10,1,2017) then FY_2018=1;
+	if FY_2018=1 then do;
+		if DRG_CODE = 453 then FY2018_DRG_453=1;
+		if DRG_CODE = 454 then FY2018_DRG_454=1;
+		if DRG_CODE = 455 then FY2018_DRG_455=1;
+		if DRG_CODE = 459 then FY2018_DRG_459=1;
+		if DRG_CODE = 471 then FY2018_DRG_471=1;
+		if DRG_CODE = 472 then FY2018_DRG_472=1;
+		if DRG_CODE = 473 then FY2018_DRG_473=1;
+	end;
 
 	HCC_CNT = sum(of HCC1 -- HCC189);
 	HCC_CNT_1_3=0;
 	HCC_CNT_4_6=0;
 	HCC_CNT_7_PLUS=0;
+	HCC_CNT_4_6_HCC_CNT_7_PLUS=0;
 	if HCC_CNT > 0 then do;
 		if HCC_CNT <= 3 then HCC_CNT_1_3=1;
 		else if HCC_CNT <= 6 then HCC_CNT_4_6=1;
 		else if HCC_CNT >= 7 then HCC_CNT_7_PLUS=1;
+		if HCC_CNT >= 4 then HCC_CNT_4_6_HCC_CNT_7_PLUS=1;
 	end; 
 
 
@@ -604,9 +656,10 @@ Pred_Price = (N1_P1 * EXP(
 		  (BENE_AGE-50) * N1_Age_50
 		+ (BENE_AGE-50) * (BENE_AGE-50) * N1_Age_50_SQ
 		+ ANY_DUAL * N1_ANY_DUAL
-		+ APC_5193 * N1_APC_5193
+		+ APC_5115 * N1_APC_5115
+		+ APC_5192 * N1_APC_5192
 		+ APC_5194 * N1_APC_5194
-		+ APC_5232 * N1_APC_5232
+		+ APC_5231 * N1_APC_5231
 		+ APC_5432 * N1_APC_5432
 		+ CANCER_IMMUNE * N1_CANCER_IMMUNE
 		+ CHF_COPD * N1_CHF_COPD
@@ -620,86 +673,99 @@ Pred_Price = (N1_P1 * EXP(
 		+ DISABLED_HCC54 * N1_DISABLED_HCC54
 		+ DISABLED_HCC55 * N1_DISABLED_HCC55
 		+ DISABLED_HCC6 * N1_DISABLED_HCC6
+		+ DRG_CD_061 * N1_DRG_CD_061
 		+ DRG_CD_062 * N1_DRG_CD_062
 		+ DRG_CD_063 * N1_DRG_CD_063
 		+ DRG_CD_064 * N1_DRG_CD_064
-		+ DRG_CD_065 * N1_DRG_CD_065
 		+ DRG_CD_066 * N1_DRG_CD_066
+		+ DRG_CD_100 * N1_DRG_CD_100
+		+ DRG_CD_177 * N1_DRG_CD_177
 		+ DRG_CD_178 * N1_DRG_CD_178
 		+ DRG_CD_179 * N1_DRG_CD_179
 		+ DRG_CD_191 * N1_DRG_CD_191
 		+ DRG_CD_192 * N1_DRG_CD_192
 		+ DRG_CD_193 * N1_DRG_CD_193
-		+ DRG_CD_194 * N1_DRG_CD_194
 		+ DRG_CD_195 * N1_DRG_CD_195
 		+ DRG_CD_202 * N1_DRG_CD_202
 		+ DRG_CD_203 * N1_DRG_CD_203
+		+ DRG_CD_216 * N1_DRG_CD_216
 		+ DRG_CD_217 * N1_DRG_CD_217
 		+ DRG_CD_218 * N1_DRG_CD_218
 		+ DRG_CD_219 * N1_DRG_CD_219
-		+ DRG_CD_220 * N1_DRG_CD_220
 		+ DRG_CD_221 * N1_DRG_CD_221
+		+ DRG_CD_222 * N1_DRG_CD_222
 		+ DRG_CD_223 * N1_DRG_CD_223
 		+ DRG_CD_224 * N1_DRG_CD_224
 		+ DRG_CD_225 * N1_DRG_CD_225
 		+ DRG_CD_226 * N1_DRG_CD_226
-		+ DRG_CD_227 * N1_DRG_CD_227
+		+ DRG_CD_231 * N1_DRG_CD_231
 		+ DRG_CD_232 * N1_DRG_CD_232
 		+ DRG_CD_233 * N1_DRG_CD_233
 		+ DRG_CD_234 * N1_DRG_CD_234
 		+ DRG_CD_235 * N1_DRG_CD_235
-		+ DRG_CD_236 * N1_DRG_CD_236
-		+ DRG_CD_243 * N1_DRG_CD_243
+		+ DRG_CD_242 * N1_DRG_CD_242
 		+ DRG_CD_244 * N1_DRG_CD_244
-		+ DRG_CD_247 * N1_DRG_CD_247
+		+ DRG_CD_246 * N1_DRG_CD_246
 		+ DRG_CD_248 * N1_DRG_CD_248
 		+ DRG_CD_249 * N1_DRG_CD_249
 		+ DRG_CD_250 * N1_DRG_CD_250
 		+ DRG_CD_251 * N1_DRG_CD_251
 		+ DRG_CD_266 * N1_DRG_CD_266
-		+ DRG_CD_267 * N1_DRG_CD_267
-		+ DRG_CD_273 * N1_DRG_CD_273
-		+ DRG_CD_274 * N1_DRG_CD_274
 		+ DRG_CD_281 * N1_DRG_CD_281
 		+ DRG_CD_282 * N1_DRG_CD_282
 		+ DRG_CD_292 * N1_DRG_CD_292
 		+ DRG_CD_293 * N1_DRG_CD_293
-		+ DRG_CD_309 * N1_DRG_CD_309
+		+ DRG_CD_308 * N1_DRG_CD_308
 		+ DRG_CD_310 * N1_DRG_CD_310
-		+ DRG_CD_330 * N1_DRG_CD_330
+		+ DRG_CD_329 * N1_DRG_CD_329
 		+ DRG_CD_331 * N1_DRG_CD_331
-		+ DRG_CD_378 * N1_DRG_CD_378
+		+ DRG_CD_377 * N1_DRG_CD_377
 		+ DRG_CD_379 * N1_DRG_CD_379
-		+ DRG_CD_389 * N1_DRG_CD_389
+		+ DRG_CD_385 * N1_DRG_CD_385
+		+ DRG_CD_387 * N1_DRG_CD_387
+		+ DRG_CD_388 * N1_DRG_CD_388
 		+ DRG_CD_390 * N1_DRG_CD_390
-		+ DRG_CD_442 * N1_DRG_CD_442
+		+ DRG_CD_441 * N1_DRG_CD_441
 		+ DRG_CD_443 * N1_DRG_CD_443
+		+ DRG_CD_453 * N1_DRG_CD_453
 		+ DRG_CD_454 * N1_DRG_CD_454
 		+ DRG_CD_455 * N1_DRG_CD_455
-		+ DRG_CD_460 * N1_DRG_CD_460
-		+ DRG_CD_462 * N1_DRG_CD_462
-		+ DRG_CD_470 * N1_DRG_CD_470
+		+ DRG_CD_459 * N1_DRG_CD_459
+		+ DRG_CD_461 * N1_DRG_CD_461
+		+ DRG_CD_469 * N1_DRG_CD_469
+		+ DRG_CD_471 * N1_DRG_CD_471
 		+ DRG_CD_472 * N1_DRG_CD_472
 		+ DRG_CD_473 * N1_DRG_CD_473
-		+ DRG_CD_481 * N1_DRG_CD_481
+		+ DRG_CD_480 * N1_DRG_CD_480
 		+ DRG_CD_482 * N1_DRG_CD_482
-		+ DRG_CD_493 * N1_DRG_CD_493
+		+ DRG_CD_492 * N1_DRG_CD_492
 		+ DRG_CD_494 * N1_DRG_CD_494
+		+ DRG_CD_518 * N1_DRG_CD_518
 		+ DRG_CD_519 * N1_DRG_CD_519
-		+ DRG_CD_520 * N1_DRG_CD_520
+		+ DRG_CD_533 * N1_DRG_CD_533
 		+ DRG_CD_534 * N1_DRG_CD_534
 		+ DRG_CD_535 * N1_DRG_CD_535
-		+ DRG_CD_536 * N1_DRG_CD_536
-		+ DRG_CD_603 * N1_DRG_CD_603
-		+ DRG_CD_683 * N1_DRG_CD_683
+		+ DRG_CD_602 * N1_DRG_CD_602
+		+ DRG_CD_619 * N1_DRG_CD_619
+		+ DRG_CD_620 * N1_DRG_CD_620
+		+ DRG_CD_682 * N1_DRG_CD_682
 		+ DRG_CD_684 * N1_DRG_CD_684
-		+ DRG_CD_690 * N1_DRG_CD_690
-		+ DRG_CD_871 * N1_DRG_CD_871
+		+ DRG_CD_689 * N1_DRG_CD_689
+		+ DRG_CD_870 * N1_DRG_CD_870
 		+ DRG_CD_872 * N1_DRG_CD_872
 		+ FRACTURE_FLAG * N1_FRACTURE_FLAG
+		+ FY_2018 * N1_FY_2018
+		+ FY2018_DRG_453 * N1_FY2018_DRG_453
+		+ FY2018_DRG_454 * N1_FY2018_DRG_454
+		+ FY2018_DRG_455 * N1_FY2018_DRG_455
+		+ FY2018_DRG_459 * N1_FY2018_DRG_459
+		+ FY2018_DRG_471 * N1_FY2018_DRG_471
+		+ FY2018_DRG_472 * N1_FY2018_DRG_472
+		+ FY2018_DRG_473 * N1_FY2018_DRG_473
 		+ HCC_CNT_1_3 * N1_HCC_CNT_1_3
 		+ HCC_CNT_4_6 * N1_HCC_CNT_4_6
 		+ HCC_CNT_7_PLUS * N1_HCC_CNT_7_PLUS
+		+ HCC_CNT_4_6_HCC_CNT_7_PLUS * N1_HCC_CNT_4_6_HCC_CNT_7_PLUS
 		+ HCC1 * N1_HCC1
 		+ HCC10 * N1_HCC10
 		+ HCC100 * N1_HCC100
@@ -779,12 +845,16 @@ Pred_Price = (N1_P1 * EXP(
 		+ HCC9 * N1_HCC9
 		+ HCC96 * N1_HCC96
 		+ HCC99 * N1_HCC99
+		+ HEM_STROKE_FLAG * N1_HEM_STROKE_FLAG
+		+ IBD_FISTULA_FLAG * N1_IBD_FISTULA_FLAG
+		+ IBD_UC_FLAG * N1_IBD_UC_FLAG
+		+ KNEE_ARTHRO_FLAG * N1_KNEE_ARTHRO_FLAG
+		+ KNEE_ARTHRO_FRACTURE_FLAG * N1_KNEE_ARTHRO_FRACTURE_FLAG
 		+ LTI * N1_LTI
 		+ ORIGDS * N1_ORIGDS
-		+ PRIOR_HOSP_W_ANY_IP_FLAG_90 * N1_PRIOR_HOSP_W_ANY_IP_FLAG_90
+		+ PRIOR_HOSP_W_NON_PAC_IP_FLAG_90 * N1_PRIOR_HOSP_W_NON_PAC_IP_FLAG
+		+ PRIOR_PAC_FLAG * N1_PRIOR_PAC_FLAG
 		+ SEPSIS_CARD_RESP_FAIL * N1_SEPSIS_CARD_RESP_FAIL
-		+ TKA_FLAG * N1_TKA_FLAG
-		+ TKA_FRACTURE_FLAG * N1_TKA_FRACTURE_FLAG
 		+ N1_INTERCEPT
 		+ (N1_SIGMA1*N1_SIGMA1)/2 
 		))
@@ -793,9 +863,10 @@ Pred_Price = (N1_P1 * EXP(
 		  (BENE_AGE-50) * N2_Age_50
 		+ (BENE_AGE-50) * (BENE_AGE-50) * N2_Age_50_SQ
 		+ ANY_DUAL * N2_ANY_DUAL
-		+ APC_5193 * N2_APC_5193
+		+ APC_5115 * N2_APC_5115
+		+ APC_5192 * N2_APC_5192
 		+ APC_5194 * N2_APC_5194
-		+ APC_5232 * N2_APC_5232
+		+ APC_5231 * N2_APC_5231
 		+ APC_5432 * N2_APC_5432
 		+ CANCER_IMMUNE * N2_CANCER_IMMUNE
 		+ CHF_COPD * N2_CHF_COPD
@@ -809,86 +880,99 @@ Pred_Price = (N1_P1 * EXP(
 		+ DISABLED_HCC54 * N2_DISABLED_HCC54
 		+ DISABLED_HCC55 * N2_DISABLED_HCC55
 		+ DISABLED_HCC6 * N2_DISABLED_HCC6
+		+ DRG_CD_061 * N2_DRG_CD_061
 		+ DRG_CD_062 * N2_DRG_CD_062
 		+ DRG_CD_063 * N2_DRG_CD_063
 		+ DRG_CD_064 * N2_DRG_CD_064
-		+ DRG_CD_065 * N2_DRG_CD_065
 		+ DRG_CD_066 * N2_DRG_CD_066
+		+ DRG_CD_100 * N2_DRG_CD_100
+		+ DRG_CD_177 * N2_DRG_CD_177
 		+ DRG_CD_178 * N2_DRG_CD_178
 		+ DRG_CD_179 * N2_DRG_CD_179
 		+ DRG_CD_191 * N2_DRG_CD_191
 		+ DRG_CD_192 * N2_DRG_CD_192
 		+ DRG_CD_193 * N2_DRG_CD_193
-		+ DRG_CD_194 * N2_DRG_CD_194
 		+ DRG_CD_195 * N2_DRG_CD_195
 		+ DRG_CD_202 * N2_DRG_CD_202
 		+ DRG_CD_203 * N2_DRG_CD_203
+		+ DRG_CD_216 * N2_DRG_CD_216
 		+ DRG_CD_217 * N2_DRG_CD_217
 		+ DRG_CD_218 * N2_DRG_CD_218
 		+ DRG_CD_219 * N2_DRG_CD_219
-		+ DRG_CD_220 * N2_DRG_CD_220
 		+ DRG_CD_221 * N2_DRG_CD_221
+		+ DRG_CD_222 * N2_DRG_CD_222
 		+ DRG_CD_223 * N2_DRG_CD_223
 		+ DRG_CD_224 * N2_DRG_CD_224
 		+ DRG_CD_225 * N2_DRG_CD_225
 		+ DRG_CD_226 * N2_DRG_CD_226
-		+ DRG_CD_227 * N2_DRG_CD_227
+		+ DRG_CD_231 * N2_DRG_CD_231
 		+ DRG_CD_232 * N2_DRG_CD_232
 		+ DRG_CD_233 * N2_DRG_CD_233
 		+ DRG_CD_234 * N2_DRG_CD_234
 		+ DRG_CD_235 * N2_DRG_CD_235
-		+ DRG_CD_236 * N2_DRG_CD_236
-		+ DRG_CD_243 * N2_DRG_CD_243
+		+ DRG_CD_242 * N2_DRG_CD_242
 		+ DRG_CD_244 * N2_DRG_CD_244
-		+ DRG_CD_247 * N2_DRG_CD_247
+		+ DRG_CD_246 * N2_DRG_CD_246
 		+ DRG_CD_248 * N2_DRG_CD_248
 		+ DRG_CD_249 * N2_DRG_CD_249
 		+ DRG_CD_250 * N2_DRG_CD_250
 		+ DRG_CD_251 * N2_DRG_CD_251
 		+ DRG_CD_266 * N2_DRG_CD_266
-		+ DRG_CD_267 * N2_DRG_CD_267
-		+ DRG_CD_273 * N2_DRG_CD_273
-		+ DRG_CD_274 * N2_DRG_CD_274
 		+ DRG_CD_281 * N2_DRG_CD_281
 		+ DRG_CD_282 * N2_DRG_CD_282
 		+ DRG_CD_292 * N2_DRG_CD_292
 		+ DRG_CD_293 * N2_DRG_CD_293
-		+ DRG_CD_309 * N2_DRG_CD_309
+		+ DRG_CD_308 * N2_DRG_CD_308
 		+ DRG_CD_310 * N2_DRG_CD_310
-		+ DRG_CD_330 * N2_DRG_CD_330
+		+ DRG_CD_329 * N2_DRG_CD_329
 		+ DRG_CD_331 * N2_DRG_CD_331
-		+ DRG_CD_378 * N2_DRG_CD_378
+		+ DRG_CD_377 * N2_DRG_CD_377
 		+ DRG_CD_379 * N2_DRG_CD_379
-		+ DRG_CD_389 * N2_DRG_CD_389
+		+ DRG_CD_385 * N2_DRG_CD_385
+		+ DRG_CD_387 * N2_DRG_CD_387
+		+ DRG_CD_388 * N2_DRG_CD_388
 		+ DRG_CD_390 * N2_DRG_CD_390
-		+ DRG_CD_442 * N2_DRG_CD_442
+		+ DRG_CD_441 * N2_DRG_CD_441
 		+ DRG_CD_443 * N2_DRG_CD_443
+		+ DRG_CD_453 * N2_DRG_CD_453
 		+ DRG_CD_454 * N2_DRG_CD_454
 		+ DRG_CD_455 * N2_DRG_CD_455
-		+ DRG_CD_460 * N2_DRG_CD_460
-		+ DRG_CD_462 * N2_DRG_CD_462
-		+ DRG_CD_470 * N2_DRG_CD_470
+		+ DRG_CD_459 * N2_DRG_CD_459
+		+ DRG_CD_461 * N2_DRG_CD_461
+		+ DRG_CD_469 * N2_DRG_CD_469
+		+ DRG_CD_471 * N2_DRG_CD_471
 		+ DRG_CD_472 * N2_DRG_CD_472
 		+ DRG_CD_473 * N2_DRG_CD_473
-		+ DRG_CD_481 * N2_DRG_CD_481
+		+ DRG_CD_480 * N2_DRG_CD_480
 		+ DRG_CD_482 * N2_DRG_CD_482
-		+ DRG_CD_493 * N2_DRG_CD_493
+		+ DRG_CD_492 * N2_DRG_CD_492
 		+ DRG_CD_494 * N2_DRG_CD_494
+		+ DRG_CD_518 * N2_DRG_CD_518
 		+ DRG_CD_519 * N2_DRG_CD_519
-		+ DRG_CD_520 * N2_DRG_CD_520
+		+ DRG_CD_533 * N2_DRG_CD_533
 		+ DRG_CD_534 * N2_DRG_CD_534
 		+ DRG_CD_535 * N2_DRG_CD_535
-		+ DRG_CD_536 * N2_DRG_CD_536
-		+ DRG_CD_603 * N2_DRG_CD_603
-		+ DRG_CD_683 * N2_DRG_CD_683
+		+ DRG_CD_602 * N2_DRG_CD_602
+		+ DRG_CD_619 * N2_DRG_CD_619
+		+ DRG_CD_620 * N2_DRG_CD_620
+		+ DRG_CD_682 * N2_DRG_CD_682
 		+ DRG_CD_684 * N2_DRG_CD_684
-		+ DRG_CD_690 * N2_DRG_CD_690
-		+ DRG_CD_871 * N2_DRG_CD_871
+		+ DRG_CD_689 * N2_DRG_CD_689
+		+ DRG_CD_870 * N2_DRG_CD_870
 		+ DRG_CD_872 * N2_DRG_CD_872
 		+ FRACTURE_FLAG * N2_FRACTURE_FLAG
+		+ FY_2018 * N2_FY_2018
+		+ FY2018_DRG_453 * N2_FY2018_DRG_453
+		+ FY2018_DRG_454 * N2_FY2018_DRG_454
+		+ FY2018_DRG_455 * N2_FY2018_DRG_455
+		+ FY2018_DRG_459 * N2_FY2018_DRG_459
+		+ FY2018_DRG_471 * N2_FY2018_DRG_471
+		+ FY2018_DRG_472 * N2_FY2018_DRG_472
+		+ FY2018_DRG_473 * N2_FY2018_DRG_473
 		+ HCC_CNT_1_3 * N2_HCC_CNT_1_3
 		+ HCC_CNT_4_6 * N2_HCC_CNT_4_6
 		+ HCC_CNT_7_PLUS * N2_HCC_CNT_7_PLUS
+		+ HCC_CNT_4_6_HCC_CNT_7_PLUS * N2_HCC_CNT_4_6_HCC_CNT_7_PLUS
 		+ HCC1 * N2_HCC1
 		+ HCC10 * N2_HCC10
 		+ HCC100 * N2_HCC100
@@ -968,12 +1052,16 @@ Pred_Price = (N1_P1 * EXP(
 		+ HCC9 * N2_HCC9
 		+ HCC96 * N2_HCC96
 		+ HCC99 * N2_HCC99
+		+ HEM_STROKE_FLAG * N2_HEM_STROKE_FLAG
+		+ IBD_FISTULA_FLAG * N2_IBD_FISTULA_FLAG
+		+ IBD_UC_FLAG * N2_IBD_UC_FLAG
+		+ KNEE_ARTHRO_FLAG * N2_KNEE_ARTHRO_FLAG
+		+ KNEE_ARTHRO_FRACTURE_FLAG * N2_KNEE_ARTHRO_FRACTURE_FLAG
 		+ LTI * N2_LTI
 		+ ORIGDS * N2_ORIGDS
-		+ PRIOR_HOSP_W_ANY_IP_FLAG_90 * N2_PRIOR_HOSP_W_ANY_IP_FLAG_90
+		+ PRIOR_HOSP_W_NON_PAC_IP_FLAG_90 * N2_PRIOR_HOSP_W_NON_PAC_IP_FLAG
+		+ PRIOR_PAC_FLAG * N2_PRIOR_PAC_FLAG
 		+ SEPSIS_CARD_RESP_FAIL * N2_SEPSIS_CARD_RESP_FAIL
-		+ TKA_FLAG * N2_TKA_FLAG
-		+ TKA_FRACTURE_FLAG * N2_TKA_FRACTURE_FLAG
 		+ N2_INTERCEPT
 		+ (N2_SIGMA2*N2_SIGMA2)/2 
 		))
@@ -982,15 +1070,18 @@ run;
 
 proc sql;
 	create table temp1b_pre as
-	select a.*, b.ACADEMIC, b.URBAN_RURAL, b.SAFETY_NET, b.BED_SIZE, b.CENSUS as CENSUS_Pre
+	select a.*, b.Major_Teaching_Hospital, b.Urban as URBAN_RURAL, b.SAFETY_NET, b.BED_SIZE as BED_SIZE_join, b.CENSUS_Division as CENSUS_Pre
 	from temp1_preb as a left join Peer_Group_baseline as b
 	on a.anc_ccn = b.ccn_join;
-		/*and b.epi_start <= a.ANCHOR_END_DT <= b.epi_end;*/
+/*		and b.epi_start <= a.ANCHOR_BEG_DT <= b.epi_end;*/
 quit;
 
 data temp1b;
 	set temp1b_pre;
+	format BED_SIZE $11.;
 	CENSUS = input(CENSUS_Pre,12.);
+	if BED_SIZE_join = 'Extra' then BED_SIZE = 'Extra Large';
+	else Bed_SIZE = BED_SIZE_join;
 run;
 
 proc sql;
@@ -999,7 +1090,7 @@ proc sql;
 	from temp1b as a left join TP_Risk_Adj_Parameters_baseline as b
 	on a.EPISODE_GROUP_NAME = b.Clinical_Episode_Category
 		and a.anchor_type_upper = b.Clinical_Episode_Type;
-		/*and b.epi_start <= a.ANCHOR_END_DT <= b.epi_end;*/
+		/*and b.epi_start <= a.ANCHOR_BEG_DT <= b.epi_end;*/
 quit;
 
 proc sql;
@@ -1008,31 +1099,32 @@ proc sql;
 	from temp2b as a left join PAT_Factors_baseline as b
 	on a.EPISODE_GROUP_NAME = b.Clinical_Episode
 		and a.ANCHOR_TYPE=b.anchor_type
-		and a.ACADEMIC=b.AMC
+		and a.Major_Teaching_Hospital=b.MTH
 		and a.URBAN_RURAL=b.Urban_Rural
 		and a.SAFETY_NET=b.Safety_Net
 		and a.BED_SIZE=b.Bed_Size
 		and a.CENSUS=b.Census_Div
 		and year(a.POST_DSCH_END_DT)=b.Year
 		and qtr(a.POST_DSCH_END_DT)=b.Quarter;
-		/*and b.epi_start <= a.ANCHOR_END_DT <= b.epi_end;*/
+/*		and b.epi_start <= a.ANCHOR_BEG_DT <= b.epi_end;*/
 quit;
 
 proc sql;
 	create table temp3b as
-	select a.*, b.PAT_Factor as PAT_2019Q3
+	select a.*, b.PAT_Factor as PAT_2020Q3
 	from temp3b_pre as a left join PAT_Factors_baseline as b
 	on a.EPISODE_GROUP_NAME = b.Clinical_Episode
 		and a.ANCHOR_TYPE=b.anchor_type
-		and a.ACADEMIC=b.AMC
+		and a.Major_Teaching_Hospital=b.MTH
 		and a.URBAN_RURAL=b.Urban_Rural
 		and a.SAFETY_NET=b.Safety_Net
 		and a.BED_SIZE=b.Bed_Size
 		and a.CENSUS=b.Census_Div
-		and b.Year=2019
+		and b.Year=2020
 		and b.Quarter=3;
-		/*and b.epi_start <= a.ANCHOR_END_DT <= b.epi_end;*/
+/*		and b.epi_start <= a.ANCHOR_BEG_DT <= b.epi_end;*/
 quit;
+
 
 proc sql;
 	create table temp4b as
@@ -1053,6 +1145,7 @@ proc sql;
 		b.ACH_EFF,
 		b.SBS,
 		b.PCMA,
+		b.PAT_Adj as PAT_Historical_Adj,
 		b.PAT,
 		b.HBP,
 		b.PGP_EFF,
@@ -1074,195 +1167,230 @@ proc sql;
 			and a.EPISODE_GROUP_NAME = b.EPI_CAT
 			and a.anchor_type_upper = b.EPI_TYPE
 			and a.anc_ccn = b.ccn_join;
-			/*and b.epi_start <= a.ANCHOR_END_DT <= b.epi_end;*/
+			/*and b.epi_start <= a.ANCHOR_BEG_DT <= b.epi_end;*/
 quit;
 
 data temp5b;
 	set temp4b;
 	format DRG_CODE BEST12.;
-	%if &label. = ybase %then %do; 
-		DRG_CODE=DRG_2019;
-	%end; 
-	%else %do;
+/*	%if &label. = ybase %then %do; */
+/*		DRG_CODE=DRG_2018;*/
+/*	%end; */
+/*	%else %do;*/
 		if ANCHOR_TYPE = 'ip' then DRG_CODE = input(ANCHOR_CODE,$20.);
 		else DRG_CODE = . ;
-	%end;
+/*	%end;*/
 
 	Epi_Year = year(POST_DSCH_END_DT);
 	Epi_Qtr = qtr(POST_DSCH_END_DT);
 	Epi_Half = 1;
 	if Epi_Qtr in (3,4) then Epi_Half = 2;
 
+	DRG_CD_061=0;
 	DRG_CD_062=0;
 	DRG_CD_063=0;
 	DRG_CD_064=0;
-	DRG_CD_065=0;
 	DRG_CD_066=0;
+	DRG_CD_100=0;
+	DRG_CD_177=0;
 	DRG_CD_178=0;
 	DRG_CD_179=0;
 	DRG_CD_191=0;
 	DRG_CD_192=0;
 	DRG_CD_193=0;
-	DRG_CD_194=0;
 	DRG_CD_195=0;
 	DRG_CD_202=0;
 	DRG_CD_203=0;
+	DRG_CD_216=0;
 	DRG_CD_217=0;
 	DRG_CD_218=0;
 	DRG_CD_219=0;
-	DRG_CD_220=0;
 	DRG_CD_221=0;
+	DRG_CD_222=0;
 	DRG_CD_223=0;
 	DRG_CD_224=0;
 	DRG_CD_225=0;
 	DRG_CD_226=0;
-	DRG_CD_227=0;
+	DRG_CD_231=0;
 	DRG_CD_232=0;
 	DRG_CD_233=0;
 	DRG_CD_234=0;
 	DRG_CD_235=0;
-	DRG_CD_236=0;
-	DRG_CD_243=0;
+	DRG_CD_242=0;
 	DRG_CD_244=0;
-	DRG_CD_247=0;
+	DRG_CD_246=0;
 	DRG_CD_248=0;
 	DRG_CD_249=0;
 	DRG_CD_250=0;
 	DRG_CD_251=0;
 	DRG_CD_266=0;
-	DRG_CD_267=0;
-	DRG_CD_273=0;
-	DRG_CD_274=0;
 	DRG_CD_281=0;
 	DRG_CD_282=0;
 	DRG_CD_292=0;
 	DRG_CD_293=0;
-	DRG_CD_309=0;
+	DRG_CD_308=0;
 	DRG_CD_310=0;
-	DRG_CD_330=0;
+	DRG_CD_329=0;
 	DRG_CD_331=0;
-	DRG_CD_378=0;
+	DRG_CD_377=0;
 	DRG_CD_379=0;
-	DRG_CD_389=0;
+	DRG_CD_385=0;
+	DRG_CD_387=0;
+	DRG_CD_388=0;
 	DRG_CD_390=0;
-	DRG_CD_442=0;
+	DRG_CD_441=0;
 	DRG_CD_443=0;
+	DRG_CD_453=0;
 	DRG_CD_454=0;
 	DRG_CD_455=0;
-	DRG_CD_460=0;
-	DRG_CD_462=0;
-	DRG_CD_470=0;
+	DRG_CD_459=0;
+	DRG_CD_461=0;
+	DRG_CD_469=0;
+	DRG_CD_471=0;
 	DRG_CD_472=0;
 	DRG_CD_473=0;
-	DRG_CD_481=0;
+	DRG_CD_480=0;
 	DRG_CD_482=0;
-	DRG_CD_493=0;
+	DRG_CD_492=0;
 	DRG_CD_494=0;
+	DRG_CD_518=0;
 	DRG_CD_519=0;
-	DRG_CD_520=0;
+	DRG_CD_533=0;
 	DRG_CD_534=0;
 	DRG_CD_535=0;
-	DRG_CD_536=0;
-	DRG_CD_603=0;
-	DRG_CD_683=0;
+	DRG_CD_602=0;
+	DRG_CD_619=0;
+	DRG_CD_620=0;
+	DRG_CD_682=0;
 	DRG_CD_684=0;
-	DRG_CD_690=0;
-	DRG_CD_871=0;
+	DRG_CD_689=0;
+	DRG_CD_870=0;
 	DRG_CD_872=0;
-	APC_5193=0;
+
+	APC_5115=0;
+	APC_5192=0;
 	APC_5194=0;
-	APC_5232=0;
+	APC_5231=0;
 	APC_5432=0;
 
+	FY_2018=0;
+	FY2018_DRG_453=0;
+	FY2018_DRG_454=0;
+	FY2018_DRG_455=0;
+	FY2018_DRG_459=0;
+	FY2018_DRG_471=0;
+	FY2018_DRG_472=0;
+	FY2018_DRG_473=0;
+
+	if DRG_CODE = 061 then DRG_CD_061=1;
 	if DRG_CODE = 062 then DRG_CD_062=1;
 	if DRG_CODE = 063 then DRG_CD_063=1;
 	if DRG_CODE = 064 then DRG_CD_064=1;
-	if DRG_CODE = 065 then DRG_CD_065=1;
 	if DRG_CODE = 066 then DRG_CD_066=1;
+	if DRG_CODE = 100 then DRG_CD_100=1;
+	if DRG_CODE = 177 then DRG_CD_177=1;
 	if DRG_CODE = 178 then DRG_CD_178=1;
 	if DRG_CODE = 179 then DRG_CD_179=1;
 	if DRG_CODE = 191 then DRG_CD_191=1;
 	if DRG_CODE = 192 then DRG_CD_192=1;
 	if DRG_CODE = 193 then DRG_CD_193=1;
-	if DRG_CODE = 194 then DRG_CD_194=1;
 	if DRG_CODE = 195 then DRG_CD_195=1;
 	if DRG_CODE = 202 then DRG_CD_202=1;
 	if DRG_CODE = 203 then DRG_CD_203=1;
+	if DRG_CODE = 216 then DRG_CD_216=1;
 	if DRG_CODE = 217 then DRG_CD_217=1;
 	if DRG_CODE = 218 then DRG_CD_218=1;
 	if DRG_CODE = 219 then DRG_CD_219=1;
-	if DRG_CODE = 220 then DRG_CD_220=1;
 	if DRG_CODE = 221 then DRG_CD_221=1;
+	if DRG_CODE = 222 then DRG_CD_222=1;
 	if DRG_CODE = 223 then DRG_CD_223=1;
 	if DRG_CODE = 224 then DRG_CD_224=1;
 	if DRG_CODE = 225 then DRG_CD_225=1;
 	if DRG_CODE = 226 then DRG_CD_226=1;
-	if DRG_CODE = 227 then DRG_CD_227=1;
+	if DRG_CODE = 231 then DRG_CD_231=1;
 	if DRG_CODE = 232 then DRG_CD_232=1;
 	if DRG_CODE = 233 then DRG_CD_233=1;
 	if DRG_CODE = 234 then DRG_CD_234=1;
 	if DRG_CODE = 235 then DRG_CD_235=1;
-	if DRG_CODE = 236 then DRG_CD_236=1;
-	if DRG_CODE = 243 then DRG_CD_243=1;
+	if DRG_CODE = 242 then DRG_CD_242=1;
 	if DRG_CODE = 244 then DRG_CD_244=1;
-	if DRG_CODE = 247 then DRG_CD_247=1;
+	if DRG_CODE = 246 then DRG_CD_246=1;
 	if DRG_CODE = 248 then DRG_CD_248=1;
 	if DRG_CODE = 249 then DRG_CD_249=1;
 	if DRG_CODE = 250 then DRG_CD_250=1;
 	if DRG_CODE = 251 then DRG_CD_251=1;
 	if DRG_CODE = 266 then DRG_CD_266=1;
-	if DRG_CODE = 267 then DRG_CD_267=1;
-	if DRG_CODE = 273 then DRG_CD_273=1;
-	if DRG_CODE = 274 then DRG_CD_274=1;
 	if DRG_CODE = 281 then DRG_CD_281=1;
 	if DRG_CODE = 282 then DRG_CD_282=1;
 	if DRG_CODE = 292 then DRG_CD_292=1;
 	if DRG_CODE = 293 then DRG_CD_293=1;
-	if DRG_CODE = 309 then DRG_CD_309=1;
+	if DRG_CODE = 308 then DRG_CD_308=1;
 	if DRG_CODE = 310 then DRG_CD_310=1;
-	if DRG_CODE = 330 then DRG_CD_330=1;
+	if DRG_CODE = 329 then DRG_CD_329=1;
 	if DRG_CODE = 331 then DRG_CD_331=1;
-	if DRG_CODE = 378 then DRG_CD_378=1;
+	if DRG_CODE = 377 then DRG_CD_377=1;
 	if DRG_CODE = 379 then DRG_CD_379=1;
-	if DRG_CODE = 389 then DRG_CD_389=1;
+	if DRG_CODE = 385 then DRG_CD_385=1;
+	if DRG_CODE = 387 then DRG_CD_387=1;
+	if DRG_CODE = 388 then DRG_CD_388=1;
 	if DRG_CODE = 390 then DRG_CD_390=1;
-	if DRG_CODE = 442 then DRG_CD_442=1;
+	if DRG_CODE = 441 then DRG_CD_441=1;
 	if DRG_CODE = 443 then DRG_CD_443=1;
+	if DRG_CODE = 453 then DRG_CD_453=1;
 	if DRG_CODE = 454 then DRG_CD_454=1;
 	if DRG_CODE = 455 then DRG_CD_455=1;
-	if DRG_CODE = 460 then DRG_CD_460=1;
-	if DRG_CODE = 462 then DRG_CD_462=1;
-	if DRG_CODE = 470 then DRG_CD_470=1;
+	if DRG_CODE = 459 then DRG_CD_459=1;
+	if DRG_CODE = 461 then DRG_CD_461=1;
+	if DRG_CODE = 469 then DRG_CD_469=1;
+	if DRG_CODE = 471 then DRG_CD_471=1;
 	if DRG_CODE = 472 then DRG_CD_472=1;
 	if DRG_CODE = 473 then DRG_CD_473=1;
-	if DRG_CODE = 481 then DRG_CD_481=1;
+	if DRG_CODE = 480 then DRG_CD_480=1;
 	if DRG_CODE = 482 then DRG_CD_482=1;
-	if DRG_CODE = 493 then DRG_CD_493=1;
+	if DRG_CODE = 492 then DRG_CD_492=1;
 	if DRG_CODE = 494 then DRG_CD_494=1;
+	if DRG_CODE = 518 then DRG_CD_518=1;
 	if DRG_CODE = 519 then DRG_CD_519=1;
-	if DRG_CODE = 520 then DRG_CD_520=1;
+	if DRG_CODE = 533 then DRG_CD_533=1;
 	if DRG_CODE = 534 then DRG_CD_534=1;
 	if DRG_CODE = 535 then DRG_CD_535=1;
-	if DRG_CODE = 536 then DRG_CD_536=1;
-	if DRG_CODE = 603 then DRG_CD_603=1;
-	if DRG_CODE = 683 then DRG_CD_683=1;
+	if DRG_CODE = 602 then DRG_CD_602=1;
+	if DRG_CODE = 619 then DRG_CD_619=1;
+	if DRG_CODE = 620 then DRG_CD_620=1;
+	if DRG_CODE = 682 then DRG_CD_682=1;
 	if DRG_CODE = 684 then DRG_CD_684=1;
-	if DRG_CODE = 690 then DRG_CD_690=1;
-	if DRG_CODE = 871 then DRG_CD_871=1;
+	if DRG_CODE = 689 then DRG_CD_689=1;
+	if DRG_CODE = 870 then DRG_CD_870=1;
 	if DRG_CODE = 872 then DRG_CD_872=1;
-	if PERF_APC = 5193 then APC_5193=1;
+	*if ANCHOR_TYPE='op' and EPISODE_GROUP_NAME = 'Major joint replacement of the lower extremity' then DRG_CD_470=1;
+
+	if PERF_APC = 5115 then APC_5115=1;
+	if PERF_APC = 5192 then APC_5192=1;
 	if PERF_APC = 5194 then APC_5194=1;
-	if PERF_APC = 5232 then APC_5232=1;
+	if PERF_APC = 5231 then APC_5231=1;
 	if PERF_APC = 5432 then APC_5432=1;
+
+	if ANCHOR_END_DT >= mdy(10,1,2017) then FY_2018=1;
+	if FY_2018=1 then do;
+		if DRG_CODE = 453 then FY2018_DRG_453=1;
+		if DRG_CODE = 454 then FY2018_DRG_454=1;
+		if DRG_CODE = 455 then FY2018_DRG_455=1;
+		if DRG_CODE = 459 then FY2018_DRG_459=1;
+		if DRG_CODE = 471 then FY2018_DRG_471=1;
+		if DRG_CODE = 472 then FY2018_DRG_472=1;
+		if DRG_CODE = 473 then FY2018_DRG_473=1;
+	end;
 
 	HCC_CNT = sum(of HCC1 -- HCC189);
 	HCC_CNT_1_3=0;
 	HCC_CNT_4_6=0;
 	HCC_CNT_7_PLUS=0;
+	HCC_CNT_4_6_HCC_CNT_7_PLUS=0;
 	if HCC_CNT > 0 then do;
 		if HCC_CNT <= 3 then HCC_CNT_1_3=1;
 		else if HCC_CNT <= 6 then HCC_CNT_4_6=1;
 		else if HCC_CNT >= 7 then HCC_CNT_7_PLUS=1;
+		if HCC_CNT >= 4 then HCC_CNT_4_6_HCC_CNT_7_PLUS=1;
 	end; 
 
 
@@ -1270,9 +1398,10 @@ Pred_Price = (N1_P1 * EXP(
 		  (BENE_AGE-50) * N1_Age_50
 		+ (BENE_AGE-50) * (BENE_AGE-50) * N1_Age_50_SQ
 		+ ANY_DUAL * N1_ANY_DUAL
-		+ APC_5193 * N1_APC_5193
+		+ APC_5115 * N1_APC_5115
+		+ APC_5192 * N1_APC_5192
 		+ APC_5194 * N1_APC_5194
-		+ APC_5232 * N1_APC_5232
+		+ APC_5231 * N1_APC_5231
 		+ APC_5432 * N1_APC_5432
 		+ CANCER_IMMUNE * N1_CANCER_IMMUNE
 		+ CHF_COPD * N1_CHF_COPD
@@ -1286,86 +1415,99 @@ Pred_Price = (N1_P1 * EXP(
 		+ DISABLED_HCC54 * N1_DISABLED_HCC54
 		+ DISABLED_HCC55 * N1_DISABLED_HCC55
 		+ DISABLED_HCC6 * N1_DISABLED_HCC6
+		+ DRG_CD_061 * N1_DRG_CD_061
 		+ DRG_CD_062 * N1_DRG_CD_062
 		+ DRG_CD_063 * N1_DRG_CD_063
 		+ DRG_CD_064 * N1_DRG_CD_064
-		+ DRG_CD_065 * N1_DRG_CD_065
 		+ DRG_CD_066 * N1_DRG_CD_066
+		+ DRG_CD_100 * N1_DRG_CD_100
+		+ DRG_CD_177 * N1_DRG_CD_177
 		+ DRG_CD_178 * N1_DRG_CD_178
 		+ DRG_CD_179 * N1_DRG_CD_179
 		+ DRG_CD_191 * N1_DRG_CD_191
 		+ DRG_CD_192 * N1_DRG_CD_192
 		+ DRG_CD_193 * N1_DRG_CD_193
-		+ DRG_CD_194 * N1_DRG_CD_194
 		+ DRG_CD_195 * N1_DRG_CD_195
 		+ DRG_CD_202 * N1_DRG_CD_202
 		+ DRG_CD_203 * N1_DRG_CD_203
+		+ DRG_CD_216 * N1_DRG_CD_216
 		+ DRG_CD_217 * N1_DRG_CD_217
 		+ DRG_CD_218 * N1_DRG_CD_218
 		+ DRG_CD_219 * N1_DRG_CD_219
-		+ DRG_CD_220 * N1_DRG_CD_220
 		+ DRG_CD_221 * N1_DRG_CD_221
+		+ DRG_CD_222 * N1_DRG_CD_222
 		+ DRG_CD_223 * N1_DRG_CD_223
 		+ DRG_CD_224 * N1_DRG_CD_224
 		+ DRG_CD_225 * N1_DRG_CD_225
 		+ DRG_CD_226 * N1_DRG_CD_226
-		+ DRG_CD_227 * N1_DRG_CD_227
+		+ DRG_CD_231 * N1_DRG_CD_231
 		+ DRG_CD_232 * N1_DRG_CD_232
 		+ DRG_CD_233 * N1_DRG_CD_233
 		+ DRG_CD_234 * N1_DRG_CD_234
 		+ DRG_CD_235 * N1_DRG_CD_235
-		+ DRG_CD_236 * N1_DRG_CD_236
-		+ DRG_CD_243 * N1_DRG_CD_243
+		+ DRG_CD_242 * N1_DRG_CD_242
 		+ DRG_CD_244 * N1_DRG_CD_244
-		+ DRG_CD_247 * N1_DRG_CD_247
+		+ DRG_CD_246 * N1_DRG_CD_246
 		+ DRG_CD_248 * N1_DRG_CD_248
 		+ DRG_CD_249 * N1_DRG_CD_249
 		+ DRG_CD_250 * N1_DRG_CD_250
 		+ DRG_CD_251 * N1_DRG_CD_251
 		+ DRG_CD_266 * N1_DRG_CD_266
-		+ DRG_CD_267 * N1_DRG_CD_267
-		+ DRG_CD_273 * N1_DRG_CD_273
-		+ DRG_CD_274 * N1_DRG_CD_274
 		+ DRG_CD_281 * N1_DRG_CD_281
 		+ DRG_CD_282 * N1_DRG_CD_282
 		+ DRG_CD_292 * N1_DRG_CD_292
 		+ DRG_CD_293 * N1_DRG_CD_293
-		+ DRG_CD_309 * N1_DRG_CD_309
+		+ DRG_CD_308 * N1_DRG_CD_308
 		+ DRG_CD_310 * N1_DRG_CD_310
-		+ DRG_CD_330 * N1_DRG_CD_330
+		+ DRG_CD_329 * N1_DRG_CD_329
 		+ DRG_CD_331 * N1_DRG_CD_331
-		+ DRG_CD_378 * N1_DRG_CD_378
+		+ DRG_CD_377 * N1_DRG_CD_377
 		+ DRG_CD_379 * N1_DRG_CD_379
-		+ DRG_CD_389 * N1_DRG_CD_389
+		+ DRG_CD_385 * N1_DRG_CD_385
+		+ DRG_CD_387 * N1_DRG_CD_387
+		+ DRG_CD_388 * N1_DRG_CD_388
 		+ DRG_CD_390 * N1_DRG_CD_390
-		+ DRG_CD_442 * N1_DRG_CD_442
+		+ DRG_CD_441 * N1_DRG_CD_441
 		+ DRG_CD_443 * N1_DRG_CD_443
+		+ DRG_CD_453 * N1_DRG_CD_453
 		+ DRG_CD_454 * N1_DRG_CD_454
 		+ DRG_CD_455 * N1_DRG_CD_455
-		+ DRG_CD_460 * N1_DRG_CD_460
-		+ DRG_CD_462 * N1_DRG_CD_462
-		+ DRG_CD_470 * N1_DRG_CD_470
+		+ DRG_CD_459 * N1_DRG_CD_459
+		+ DRG_CD_461 * N1_DRG_CD_461
+		+ DRG_CD_469 * N1_DRG_CD_469
+		+ DRG_CD_471 * N1_DRG_CD_471
 		+ DRG_CD_472 * N1_DRG_CD_472
 		+ DRG_CD_473 * N1_DRG_CD_473
-		+ DRG_CD_481 * N1_DRG_CD_481
+		+ DRG_CD_480 * N1_DRG_CD_480
 		+ DRG_CD_482 * N1_DRG_CD_482
-		+ DRG_CD_493 * N1_DRG_CD_493
+		+ DRG_CD_492 * N1_DRG_CD_492
 		+ DRG_CD_494 * N1_DRG_CD_494
+		+ DRG_CD_518 * N1_DRG_CD_518
 		+ DRG_CD_519 * N1_DRG_CD_519
-		+ DRG_CD_520 * N1_DRG_CD_520
+		+ DRG_CD_533 * N1_DRG_CD_533
 		+ DRG_CD_534 * N1_DRG_CD_534
 		+ DRG_CD_535 * N1_DRG_CD_535
-		+ DRG_CD_536 * N1_DRG_CD_536
-		+ DRG_CD_603 * N1_DRG_CD_603
-		+ DRG_CD_683 * N1_DRG_CD_683
+		+ DRG_CD_602 * N1_DRG_CD_602
+		+ DRG_CD_619 * N1_DRG_CD_619
+		+ DRG_CD_620 * N1_DRG_CD_620
+		+ DRG_CD_682 * N1_DRG_CD_682
 		+ DRG_CD_684 * N1_DRG_CD_684
-		+ DRG_CD_690 * N1_DRG_CD_690
-		+ DRG_CD_871 * N1_DRG_CD_871
+		+ DRG_CD_689 * N1_DRG_CD_689
+		+ DRG_CD_870 * N1_DRG_CD_870
 		+ DRG_CD_872 * N1_DRG_CD_872
 		+ FRACTURE_FLAG * N1_FRACTURE_FLAG
+		+ FY_2018 * N1_FY_2018
+		+ FY2018_DRG_453 * N1_FY2018_DRG_453
+		+ FY2018_DRG_454 * N1_FY2018_DRG_454
+		+ FY2018_DRG_455 * N1_FY2018_DRG_455
+		+ FY2018_DRG_459 * N1_FY2018_DRG_459
+		+ FY2018_DRG_471 * N1_FY2018_DRG_471
+		+ FY2018_DRG_472 * N1_FY2018_DRG_472
+		+ FY2018_DRG_473 * N1_FY2018_DRG_473
 		+ HCC_CNT_1_3 * N1_HCC_CNT_1_3
 		+ HCC_CNT_4_6 * N1_HCC_CNT_4_6
 		+ HCC_CNT_7_PLUS * N1_HCC_CNT_7_PLUS
+		+ HCC_CNT_4_6_HCC_CNT_7_PLUS * N1_HCC_CNT_4_6_HCC_CNT_7_PLUS
 		+ HCC1 * N1_HCC1
 		+ HCC10 * N1_HCC10
 		+ HCC100 * N1_HCC100
@@ -1445,12 +1587,16 @@ Pred_Price = (N1_P1 * EXP(
 		+ HCC9 * N1_HCC9
 		+ HCC96 * N1_HCC96
 		+ HCC99 * N1_HCC99
+		+ HEM_STROKE_FLAG * N1_HEM_STROKE_FLAG
+		+ IBD_FISTULA_FLAG * N1_IBD_FISTULA_FLAG
+		+ IBD_UC_FLAG * N1_IBD_UC_FLAG
+		+ KNEE_ARTHRO_FLAG * N1_KNEE_ARTHRO_FLAG
+		+ KNEE_ARTHRO_FRACTURE_FLAG * N1_KNEE_ARTHRO_FRACTURE_FLAG
 		+ LTI * N1_LTI
 		+ ORIGDS * N1_ORIGDS
-		+ PRIOR_HOSP_W_ANY_IP_FLAG_90 * N1_PRIOR_HOSP_W_ANY_IP_FLAG_90
+		+ PRIOR_HOSP_W_NON_PAC_IP_FLAG_90 * N1_PRIOR_HOSP_W_NON_PAC_IP_FLAG
+		+ PRIOR_PAC_FLAG * N1_PRIOR_PAC_FLAG
 		+ SEPSIS_CARD_RESP_FAIL * N1_SEPSIS_CARD_RESP_FAIL
-		+ TKA_FLAG * N1_TKA_FLAG
-		+ TKA_FRACTURE_FLAG * N1_TKA_FRACTURE_FLAG
 		+ N1_INTERCEPT
 		+ (N1_SIGMA1*N1_SIGMA1)/2 
 		))
@@ -1459,9 +1605,10 @@ Pred_Price = (N1_P1 * EXP(
 		  (BENE_AGE-50) * N2_Age_50
 		+ (BENE_AGE-50) * (BENE_AGE-50) * N2_Age_50_SQ
 		+ ANY_DUAL * N2_ANY_DUAL
-		+ APC_5193 * N2_APC_5193
+		+ APC_5115 * N2_APC_5115
+		+ APC_5192 * N2_APC_5192
 		+ APC_5194 * N2_APC_5194
-		+ APC_5232 * N2_APC_5232
+		+ APC_5231 * N2_APC_5231
 		+ APC_5432 * N2_APC_5432
 		+ CANCER_IMMUNE * N2_CANCER_IMMUNE
 		+ CHF_COPD * N2_CHF_COPD
@@ -1475,86 +1622,99 @@ Pred_Price = (N1_P1 * EXP(
 		+ DISABLED_HCC54 * N2_DISABLED_HCC54
 		+ DISABLED_HCC55 * N2_DISABLED_HCC55
 		+ DISABLED_HCC6 * N2_DISABLED_HCC6
+		+ DRG_CD_061 * N2_DRG_CD_061
 		+ DRG_CD_062 * N2_DRG_CD_062
 		+ DRG_CD_063 * N2_DRG_CD_063
 		+ DRG_CD_064 * N2_DRG_CD_064
-		+ DRG_CD_065 * N2_DRG_CD_065
 		+ DRG_CD_066 * N2_DRG_CD_066
+		+ DRG_CD_100 * N2_DRG_CD_100
+		+ DRG_CD_177 * N2_DRG_CD_177
 		+ DRG_CD_178 * N2_DRG_CD_178
 		+ DRG_CD_179 * N2_DRG_CD_179
 		+ DRG_CD_191 * N2_DRG_CD_191
 		+ DRG_CD_192 * N2_DRG_CD_192
 		+ DRG_CD_193 * N2_DRG_CD_193
-		+ DRG_CD_194 * N2_DRG_CD_194
 		+ DRG_CD_195 * N2_DRG_CD_195
 		+ DRG_CD_202 * N2_DRG_CD_202
 		+ DRG_CD_203 * N2_DRG_CD_203
+		+ DRG_CD_216 * N2_DRG_CD_216
 		+ DRG_CD_217 * N2_DRG_CD_217
 		+ DRG_CD_218 * N2_DRG_CD_218
 		+ DRG_CD_219 * N2_DRG_CD_219
-		+ DRG_CD_220 * N2_DRG_CD_220
 		+ DRG_CD_221 * N2_DRG_CD_221
+		+ DRG_CD_222 * N2_DRG_CD_222
 		+ DRG_CD_223 * N2_DRG_CD_223
 		+ DRG_CD_224 * N2_DRG_CD_224
 		+ DRG_CD_225 * N2_DRG_CD_225
 		+ DRG_CD_226 * N2_DRG_CD_226
-		+ DRG_CD_227 * N2_DRG_CD_227
+		+ DRG_CD_231 * N2_DRG_CD_231
 		+ DRG_CD_232 * N2_DRG_CD_232
 		+ DRG_CD_233 * N2_DRG_CD_233
 		+ DRG_CD_234 * N2_DRG_CD_234
 		+ DRG_CD_235 * N2_DRG_CD_235
-		+ DRG_CD_236 * N2_DRG_CD_236
-		+ DRG_CD_243 * N2_DRG_CD_243
+		+ DRG_CD_242 * N2_DRG_CD_242
 		+ DRG_CD_244 * N2_DRG_CD_244
-		+ DRG_CD_247 * N2_DRG_CD_247
+		+ DRG_CD_246 * N2_DRG_CD_246
 		+ DRG_CD_248 * N2_DRG_CD_248
 		+ DRG_CD_249 * N2_DRG_CD_249
 		+ DRG_CD_250 * N2_DRG_CD_250
 		+ DRG_CD_251 * N2_DRG_CD_251
 		+ DRG_CD_266 * N2_DRG_CD_266
-		+ DRG_CD_267 * N2_DRG_CD_267
-		+ DRG_CD_273 * N2_DRG_CD_273
-		+ DRG_CD_274 * N2_DRG_CD_274
 		+ DRG_CD_281 * N2_DRG_CD_281
 		+ DRG_CD_282 * N2_DRG_CD_282
 		+ DRG_CD_292 * N2_DRG_CD_292
 		+ DRG_CD_293 * N2_DRG_CD_293
-		+ DRG_CD_309 * N2_DRG_CD_309
+		+ DRG_CD_308 * N2_DRG_CD_308
 		+ DRG_CD_310 * N2_DRG_CD_310
-		+ DRG_CD_330 * N2_DRG_CD_330
+		+ DRG_CD_329 * N2_DRG_CD_329
 		+ DRG_CD_331 * N2_DRG_CD_331
-		+ DRG_CD_378 * N2_DRG_CD_378
+		+ DRG_CD_377 * N2_DRG_CD_377
 		+ DRG_CD_379 * N2_DRG_CD_379
-		+ DRG_CD_389 * N2_DRG_CD_389
+		+ DRG_CD_385 * N2_DRG_CD_385
+		+ DRG_CD_387 * N2_DRG_CD_387
+		+ DRG_CD_388 * N2_DRG_CD_388
 		+ DRG_CD_390 * N2_DRG_CD_390
-		+ DRG_CD_442 * N2_DRG_CD_442
+		+ DRG_CD_441 * N2_DRG_CD_441
 		+ DRG_CD_443 * N2_DRG_CD_443
+		+ DRG_CD_453 * N2_DRG_CD_453
 		+ DRG_CD_454 * N2_DRG_CD_454
 		+ DRG_CD_455 * N2_DRG_CD_455
-		+ DRG_CD_460 * N2_DRG_CD_460
-		+ DRG_CD_462 * N2_DRG_CD_462
-		+ DRG_CD_470 * N2_DRG_CD_470
+		+ DRG_CD_459 * N2_DRG_CD_459
+		+ DRG_CD_461 * N2_DRG_CD_461
+		+ DRG_CD_469 * N2_DRG_CD_469
+		+ DRG_CD_471 * N2_DRG_CD_471
 		+ DRG_CD_472 * N2_DRG_CD_472
 		+ DRG_CD_473 * N2_DRG_CD_473
-		+ DRG_CD_481 * N2_DRG_CD_481
+		+ DRG_CD_480 * N2_DRG_CD_480
 		+ DRG_CD_482 * N2_DRG_CD_482
-		+ DRG_CD_493 * N2_DRG_CD_493
+		+ DRG_CD_492 * N2_DRG_CD_492
 		+ DRG_CD_494 * N2_DRG_CD_494
+		+ DRG_CD_518 * N2_DRG_CD_518
 		+ DRG_CD_519 * N2_DRG_CD_519
-		+ DRG_CD_520 * N2_DRG_CD_520
+		+ DRG_CD_533 * N2_DRG_CD_533
 		+ DRG_CD_534 * N2_DRG_CD_534
 		+ DRG_CD_535 * N2_DRG_CD_535
-		+ DRG_CD_536 * N2_DRG_CD_536
-		+ DRG_CD_603 * N2_DRG_CD_603
-		+ DRG_CD_683 * N2_DRG_CD_683
+		+ DRG_CD_602 * N2_DRG_CD_602
+		+ DRG_CD_619 * N2_DRG_CD_619
+		+ DRG_CD_620 * N2_DRG_CD_620
+		+ DRG_CD_682 * N2_DRG_CD_682
 		+ DRG_CD_684 * N2_DRG_CD_684
-		+ DRG_CD_690 * N2_DRG_CD_690
-		+ DRG_CD_871 * N2_DRG_CD_871
+		+ DRG_CD_689 * N2_DRG_CD_689
+		+ DRG_CD_870 * N2_DRG_CD_870
 		+ DRG_CD_872 * N2_DRG_CD_872
 		+ FRACTURE_FLAG * N2_FRACTURE_FLAG
+		+ FY_2018 * N2_FY_2018
+		+ FY2018_DRG_453 * N2_FY2018_DRG_453
+		+ FY2018_DRG_454 * N2_FY2018_DRG_454
+		+ FY2018_DRG_455 * N2_FY2018_DRG_455
+		+ FY2018_DRG_459 * N2_FY2018_DRG_459
+		+ FY2018_DRG_471 * N2_FY2018_DRG_471
+		+ FY2018_DRG_472 * N2_FY2018_DRG_472
+		+ FY2018_DRG_473 * N2_FY2018_DRG_473
 		+ HCC_CNT_1_3 * N2_HCC_CNT_1_3
 		+ HCC_CNT_4_6 * N2_HCC_CNT_4_6
 		+ HCC_CNT_7_PLUS * N2_HCC_CNT_7_PLUS
+		+ HCC_CNT_4_6_HCC_CNT_7_PLUS * N2_HCC_CNT_4_6_HCC_CNT_7_PLUS
 		+ HCC1 * N2_HCC1
 		+ HCC10 * N2_HCC10
 		+ HCC100 * N2_HCC100
@@ -1634,12 +1794,16 @@ Pred_Price = (N1_P1 * EXP(
 		+ HCC9 * N2_HCC9
 		+ HCC96 * N2_HCC96
 		+ HCC99 * N2_HCC99
+		+ HEM_STROKE_FLAG * N2_HEM_STROKE_FLAG
+		+ IBD_FISTULA_FLAG * N2_IBD_FISTULA_FLAG
+		+ IBD_UC_FLAG * N2_IBD_UC_FLAG
+		+ KNEE_ARTHRO_FLAG * N2_KNEE_ARTHRO_FLAG
+		+ KNEE_ARTHRO_FRACTURE_FLAG * N2_KNEE_ARTHRO_FRACTURE_FLAG
 		+ LTI * N2_LTI
 		+ ORIGDS * N2_ORIGDS
-		+ PRIOR_HOSP_W_ANY_IP_FLAG_90 * N2_PRIOR_HOSP_W_ANY_IP_FLAG_90
+		+ PRIOR_HOSP_W_NON_PAC_IP_FLAG_90 * N2_PRIOR_HOSP_W_NON_PAC_IP_FLAG
+		+ PRIOR_PAC_FLAG * N2_PRIOR_PAC_FLAG
 		+ SEPSIS_CARD_RESP_FAIL * N2_SEPSIS_CARD_RESP_FAIL
-		+ TKA_FLAG * N2_TKA_FLAG
-		+ TKA_FRACTURE_FLAG * N2_TKA_FRACTURE_FLAG
 		+ N2_INTERCEPT
 		+ (N2_SIGMA2*N2_SIGMA2)/2 
 		))
@@ -1651,8 +1815,8 @@ data temp6;
 run;
 
 data tp_components_original;
-	set tp.TP_Components_all;
-	where time_period = 'Baseline';
+	set tp.TP_Components_MY3_all;
+	where time_period = 'Baseline MY3';
 	format ccn_join $6.;
 	ccn_join = ASSOC_ACH_CCN;
 	if ccn_join = '' then ccn_join = CCN_TIN;
@@ -1676,11 +1840,11 @@ quit;
 data t1;
 	set temp7 (rename=(PCMA=PCMA_ROUND PAYMENT_RATIO=PAYMENT_RATIO_ROUND PAT=PAT_ROUND));
 
-	PAT = PAT_2019Q3;
-	if PAT=. then PAT=PAT_ROUND;
+	PAT = PAT_2020Q3;
 	PAYMENT_RATIO = TARGET_PRICE_REAL / TARGET_PRICE;
-	PCMA = HBP / PAT / SBS;
-	if HBP = . then PCMA = PGP_ACH_BNCHMRK / PAT / SBS;
+	*PCMA = HBP / PAT / SBS / PAT_Historical_Adj;
+	*if HBP = . then PCMA = PGP_ACH_BNCHMRK / PAT / SBS / PAT_Historical_Adj;
+	PCMA = PCMA_ROUND;
 
 	PCMA_Adj = Pred_Price/Amt;
 	if length(compress(EPISODE_INITIATOR)) > 6 then do;
@@ -1699,74 +1863,13 @@ run;
 
 proc sql;
 	create table t3 as
-	select a.*, coalesce(b.PERFORMANCE_PERIOD_EPI,0) as PERFORMANCE_PERIOD_EPI
+	select a.*, coalesce(b.PERFORMANCE_PERIOD_EPI,1) as PERFORMANCE_PERIOD_EPI
 	from t1 as a left join t2 as b
 	on a.BPID=b.BPID and a.ANCHOR_TYPE=b.ANCHOR_TYPE and a.EPISODE_GROUP_NAME=b.EPISODE_GROUP_NAME;
 quit;
-
-***** Natural Disaster Exclusion *****;
-proc sql;
-	create table disaster as
-	select distinct a.*, b.state, b.county
-	from t3 as a left join genref.ccn_statecounty as b
-	on a.anc_ccn = b.ccn;
-quit;
-
-proc sql;
-	create table disaster2 as
-	select distinct a.*, 
-	 b.Disaster_Number as NATURAL_DISASTER_MONTHLY_NUM
-	from disaster as a left join cjrref.disasterarealist_Milliman as b
-	on sum(b.incident_start_date,-29) <= a.anchor_beg_dt <= sum(b.incident_end_date,29)
-	and a.state = b.state
-	and a.county = strip(b.county)
-		;
-quit;
-
-data t4;
-	set disaster2;
-	format NATURAL_DISASTER_MONTHLY $3.;
-
-	if NATURAL_DISASTER_MONTHLY_NUM>0 then do;
-		NATURAL_DISASTER_MONTHLY='Yes';
-%if &label. ^= ybase %then %do ;
-		if EPI_STD_PMT_FCTR_WIN_1_99>TARGET_PRICE then do;
-			EPI_STD_PMT_FCTR_WIN_1_99=0;
-			TP_Adj=0;
-		end;
-%end ;
-	end;
-	else NATURAL_DISASTER_MONTHLY='No';
-run;
-
-proc sql;
-create table t5 as 
-	select a.*
-		  ,b.BPCI_Episode_Idx
- /* from out2.tp_pp1Initial_1148_0000 AS A */
- from t4 AS A 
-	left join bpciaref.BPCIA_DRG_Mapping as b
-	on a.ANCHOR_CODE = b.code
-;
-quit;
-
-proc sql;
-create table t6 as
-  select a.*
-          ,b.Clinical_Episode
-		  ,b.Short_name as clinical_episode_abbr
-		  ,b.Short_name_2 as clinical_episode_abbr2
-		  ,strip(BPID)||" - "||strip(b.Short_name) as BPID_ClinicalEp
-	from t5 as a
-	left join bpciaref.BPCIA_Clinical_Episode_Names as b
-	on a.BPCI_Episode_Idx = b.BPCI_Episode_Index
-;
-quit;
-
- 
-
+	 
 data out.tp_&label._&bpid1._&bpid2.;
-	set t6 (rename=(anchor_ccn=anchor_ccn_orig EPI_STD_PMT_FCTR_WIN_1_99=EPI_STD_PMT_FCTR_WIN_1_99_orig)) ;
+	set t3 (rename=(anchor_ccn=anchor_ccn_orig EPI_STD_PMT_FCTR_WIN_1_99=EPI_STD_PMT_FCTR_WIN_1_99_orig)) ;
 	format HAS_TP PERFORMANCE_PERIOD $3.;
 
 	PGP_Offset_Amt_Real=0;
@@ -1782,16 +1885,16 @@ data out.tp_&label._&bpid1._&bpid2.;
 
 	Adjusted_TP_Real = TP_Adj * PAYMENT_RATIO;
 
-	%if &label. = ybase %then %do;
-		if EPI_SPEND_Original ^= 0 then EPI_STD_PMT_FCTR_WIN_1_99 = EPI_STD_PMT_FCTR_WIN_1_99_orig * EPI_SPEND / EPI_SPEND_Original;
-		EPI_STD_PMT_FCTR_WIN_1_99_Real = EPI_STD_PMT_FCTR_WIN_1_99 * PAYMENT_RATIO;
-	%end;
-	%else %do;
+/*	%if &label. = ybase %then %do;*/
+/*		if EPI_SPEND_Original ^= 0 then EPI_STD_PMT_FCTR_WIN_1_99 = EPI_STD_PMT_FCTR_WIN_1_99_orig * EPI_SPEND / EPI_SPEND_Original;*/
+/*		EPI_STD_PMT_FCTR_WIN_1_99_Real = EPI_STD_PMT_FCTR_WIN_1_99 * PAYMENT_RATIO;*/
+/*	%end;*/
+/*	%else %do;*/
 		EPI_STD_PMT_FCTR_WIN_1_99=EPI_STD_PMT_FCTR_WIN_1_99_orig;
-		if EPI_DROPPED_FLAG = 0 then EPI_STD_PMT_FCTR_WIN_1_99_Real = EPI_STD_PMT_FCTR_WIN_1_99 * PAYMENT_RATIO;
-		else EPI_STD_PMT_FCTR_WIN_1_99_Real = .;
-	%end;
-	*EPI_STD_PMT_FCTR_WIN_1_99_Real = EPI_STD_PMT_FCTR_WIN_1_99 * PAYMENT_RATIO;
+/*		if EPI_DROPPED_FLAG = 0 then EPI_STD_PMT_FCTR_WIN_1_99_Real = EPI_STD_PMT_FCTR_WIN_1_99 * PAYMENT_RATIO;*/
+/*		else EPI_STD_PMT_FCTR_WIN_1_99_Real = .;*/
+/*	%end;*/
+	EPI_STD_PMT_FCTR_WIN_1_99_Real = EPI_STD_PMT_FCTR_WIN_1_99 * PAYMENT_RATIO;
 
 	PAT_Adj = PAT_New;
 
@@ -1812,17 +1915,18 @@ data out.tp_&label._&bpid1._&bpid2.;
 run;
 
 data out2.tp_&label._&bpid1._&bpid2.;
-	set out.tp_&label._&bpid1._&bpid2. (rename=(ORIGDS=ORIGDS_orig LTI=LTI_orig FRACTURE_FLAG=FRACTURE_FLAG_orig ANY_DUAL=ANY_DUAL_orig TKA_FLAG=TKA_FLAG_orig PRIOR_HOSP_W_ANY_IP_FLAG_90=PRIOR_HOSP_W_ANY_IP_FLAG_90_orig
+	set out.tp_&label._&bpid1._&bpid2. (rename=(ORIGDS=ORIGDS_orig LTI=LTI_orig FRACTURE_FLAG=FRACTURE_FLAG_orig ANY_DUAL=ANY_DUAL_orig KNEE_ARTHRO_FLAG=KNEE_ARTHRO_FLAG_orig PRIOR_HOSP_W_NON_PAC_IP_FLAG_90=PRIOR_HOSP_W_NON_PAC_IP_FLAG_ori PRIOR_PAC_FLAG=PRIOR_PAC_FLAG_orig
 											HCC18=HCC18_orig HCC19=HCC19_orig HCC40=HCC40_orig HCC58=HCC58_orig HCC84=HCC84_orig HCC85=HCC85_orig HCC86=HCC86_orig HCC88=HCC88_orig HCC96=HCC96_orig HCC108=HCC108_orig HCC111=HCC111_orig));
-	format ORIGDS LTI FRACTURE_FLAG ANY_DUAL TKA_FLAG PRIOR_HOSP_W_ANY_IP_FLAG_90 
+	format ORIGDS LTI FRACTURE_FLAG ANY_DUAL KNEE_ARTHRO_FLAG PRIOR_HOSP_W_NON_PAC_IP_FLAG_90 
 			 HCC18 HCC19 HCC40 HCC58 HCC84 HCC85 HCC86 HCC88 HCC96 HCC108 HCC111 $3. HCC_COUNT $6. ;
 
 	if ORIGDS_orig=1 then ORIGDS='Yes'; else ORIGDS='No';
 	if LTI_orig=1 then LTI='Yes'; else LTI='No';
 	if FRACTURE_FLAG_orig=1 then FRACTURE_FLAG='Yes'; else FRACTURE_FLAG='No';
 	if ANY_DUAL_orig=1 then ANY_DUAL='Yes'; else ANY_DUAL='No';
-	if TKA_FLAG_orig=1 then TKA_FLAG='Yes'; else TKA_FLAG='No';
-	if PRIOR_HOSP_W_ANY_IP_FLAG_90_orig=1 then PRIOR_HOSP_W_ANY_IP_FLAG_90='Yes'; else PRIOR_HOSP_W_ANY_IP_FLAG_90='No';
+	if KNEE_ARTHRO_FLAG_orig=1 then KNEE_ARTHRO_FLAG='Yes'; else KNEE_ARTHRO_FLAG='No';
+	if PRIOR_HOSP_W_NON_PAC_IP_FLAG_ori=1 then PRIOR_HOSP_W_NON_PAC_IP_FLAG_90='Yes'; else PRIOR_HOSP_W_NON_PAC_IP_FLAG_90='No';
+	if PRIOR_PAC_FLAG_orig=1 then PRIOR_PAC_FLAG='Yes'; else PRIOR_PAC_FLAG='No';
 
 	if HCC_CNT=0 then HCC_COUNT='0';
 	else if HCC_CNT<=3 then HCC_COUNT='1 to 3';
@@ -1843,136 +1947,249 @@ data out2.tp_&label._&bpid1._&bpid2.;
 
 
 	keep BPID EPI_ID_MILLIMAN EPISODE_ID EPISODE_INITIATOR EPISODE_GROUP_NAME ANCHOR_TYPE ANCHOR_CODE ANCHOR_CCN
-		 DRG_CODE PERF_APC ORIGDS LTI FRACTURE_FLAG ANY_DUAL TKA_FLAG TKA_FRACTURE_FLAG PRIOR_HOSP_W_ANY_IP_FLAG_90
+		 DRG_CODE PERF_APC ORIGDS LTI FRACTURE_FLAG ANY_DUAL KNEE_ARTHRO_FLAG KNEE_ARTHRO_FRACTURE_FLAG PRIOR_HOSP_W_NON_PAC_IP_FLAG_90 PRIOR_PAC_FLAG
 		 EPI_STD_PMT_FCTR_WIN_1_99_Real Adjusted_TP_Real Discount_Real PGP_Offset_Amt_Real PAT_Amt_Real 
 		 PAT PAT_Adj PCMA PCMA_Adj PGP_ACH_PCMA PGP_PCMA_Adj CASE_MIX PGP_ACH_Ratio PGP_Offset PGP_Offset_Adj PAYMENT_RATIO 
 		 HAS_TP PERFORMANCE_PERIOD
 		 HCC_COUNT HCC18 HCC19 HCC40 HCC58 HCC84 HCC85 HCC86 HCC88 HCC96 HCC108 HCC111
-		 NATURAL_DISASTER_MONTHLY
 		;
 run;
 
 
 %mend;
 
-*****For Development*****;
 /*
-%runhosp(1148_0000,1148_0000,1148,0000,310008);
-%runhosp(1167_0000,1167_0000,1167,0000,390173);
-%runhosp(1343_0000,1343_0000,1343,0000,232856880);
-%runhosp(1368_0000,1368_0000,1368,0000,390049);
-%runhosp(2379_0000,2379_0000,2379,0000,310060);
-%runhosp(2587_0000,2587_0000,2587,0000,310014);
-%runhosp(2607_0000,2607_0000,2607,0000,223700669);
-%runhosp(1931_0001,5479_0001,5479,0002,310051);
-*/
-
-*%runhosp(1125_0000,1125_0000,1125,0000,070025); /* Removed 2/24/2020 by Shashi Parmar */
-%runhosp(1148_0000,1148_0000,1148,0000,310008);
-%runhosp(1167_0000,1167_0000,1167,0000,390173);
-%runhosp(1209_0000,1209_0000,1209,0000,420004);
-%runhosp(1343_0000,1343_0000,1343,0000,232856880);
-%runhosp(1368_0000,1368_0000,1368,0000,390049);
-%runhosp(1374_0001,1374_0001,1374,0004,420078);
-%runhosp(1374_0001,1374_0001,1374,0008,420018);
-%runhosp(1374_0001,1374_0001,1374,0009,420086);
-%runhosp(1686_0001,1686_0001,1686,0002,752661095);
-%runhosp(1688_0001,1688_0001,1688,0002,310588183);
-%runhosp(1696_0001,1696_0001,1696,0002,571141121);
-%runhosp(1710_0001,1710_0001,1710,0002,560963485);
-%runhosp(1958_0000,1958_0000,1958,0000,390183);
-%runhosp(2070_0000,2070_0000,2070,0000,100084);
-%runhosp(2374_0000,2374_0000,2374,0000,390326);
-%runhosp(2376_0000,2376_0000,2376,0000,390035);
-%runhosp(2378_0000,2378_0000,2378,0000,390197);
-%runhosp(2379_0000,2379_0000,2379,0000,310060);
-%runhosp(2586_0001,2586_0001,2586,0002,360027);
-%runhosp(2586_0001,2586_0001,2586,0003,360364);
-%runhosp(2586_0001,2586_0001,2586,0004,100289);
-%runhosp(2586_0001,2586_0001,2586,0005,360082);
-%runhosp(2586_0001,2586_0001,2586,0006,360077);
-%runhosp(2586_0001,2586_0001,2586,0007,360230);
-%runhosp(1075_0000,1075_0000,1075,0000,360133);
-%runhosp(2586_0001,2586_0001,2586,0009,360087);
-%runhosp(2586_0001,2586_0001,2586,0010,360143);
-%runhosp(2586_0001,2586_0001,2586,0011,360091);
-%runhosp(2586_0001,2586_0001,2586,0012,360144);
-%runhosp(5746_0001,5746_0001,5746,0002,100007);
-%runhosp(2586_0001,2586_0001,2586,0013,360180);
-%runhosp(2586_0001,2586_0001,2586,0014,360010);
-%runhosp(2586_0001,2586_0001,2586,0015,650003177);
-%runhosp(2586_0001,2586_0001,2586,0016,340714585);
-%runhosp(2586_0001,2586_0001,2586,0017,341855775);
-%runhosp(2586_0001,2586_0001,2586,0020,341843403);
-%runhosp(2586_0001,2586_0001,2586,0021,113837554);
-%runhosp(2586_0001,2586_0001,2586,0023,800410599);
-%runhosp(2594_0000,2594_0000,2594,0000,070035);
-%runhosp(2048_0000,2048_0000,2048,0000,360079);
-%runhosp(2049_0000,2049_0000,2049,0000,360239);
-%runhosp(2607_0000,2607_0000,2607,0000,223700669);
-%runhosp(5038_0000,5038_0000,5038,0000,080007);
-%runhosp(5050_0000,5050_0000,5050,0000,390194);
-%runhosp(2587_0000,2587_0000,2587,0000,310014);
-%runhosp(2589_0000,2589_0000,2589,0000,360132);
-%runhosp(5154_0000,5154_0000,5154,0000,330005);
-%runhosp(5282_0000,5282_0000,5282,0000,360155);
-%runhosp(5037_0000,5037_0000,5037,0000,360360);
-%runhosp(5478_0001,5478_0001,5478,0002,310015);
-%runhosp(5043_0000,5043_0000,5043,0000,100002);
-%runhosp(5479_0001,5479_0001,5479,0002,310051);
-%runhosp(5480_0001,5480_0001,5480,0002,310017);
-%runhosp(5215_0001,5215_0001,5215,0003,310092);
-%runhosp(5215_0001,5215_0001,5215,0002,310044);
-%runhosp(5229_0000,5229_0000,5229,0000,390009);
-%runhosp(5263_0000,5263_0000,5263,0000,100281);
-%runhosp(5264_0000,5264_0000,5264,0000,100038);
-%runhosp(5481_0001,5481_0001,5481,0002,310028);
-%runhosp(5394_0000,5394_0000,5394,0000,390267);
-%runhosp(5395_0000,5395_0000,5395,0000,390050);
-%runhosp(5397_0001,5397_0001,5397,0002,360137);
-%runhosp(5397_0001,5397_0001,5397,0005,360145);
-%runhosp(5397_0001,5397_0001,5397,0004,360041);
-%runhosp(5397_0001,5397_0001,5397,0008,360078);
-%runhosp(5397_0001,5397_0001,5397,0003,360359);
-%runhosp(5397_0001,5397_0001,5397,0006,360192);
-%runhosp(5397_0001,5397_0001,5397,0009,360002);
-%runhosp(5397_0001,5397_0001,5397,0010,360123);
-%runhosp(5916_0001,5916_0001,5916,0002,411861374);
-%runhosp(6049_0001,6049_0001,6049,0002,450880);
-%runhosp(6050_0001,6050_0001,6050,0002,450874);
-%runhosp(6051_0001,6051_0001,6051,0002,030112);
-%runhosp(6052_0001,6052_0001,6052,0002,670076);
-%runhosp(6053_0001,6053_0001,6053,0002,450883);
-%runhosp(5397_0001,5397_0001,5397,0007,360075);
-%runhosp(1102_0000,1102_0000,1102,0000,390001);
-%runhosp(1105_0000,1105_0000,1105,0000,390006);
-%runhosp(1106_0000,1106_0000,1106,0000,390270);
-%runhosp(1103_0000,1103_0000,1103,0000,390004);
-%runhosp(1104_0000,1104_0000,1104,0000,390048);
-%runhosp(5392_0001,5392_0001,5392,0004,110184);
 %runhosp(6054_0001,6054_0001,6054,0002,330019);
 %runhosp(6055_0001,6055_0001,6055,0002,330194);
 %runhosp(6056_0001,6056_0001,6056,0002,330201);
 %runhosp(6057_0001,6057_0001,6057,0002,330221);
 %runhosp(6058_0001,6058_0001,6058,0002,330233);
 %runhosp(6059_0001,6059_0001,6059,0002,330397);
+
 %runhosp(1191_0001,1191_0001,1191,0002,61440790);
+%runhosp(7309_0001,7309_0001,7309,0002,070029);
+%runhosp(7310_0001,7310_0001,7310,0002,070010);
+%runhosp(7310_0001,7310_0001,7310,0003,070018);
+%runhosp(7310_0001,7310_0001,7310,0004,070007);
+%runhosp(7310_0001,7310_0001,7310,0005,410013);
+%runhosp(7310_0001,7310_0001,7310,0006,070022);
+%runhosp(7310_0001,7310_0001,7310,0007,070019);
+%runhosp(7311_0001,7311_0001,7311,0002,070036);
+%runhosp(7312_0001,7312_0001,7312,0002,521725543);
+
+%runhosp(2974_0001,2974_0001,2974,0009,390046);
+%runhosp(2974_0001,2974_0001,2974,0006,390066);
+%runhosp(2974_0001,2974_0001,2974,0004,390151);
+%runhosp(2974_0001,2974_0001,2974,0002,390225);
+%runhosp(2974_0001,2974_0001,2974,0008,390327);
+%runhosp(2974_0001,2974_0001,2974,0003,251716306);
+%runhosp(2974_0001,2974_0001,2974,0007,232730785);
+*/
+
+%runhosp(2586_0001,2586_0001,2586,0002,360027);
+%runhosp(2586_0001,2586_0001,2586,0005,360082);
+%runhosp(2586_0001,2586_0001,2586,0006,360077);
+%runhosp(2586_0001,2586_0001,2586,0007,360230);
+%runhosp(2586_0001,2586_0001,2586,0010,360143);
+%runhosp(2586_0001,2586_0001,2586,0013,360180);
+%runhosp(2586_0001,2586_0001,2586,0025,360364);
+%runhosp(2586_0001,2586_0001,2586,0026,100289);
+%runhosp(2586_0001,2586_0001,2586,0028,360087);
+%runhosp(2586_0001,2586_0001,2586,0029,360091);
+%runhosp(2586_0001,2586_0001,2586,0030,360144);
+%runhosp(2586_0001,2586_0001,2586,0031,360010);
+%runhosp(2586_0001,2586_0001,2586,0032,100105);
+%runhosp(2586_0001,2586_0001,2586,0033,100044);
+%runhosp(2586_0001,2586_0001,2586,0034,650003177);
+%runhosp(2586_0001,2586_0001,2586,0035,340714585);
+%runhosp(2586_0001,2586_0001,2586,0039,341843403);
+%runhosp(2586_0001,2586_0001,2586,0044,650029298);
+%runhosp(2586_0001,2586_0001,2586,0045,650556041);
+%runhosp(2586_0001,2586_0001,2586,0046,264215547);
+%runhosp(1374_0001,1374_0001,1374,0015,420009);
+%runhosp(1374_0001,1374_0001,1374,0017,420015);
+%runhosp(1374_0001,1374_0001,1374,0008,420018);
+%runhosp(1374_0001,1374_0001,1374,0013,420033);
+%runhosp(1374_0001,1374_0001,1374,0014,420037);
+%runhosp(1374_0001,1374_0001,1374,0012,420038);
+%runhosp(1374_0001,1374_0001,1374,0019,420070);
+%runhosp(1374_0001,1374_0001,1374,0004,420078);
+%runhosp(1374_0001,1374_0001,1374,0009,420086);
+%runhosp(1374_0001,1374_0001,1374,0016,420102);
+%runhosp(1374_0001,1374_0001,1374,0018,420106);
+%runhosp(1505_0000,1505_0000,1505,0000,100017);
+%runhosp(1832_0000,1832_0000,1832,0000,330270);
+%runhosp(1191_0001,1191_0001,1191,0002,61440790);
+%runhosp(7309_0001,7309_0001,7309,0002,070029);
+%runhosp(7310_0001,7310_0001,7310,0002,070010);
+%runhosp(7310_0001,7310_0001,7310,0003,070018);
+%runhosp(7310_0001,7310_0001,7310,0004,070007);
+%runhosp(7310_0001,7310_0001,7310,0005,410013);
+%runhosp(7310_0001,7310_0001,7310,0006,070022);
+%runhosp(7310_0001,7310_0001,7310,0007,070019);
+%runhosp(7311_0001,7311_0001,7311,0002,070036);
+%runhosp(7312_0001,7312_0001,7312,0002,521725543);
+%runhosp(6054_0001,6054_0001,6054,0002,330019);
+%runhosp(6055_0001,6055_0001,6055,0002,330194);
+%runhosp(6056_0001,6056_0001,6056,0002,330201);
+%runhosp(6057_0001,6057_0001,6057,0002,330221);
+%runhosp(6058_0001,6058_0001,6058,0002,330233);
+%runhosp(6059_0001,6059_0001,6059,0002,330397);
+%runhosp(1209_0000,1209_0000,1209,0000,420004);
+%runhosp(1209_0000,1209_0000,1209,0002,420091);
+%runhosp(1209_0000,1209_0000,1209,0003,420055);
+%runhosp(1209_0000,1209_0000,1209,0004,420036);
+%runhosp(1209_0000,1209_0000,1209,0005,420019);
+%runhosp(1686_0001,1686_0001,1686,0002,752661095);
+%runhosp(1688_0001,1688_0001,1688,0002,310588183);
+%runhosp(1696_0001,1696_0001,1696,0002,571141121);
+%runhosp(1710_0001,1710_0001,1710,0002,560963485);
+%runhosp(6049_0001,6049_0001,6049,0002,450880);
+%runhosp(6050_0001,6050_0001,6050,0002,450874);
+%runhosp(6051_0001,6051_0001,6051,0002,030112);
+%runhosp(6052_0001,6052_0001,6052,0002,670076);
+%runhosp(6053_0001,6053_0001,6053,0002,450883);
+%runhosp(2941_0001,2941_0001,2941,0002,670067);
+%runhosp(2942_0001,2942_0001,2942,0002,390316);
+%runhosp(2943_0001,2943_0001,2943,0002,370212);
+%runhosp(2944_0001,2944_0001,2944,0002,670054);
+%runhosp(2945_0001,2945_0001,2945,0002,50708);
+%runhosp(2946_0001,2946_0001,2946,0002,370203);
+%runhosp(2947_0001,2947_0001,2947,0002,370192);
+%runhosp(2948_0001,2948_0001,2948,0002,450864);
+%runhosp(2949_0001,2949_0001,2949,0002,670060);
+%runhosp(2950_0001,2950_0001,2950,0002,30131);
+%runhosp(2951_0001,2951_0001,2951,0002,670049);
+%runhosp(2952_0001,2952_0001,2952,0002,440218);
+%runhosp(2953_0001,2953_0001,2953,0002,450774);
+%runhosp(2954_0001,2954_0001,2954,0002,670005);
+%runhosp(2955_0001,2955_0001,2955,0002,450860);
+%runhosp(2956_0001,2956_0001,2956,0002,450853);
+%runhosp(2957_0001,2957_0001,2957,0002,430089);
+%runhosp(2958_0001,2958_0001,2958,0002,450422);
+%runhosp(2959_0001,2959_0001,2959,0002,190270);
+%runhosp(2974_0001,2974_0001,2974,0009,390046);
+%runhosp(2974_0001,2974_0001,2974,0006,390066);
+%runhosp(2974_0001,2974_0001,2974,0004,390151);
+%runhosp(2974_0001,2974_0001,2974,0002,390225);
+%runhosp(2974_0001,2974_0001,2974,0008,390327);
+%runhosp(2974_0001,2974_0001,2974,0003,251716306);
+%runhosp(2974_0001,2974_0001,2974,0007,232730785);
+
+%runhosp(5746_0001,5746_0001,5746,0002,100007);
+%runhosp(5395_0000,5395_0000,5395,0000,390050);
+%runhosp(5394_0000,5394_0000,5394,0000,390267);
+%runhosp(5229_0000,5229_0000,5229,0000,390009);
+%runhosp(5480_0001,5480_0001,5480,0002,310017);
+%runhosp(5478_0001,5478_0001,5478,0002,310015);
+%runhosp(5481_0001,5481_0001,5481,0002,310028);
+%runhosp(5479_0001,5479_0001,5479,0002,310051);
+%runhosp(6592_0001,6592_0001,6592,0003,340001);
+%runhosp(6592_0001,6592_0001,6592,0002,340021);
+%runhosp(6592_0001,6592_0001,6592,0004,340145);
+%runhosp(6592_0001,6592_0001,6592,0013,340098);
+%runhosp(6592_0001,6592_0001,6592,0009,340119);
+%runhosp(6592_0001,6592_0001,6592,0010,340130);
+%runhosp(6592_0001,6592_0001,6592,0007,340166);
+%runhosp(6592_0001,6592_0001,6592,0012,340075);
+%runhosp(6592_0001,6592_0001,6592,0006,340113);
+%runhosp(5043_0000,5043_0000,5043,0000,100002);
+%runhosp(1029_0000,1029_0000,1029,0000,100117);
+%runhosp(2217_0000,2217_0000,2217,0000,100088);
+%runhosp(5038_0000,5038_0000,5038,0000,080007);
+%runhosp(1028_0000,1028_0000,1028,0000,100008);
+%runhosp(1025_0000,1025_0000,1025,0000,260886056);
+%runhosp(1026_0000,1026_0000,1026,0000,205155995);
+%runhosp(1461_0000,1461_0000,1461,0000,100296);
+%runhosp(1525_0000,1525_0000,1525,0000,100125);
+%runhosp(2216_0000,2216_0000,2216,0000,100154);
+%runhosp(2461_0000,2461_0000,2461,0000,100314);
+%runhosp(5215_0001,5215_0001,5215,0002,310044);
+%runhosp(5215_0001,5215_0001,5215,0003,310092);
+%runhosp(2070_0000,2070_0000,2070,0000,100084);
+%runhosp(2587_0000,2587_0000,2587,0000,310014);
+%runhosp(1470_0000,1470_0000,1470,0000,330219);
+%runhosp(1102_0000,1102_0000,1102,0000,390001);
+%runhosp(1105_0000,1105_0000,1105,0000,390006);
+%runhosp(1106_0000,1106_0000,1106,0000,390270);
+%runhosp(1103_0000,1103_0000,1103,0000,390004);
+%runhosp(1104_0000,1104_0000,1104,0000,390048);
+%runhosp(2594_0000,2594_0000,2594,0000,070035);
+%runhosp(1125_0000,1125_0000,1125,0000,070025);
+%runhosp(8031_0001,8031_0001,8031,0002,070024);
+%runhosp(8029_0001,8029_0001,8029,0002,070035);
+%runhosp(8028_0001,8028_0001,8028,0002,070025);
+%runhosp(8027_0001,8027_0001,8027,0002,070011);
+%runhosp(8030_0001,8030_0001,8030,0002,070017);
+%runhosp(8032_0001,8032_0001,8032,0002,070021);
+%runhosp(1507_0000,1507_0000,1507,0000,230047);
+%runhosp(1508_0000,1508_0000,1508,0000,230302);
+%runhosp(1510_0000,1510_0000,1510,0000,230146);
+%runhosp(1506_0000,1506_0000,1506,0000,230053);
+%runhosp(2449_0000,2449_0000,2449,0000,230092);
+%runhosp(1148_0000,1148_0000,1148,0000,310008);
+%runhosp(1167_0000,1167_0000,1167,0000,390173);
+%runhosp(5154_0000,5154_0000,5154,0000,330005);
+%runhosp(2589_0000,2589_0000,2589,0000,360132);
+%runhosp(1075_0000,1075_0000,1075,0000,360133);
+%runhosp(2048_0000,2048_0000,2048,0000,360079);
+%runhosp(5037_0000,5037_0000,5037,0000,360360);
+%runhosp(2049_0000,2049_0000,2049,0000,360239);
+%runhosp(5264_0000,5264_0000,5264,0000,100038);
+%runhosp(5263_0000,5263_0000,5263,0000,100281);
+%runhosp(2785_0000,2785_0000,2785,0000,330024);
+%runhosp(2788_0001,2788_0001,2788,0002,330198);
+%runhosp(2790_0001,2790_0001,2790,0002,330046);
 %runhosp(2302_0000,2302_0000,2302,0000,110074);
+%runhosp(1343_0000,1343_0000,1343,0000,232856880);
+%runhosp(2607_0000,2607_0000,2607,0000,223700669);
+%runhosp(2102_0000,2102_0000,2102,0000,050099);
+%runhosp(5282_0000,5282_0000,5282,0000,360155);
+%runhosp(2317_0000,2317_0000,2317,0000,390330);
+%runhosp(2374_0000,2374_0000,2374,0000,390326);
+%runhosp(1368_0000,1368_0000,1368,0000,390049);
+%runhosp(1958_0000,1958_0000,1958,0000,390183);
+%runhosp(5050_0000,5050_0000,5050,0000,390194);
+%runhosp(2376_0000,2376_0000,2376,0000,390035);
+%runhosp(2378_0000,2378_0000,2378,0000,390197);
+%runhosp(2379_0000,2379_0000,2379,0000,310060);
+%runhosp(1753_0000,1753_0000,1753,0000,450686);
+%runhosp(5397_0001,5397_0001,5397,0003,360359);
+%runhosp(5397_0001,5397_0001,5397,0002,360137);
+%runhosp(5397_0001,5397_0001,5397,0005,360145);
+%runhosp(5397_0001,5397_0001,5397,0006,360192);
+%runhosp(5397_0001,5397_0001,5397,0004,360041);
+%runhosp(5397_0001,5397_0001,5397,0008,360078);
+%runhosp(5397_0001,5397_0001,5397,0007,360075);
+%runhosp(5397_0001,5397_0001,5397,0009,360002);
+%runhosp(5397_0001,5397_0001,5397,0010,360123);
+%runhosp(1634_0000,1634_0000,1634,0000,310012);
+%runhosp(2451_0000,2451_0000,2451,0000,340173);
+%runhosp(2452_0000,2452_0000,2452,0000,340069);
+%runhosp(2966_0001,2966_0001,2966,0002,110115);
+%runhosp(2964_0001,2964_0001,2964,0002,110143);
+%runhosp(2965_0001,2965_0001,2965,0002,110035);
+%runhosp(2967_0001,2967_0001,2967,0002,110198);
+%runhosp(2968_0001,2968_0001,2968,0002,110042);
+%runhosp(2969_0001,2969_0001,2969,0002,110031);
+%runhosp(2971_0001,2971_0001,2971,0002,110016);
+%runhosp(2973_0001,2973_0001,2973,0002,273818647);
+%runhosp(5392_0001,5392_0001,5392,0004,110184);
+%runhosp(2468_0000,2468_0000,2468,0000,190111);
+%runhosp(5481_0001,5481_0001,5481,0003,202088165);
+
 
 %MEND TP;
 
-*%TP(ybase);
-*%TP(y202002);
-%TP(pp1Initial);
+%TP(ybase3);
 
 data All_Target_Prices;
 	format BPID EPI_ID_MILLIMAN EPISODE_ID EPISODE_INITIATOR EPISODE_GROUP_NAME ANCHOR_TYPE ANCHOR_CODE ANCHOR_CCN
-		 DRG_CODE PERF_APC ORIGDS LTI FRACTURE_FLAG ANY_DUAL TKA_FLAG TKA_FRACTURE_FLAG PRIOR_HOSP_W_ANY_IP_FLAG_90
+		 DRG_CODE PERF_APC ORIGDS LTI FRACTURE_FLAG ANY_DUAL KNEE_ARTHRO_FLAG KNEE_ARTHRO_FRACTURE_FLAG PRIOR_HOSP_W_NON_PAC_IP_FLAG_90 PRIOR_PAC_FLAG
 		 EPI_STD_PMT_FCTR_WIN_1_99_Real Adjusted_TP_Real Discount_Real PGP_Offset_Amt_Real PAT_Amt_Real 
 		 PAT PAT_Adj PCMA PCMA_Adj PGP_ACH_PCMA PGP_PCMA_Adj CASE_MIX PGP_ACH_Ratio PGP_Offset PGP_Offset_Adj PAYMENT_RATIO 
 		 HAS_TP PERFORMANCE_PERIOD 
 		 HCC_COUNT HCC18 HCC19 HCC40 HCC58 HCC84 HCC85 HCC86 HCC88 HCC96 HCC108 HCC111
-		 NATURAL_DISASTER_MONTHLY
 		 ;
 	set out2.tp_: ;
 	if EPISODE_GROUP_NAME = "Disorders Of Liver Except Malignancy, Cirrhosis Or Alcoholic Hepatitis" then 
@@ -2004,187 +2221,129 @@ proc sql;
 	on a.BPID=b.BPID;
 quit;
 
-data All_Target_Prices_1 All_Target_Prices_Premier All_Target_Prices_NonPremier All_Target_Prices_CCF All_Target_Prices_Dev;
+data All_Target_Prices_1 All_Target_Prices_pmr_exist All_Target_Prices_pmr_new
+		All_Target_Prices_pmr All_Target_Prices_ccb All_Target_Prices_ccf All_Target_Prices_ghs All_Target_Prices_hal
+		All_Target_Prices_hss All_Target_Prices_ics All_Target_Prices_musc All_Target_Prices_uspi All_Target_Prices_wsp ;
 	set All_Target_Prices;
 
-	if BPID in (&PMR_EI_lst.) or BPID in (&NON_PMR_EI_lst.) then output All_Target_Prices_1;
-	if BPID in (&DEV_EI_lst.) then output All_Target_Prices_Dev;
-	if BPID in (&PMR_EI_lst.) then output All_Target_Prices_Premier;
-	else if BPID in (&NON_PMR_EI_lst.) then output All_Target_Prices_NonPremier;
-	else if BPID in (&CCF_lst.) then output All_Target_Prices_CCF;
+	if BPID in (&MY3_lst.) then output All_Target_Prices_1;
 
+	if BPID in (&PMR_3_Exist_EI_lst.) then output All_Target_Prices_pmr_exist;
+	else if BPID in (&PMR_3_New_EI_lst.) then output All_Target_Prices_pmr_new;
+
+	if BPID in (&PMR_3_EI_lst.) then output All_Target_Prices_pmr;
+	else if BPID in (&CCB_3_EI_lst.) then output All_Target_Prices_ccb;
+	else if BPID in (&CCF_3_EI_lst.) then output All_Target_Prices_ccf;
+	else if BPID in (&GHS_3_EI_lst.) then output All_Target_Prices_ghs;
+	else if BPID in (&HAL_3_EI_lst.) then output All_Target_Prices_hal;
+	else if BPID in (&HSS_3_EI_lst.) then output All_Target_Prices_hss;
+	else if BPID in (&ICS_3_EI_lst.) then output All_Target_Prices_ics;
+	else if BPID in (&MUSC_3_EI_lst.) then output All_Target_Prices_musc;
+	else if BPID in (&USPI_3_EI_lst.) then output All_Target_Prices_uspi;
+	else if BPID in (&WSP_3_EI_lst.) then output All_Target_Prices_wsp;
+	
 run;
 
-%MACRO EXPORT;
-%if &mode.=main %then %do;
-	/*
-	proc export data= All_Target_Prices
-	            outfile= "R:\data\HIPAA\BPCIA_BPCI Advanced\08 - Target Price Data\Target Prices.csv"
-	            dbms=csv replace; 
+%MACRO EXPRT(name);
+	proc export
+		data=All_Target_Prices_&name.
+		outfile="R:\data\HIPAA\BPCIA_BPCI Advanced\08 - Target Price Data\Baseline Target Prices_&name..csv"
+		dbms=CSV 
+		replace;
 	run;
-	*/
-	proc export data= All_Target_Prices_1
-	            outfile= "R:\data\HIPAA\BPCIA_BPCI Advanced\08 - Target Price Data\Target Prices_1.csv"
-	            dbms=csv replace; 
-	run;
-	proc export data= All_Target_Prices_Premier
-	            outfile= "R:\data\HIPAA\BPCIA_BPCI Advanced\08 - Target Price Data\Target Prices_PMR.csv"
-	            dbms=csv replace; 
-	run;
-	proc export data= All_Target_Prices_NonPremier
-	            outfile= "R:\data\HIPAA\BPCIA_BPCI Advanced\08 - Target Price Data\Target Prices_oth.csv"
-	            dbms=csv replace; 
-	run;
-	proc export data= All_Target_Prices_Dev
-	            outfile= "R:\data\HIPAA\BPCIA_BPCI Advanced\08 - Target Price Data\Target Prices_Dev.csv"
-	            dbms=csv replace; 
-	run;
+%MEND;
+%EXPRT(1);
+%EXPRT(pmr_exist);
+%EXPRT(pmr_new);
+%EXPRT(pmr);
+%EXPRT(ccb);
+%EXPRT(ccf);
+%EXPRT(ghs);
+%EXPRT(hal);
+%EXPRT(hss);
+%EXPRT(ics);
+%EXPRT(musc);
+%EXPRT(uspi);
+%EXPRT(wsp);
 
-	proc export data= All_Target_Prices_CCF
-	            outfile= "R:\data\HIPAA\BPCIA_BPCI Advanced\08 - Target Price Data\Target Prices_CCF.csv"
-	            dbms=csv replace; 
-	run;
-%end;
-%else %if &mode.=base %then %do;
-	/*
-	proc export data= All_Target_Prices
-	            outfile= "R:\data\HIPAA\BPCIA_BPCI Advanced\08 - Target Price Data\Baseline Target Prices.csv"
-	            dbms=csv replace; 
-	run;
-	*/
-	proc export data= All_Target_Prices_1
-	            outfile= "R:\data\HIPAA\BPCIA_BPCI Advanced\08 - Target Price Data\Baseline Target Prices_1.csv"
-	            dbms=csv replace; 
-	run;
-	proc export data= All_Target_Prices_Premier
-	            outfile= "R:\data\HIPAA\BPCIA_BPCI Advanced\08 - Target Price Data\Baseline Target Prices_PMR.csv"
-	            dbms=csv replace; 
-	run;
-	proc export data= All_Target_Prices_NonPremier
-	            outfile= "R:\data\HIPAA\BPCIA_BPCI Advanced\08 - Target Price Data\Baseline Target Prices_oth.csv"
-	            dbms=csv replace; 
-	run;
-	proc export data= All_Target_Prices_Dev
-	            outfile= "R:\data\HIPAA\BPCIA_BPCI Advanced\08 - Target Price Data\Target Prices_Dev.csv"
-	            dbms=csv replace; 
-	run;
-	proc export data= All_Target_Prices_CCF
-	            outfile= "R:\data\HIPAA\BPCIA_BPCI Advanced\08 - Target Price Data\Baseline Target Prices_CCF.csv"
-	            dbms=csv replace; 
-	run;
-%end;
-%else %if &mode.=recon %then %do;
-	/*
-	proc export data= All_Target_Prices
-	            outfile= "R:\data\HIPAA\BPCIA_BPCI Advanced\08 - Target Price Data\Recon Target Prices.csv"
-	            dbms=csv replace; 
-	run;
-	*/
-	proc export data= All_Target_Prices_1
-	            outfile= "R:\data\HIPAA\BPCIA_BPCI Advanced\08 - Target Price Data\Recon Target Prices_1.csv"
-	            dbms=csv replace; 
-	run;
-	proc export data= All_Target_Prices_Premier
-	            outfile= "R:\data\HIPAA\BPCIA_BPCI Advanced\08 - Target Price Data\Recon Target Prices_PMR.csv"
-	            dbms=csv replace; 
-	run;
-	proc export data= All_Target_Prices_NonPremier
-	            outfile= "R:\data\HIPAA\BPCIA_BPCI Advanced\08 - Target Price Data\Recon Target Prices_oth.csv"
-	            dbms=csv replace; 
-	run;
-	proc export data= All_Target_Prices_Dev
-	            outfile= "R:\data\HIPAA\BPCIA_BPCI Advanced\08 - Target Price Data\Target Prices_Dev.csv"
-	            dbms=csv replace; 
-	run;
-	proc export data= All_Target_Prices_CCF
-	            outfile= "R:\data\HIPAA\BPCIA_BPCI Advanced\08 - Target Price Data\Recon Target Prices_CCF.csv"
-	            dbms=csv replace; 
-	run;
-%end;
-%mend EXPORT;
-
-%EXPORT;
-
-
-
-proc format; value $masked_bpid
-'1148-0000'='1111-0000'
-'1167-0000'='2222-0000'
-'1343-0000'='3333-0000'
-'1368-0000'='4444-0000'
-'2379-0000'='5555-0000'
-'2587-0000'='6666-0000'
-'2607-0000'='7777-0000'
-'5479-0002'='8888-0000'
-other='';
-run;
-
-********************
-********************
-Calculation of Adjusted Target Prices
-********************
-********************;
-%macro Period2(label);
-
-%macro RunHosp2(bpid1,bpid2);
-
-data out3.tp_&label._&bpid1._&bpid2.;
-	format BPID $9.;
-	set out2.tp_&label._&bpid1._&bpid2. (rename=(BPID=BPID_o));
-
-	BPID = put(BPID_o,$masked_bpid.);
-
-	if ORIGDS='Yes' then ORIGDS='C';
-	else ORIGDS='H';
-	if LTI='Yes' then LTI='B';
-	else LTI='E';
-	if ANY_DUAL='Yes' then ANY_DUAL='I';
-	else ANY_DUAL='A';
-
-run;
-
-%mend;
-
-%runhosp2(1148,0000);
-%runhosp2(1167,0000);
-%runhosp2(1343,0000);
-%runhosp2(1368,0000);
-%runhosp2(2379,0000);
-%runhosp2(2587,0000);
-%runhosp2(2607,0000);
-%runhosp2(5479,0002);
-
-%mend;
-
-%Period2(ybase);
-%Period2(y202001);
-
-
-data All_Target_Prices;
-	set out3.tp_: ;
-run;
-
-
-%MACRO EXPORT2;
-%if &mode.=main %then %do;
-	proc export data= All_Target_Prices
-        outfile= "R:\data\HIPAA\BPCIA_BPCI Advanced\08 - Target Price Data\Demo\Target Prices Demo.csv"
-        dbms=csv replace; 
-	run;
-%end;
-%else %if &mode.=base %then %do;
-	proc export data= All_Target_Prices
-        outfile= "R:\data\HIPAA\BPCIA_BPCI Advanced\08 - Target Price Data\Demo\Baseline Target Prices Demo.csv"
-        dbms=csv replace; 
-	run;
-%end;
-%mend EXPORT2;
-
-%EXPORT2;
 
 proc printto;run;
 %let _edtm=%sysfunc(datetime());
 %let _runtm=%sysevalf(%sysfunc(putn(&_edtm - &_sdtm, 12.))/60.0);
 %put It took &_runtm minutes to run the program;
+
+
+
+/*
+
+data test1;
+	set temp6;
+	where EPISODE_INITIATOR=390151 and EPISODE_GROUP_NAME_orig='OP-Cardiac defibrillator';
+run;
+proc sql;
+	create table test2 as
+	select EPISODE_INITIATOR,
+		sum(ANY_DUAL) as ANY_DUAL,
+		sum(APC_5231) as APC_5231,
+		sum(APC_5232) as APC_5232,
+		sum(CHF_COPD) as CHF_COPD,
+		sum(CHF_RENAL) as CHF_RENAL,
+		sum(COPD_CARD_RESP_FAIL) as COPD_CARD_RESP_FAIL,
+		sum(DIABETES_CHF) as DIABETES_CHF,
+		sum(DISABLED_HCC34) as DISABLED_HCC34,
+		sum(DISABLED_HCC55) as DISABLED_HCC55,
+		sum(FY_2018) as FY_2018,
+		sum(HCC10) as HCC10,
+		sum(HCC100) as HCC100,
+		sum(HCC107) as HCC107,
+		sum(HCC108) as HCC108,
+		sum(HCC11) as HCC11,
+		sum(HCC111) as HCC111,
+		sum(HCC112) as HCC112,
+		sum(HCC115) as HCC115,
+		sum(HCC12) as HCC12,
+		sum(HCC122) as HCC122,
+		sum(HCC124) as HCC124,
+		sum(HCC134) as HCC134,
+		sum(HCC135) as HCC135,
+		sum(HCC137) as HCC137,
+		sum(HCC161) as HCC161,
+		sum(HCC170) as HCC170,
+		sum(HCC176) as HCC176,
+		sum(HCC18) as HCC18,
+		sum(HCC19) as HCC19,
+		sum(HCC2) as HCC2,
+		sum(HCC22) as HCC22,
+		sum(HCC34) as HCC34,
+		sum(HCC39) as HCC39,
+		sum(HCC40) as HCC40,
+		sum(HCC48) as HCC48,
+		sum(HCC55) as HCC55,
+		sum(HCC57) as HCC57,
+		sum(HCC58) as HCC58,
+		sum(HCC70) as HCC70,
+		sum(HCC78) as HCC78,
+		sum(HCC79) as HCC79,
+		sum(HCC80) as HCC80,
+		sum(HCC84) as HCC84,
+		sum(HCC85) as HCC85,
+		sum(HCC86) as HCC86,
+		sum(HCC87) as HCC87,
+		sum(HCC96) as HCC96,
+		sum(HCC_CNT_1_3) as HCC_CNT_1_3,
+		sum(HCC_CNT_4_6) as HCC_CNT_4_6,
+		sum(HCC_CNT_7_PLUS) as HCC_CNT_7_PLUS,
+		sum(ORIGDS) as ORIGDS,
+		sum(PRIOR_HOSP_W_NON_PAC_IP_FLAG_90) as PRIOR_HOSP_W_NON_PAC_IP_FLAG_90,
+		sum(PRIOR_PAC_FLAG) as PRIOR_PAC_FLAG,
+		sum(SEPSIS_CARD_RESP_FAIL) as SEPSIS_CARD_RESP_FAIL
+	from test1
+	group by EPISODE_INITIATOR;
+quit;
+
+data test3;
+	set t1;
+	keep PCMA_ROUND PCMA PCMA_Adj;
+run;
 
 

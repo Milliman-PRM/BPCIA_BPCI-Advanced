@@ -25,7 +25,7 @@ Setup
 ********************;
 ****** USER INPUTS ******************************************************************************************;
 /*%let label = ybase; *Baseline/Performance data label;*/
-%let label = y201908;
+%let label = y202002;
 
 %let mode=main; *Base=Baseline Interface, Main=Main Interface;
 
@@ -40,32 +40,28 @@ Setup
 %macro modesetup;
 %if &mode.=main %then %do;
 libname out "&dataDir.\07 - Processed Data";
-proc printto log="H:\BPCIA_BPCI Advanced\50 - BPCI Advanced Ongoing Reporting - 2019\Work Papers\SAS\logs\302 - Qlikview Stacking Code_&label._&sysdate..log" print=print new;
+proc printto log="H:\BPCIA_BPCI Advanced\50 - BPCI Advanced Ongoing Reporting - 2020\Work Papers\SAS\logs\302 - Qlikview Stacking Code_&label._&sysdate..log" print=print new;
 run;
 %end;
 %else %if &mode.=base %then %do;
 libname out "&dataDir.\07 - Processed Data\Baseline Interface Demo";
-proc printto log="H:\BPCIA_BPCI Advanced\50 - BPCI Advanced Ongoing Reporting - 2019\Work Papers\SAS\logs\302 - Baseline Interface Qlikview Stacking Code_&label._&sysdate..log" print=print new;
+proc printto log="H:\BPCIA_BPCI Advanced\50 - BPCI Advanced Ongoing Reporting - 2020\Work Papers\SAS\logs\302 - Baseline Interface Qlikview Stacking Code_&label._&sysdate..log" print=print new;
 run;
 %end;
 %else %if &mode.=dev %then %do;
 libname out "&dataDir.\07 - Processed Data\Development";
-proc printto log="H:\BPCIA_BPCI Advanced\50 - BPCI Advanced Ongoing Reporting - 2019\Work Papers\SAS\logs\302 - Dev Interface Qlikview Stacking Code_&label._&sysdate..log" print=print new;
+proc printto log="H:\BPCIA_BPCI Advanced\50 - BPCI Advanced Ongoing Reporting - 2020\Work Papers\SAS\logs\302 - Dev Interface Qlikview Stacking Code_&label._&sysdate..log" print=print new;
 run;
 %end;
 %mend modesetup;
 
 %modesetup;
 
-libname bench "R:\client work\CMS_PAC_Bundle_Processing\Benchmark Releases\v.201811";
+libname bench "R:\client work\CMS_PAC_Bundle_Processing\Benchmark Releases\v.201912\sasout";
 
 ****** EXPORT INFO *****************************************************************************************;
 /*%let exportDir = R:\data\HIPAA\BPCIA_BPCI Advanced\80 - Qlikview\Outfiles;*/
 
-* * * * * * * * * * * * * * ONLY RUN WHEN BASELINE AND PERFORMANCE ARE RUN * * * * * * * * * * * * * * ;
-%macro stacking(exportDir);
-
-*Stack Output files - Files with baseline and perf data use output, files with perf data only use the perf data;
 %macro stack_output(file);
 
 	data out.all_&file.;
@@ -76,8 +72,15 @@ libname bench "R:\client work\CMS_PAC_Bundle_Processing\Benchmark Releases\v.201
 		%else %if &file = provider %then %do;
 			prov_counter = _N_;
 		%end;
-		%else %if &file = bpid_member %then %do;
-			proc sort nodupkey; by BPID_Member BPID BENE_SK;
+		%else %if &file = epi_detail %then %do;
+			format join_variable_recon $32.;
+			join_variable_recon = strip(EPI_ID_Milliman);
+			if primary_diag_with_desc1 = 'Not Available' then primary_diag_with_desc1 = '-';
+			if primary_diag_with_desc1 = '' then primary_diag_with_desc1 = 'Not Available';
+			if primary_proc_with_desc1 = '-' then primary_proc_with_desc1 = 'Not Available';
+			if primary_proc_with_desc1 = '' then primary_proc_with_desc1 = '-';
+			if flag_overlap = '' then flag_overlap = '-';
+			if mult_attr_provs = '' then mult_attr_provs = '-';
 		%end;
 	run;
 
@@ -95,20 +98,8 @@ libname bench "R:\client work\CMS_PAC_Bundle_Processing\Benchmark Releases\v.201
 %stack_output(comp);
 %stack_output(bpid_member);
 
-*not for qlikview;
-/*%stack_output(provider);*/
-/*%stack_output(ccn_enc);*/
-
-*FUTURE USE;
-/*%stack_output(perf_base); *Baseline only;*/
-/*%stack_output(tff_exclusions,output); *Excluded episodes;*/
-/*%stack_output(claims_lag,&label.);*/
-/*%stack_output(tp_variability,&label.); *20170831 Update: Add new target price variability;*/
-/*%stack_output(tff_detail_output); *All episodes;*/
-
-*** ADDING PREMIER BENCHMARKS TO PERF FILE *****;
 data benchmarks_pmr;
-	set bench.benchmarks_bpcia_pmr_17;
+	set bench.benchmarks_bpcia_pmr_18;
 	where fracture = "N/A";
 run;
 
@@ -126,6 +117,7 @@ proc sql;
 quit;
 
 *** ADDING BASELINE BENCHMARKS TO PERF FILE *****;
+
 data benchmarks_base;
 	set out.baseline_benchmark_:;
 run;
@@ -146,78 +138,6 @@ quit;
 data out.all_perf;
 	set b1;
 run;
-
-/*%if &mode.^=DEV %then %do;*/
-******** SEPARATE FILES INTO TWO SEPARATE INTERFACE OUTPUT FILES *************;
-%macro separate(file);
-
-	data out.all_&file._1 out.all_&file._2 check_&file.;
-		set out.all_&file.;
-		if BPID in (&PMR_EI_lst.,&NON_PMR_EI_lst.) then output out.all_&file._1;
-		else if BPID in (&CCF_lst.) then output out.all_&file._2;
-		else output check_&file.;
-	run;
-
-%mend separate;
-
-%separate(epi_detail);
-%separate(pjourney);
-%separate(pjourneyagg);
-%separate(prov_detail);
-%separate(util);
-%separate(perf); 
-%separate(phys_summ);
-%separate(exclusions);
-%separate(pat_detail);
-%separate(comp);
-%separate(bpid_member);
-
-******* EXPORT QVW_FILES *******;
-%macro exp(num);
-%sas_2_csv(out.all_epi_detail_&num.,epi_detail_&num..csv);
-%sas_2_csv(out.all_pjourney_&num.,pjourney_&num..csv);
-%sas_2_csv(out.all_pjourneyagg_&num.,pjourneyagg_&num..csv);
-%sas_2_csv(out.all_prov_detail_&num.,prov_detail_&num..csv);
-%sas_2_csv(out.all_util_&num.,utilization_&num..csv);
-%sas_2_csv(out.all_perf_&num.,performance_&num..csv);
-%sas_2_csv(out.all_phys_summ_&num.,phys_summary_&num..csv);
-%sas_2_csv(out.all_exclusions_&num.,exclusions_&num..csv);
-%sas_2_csv(out.all_pat_detail_&num.,patient_detail_&num..csv);
-%sas_2_csv(out.all_comp_&num.,comp_&num..csv);
-%sas_2_csv(out.all_bpid_member_&num.,bpid_member_&num..csv);
-
-%mend exp;
-
-%exp(1);
-/*%exp(2);*/
-
-/*%end;*/
-/*%else %do;*/
-/******** EXPORT QVW_FILES FOR ALL BPIDS COMBINED*******;*/
-/*%sas_2_csv(out.all_epi_detail,epi_detail.csv);*/
-/*%sas_2_csv(out.all_pjourney,pjourney.csv);*/
-/*%sas_2_csv(out.all_pjourneyagg,pjourneyagg.csv);*/
-/*%sas_2_csv(out.all_prov_detail,prov_detail.csv);*/
-/*%sas_2_csv(out.all_util,utilization.csv);*/
-/*%sas_2_csv(out.all_perf,performance.csv);*/
-/*%sas_2_csv(out.all_phys_summ,phys_summary.csv);*/
-/*%sas_2_csv(out.all_exclusions,exclusions.csv);*/
-/*%sas_2_csv(out.all_pat_detail,patient_detail.csv);*/
-/*%sas_2_csv(out.all_comp,comp.csv);*/
-
-*not for qlikview;
-/*%sas_2_csv(out.all_provider,provider.csv);*/
-/*%sas_2_csv(out.all_ccn_enc,pac.csv);*/
-
-*FUTURE USE;
-/*%sas_2_csv(out.all_perf_base,performance_base.csv);*/
-/*%sas_2_csv(out.all_tff_exclusions,exclu_timeframe_filter.csv);*/
-/*%sas_2_csv(out.all_claims_lag,claims_lag.csv);*/
-/*%sas_2_csv(out.all_tp_variability,tp_variability.csv);*/
-/*%sas_2_csv(out.all_tff_detail_output,timeframe_filter.csv);*/
-/*%end;*/
-
-%mend stacking;
 
 
 /********** 20170118 - CREATE FILES FOR DEMO ***************************************************************;*/
@@ -294,6 +214,40 @@ run;
 
 		BPID_ClinicalEp = strip(BPID)||" - "||strip(clinical_episode_abbr);
 		BPID_ClinicalEp_ccn = strip(BPID)||" - "||strip(clinical_episode_abbr)||" - "||strip(anchor_ccn);
+
+		format join_variable_recon $32.;
+		join_variable_recon = strip(EPI_ID_Milliman);
+
+				format ANCHOR_BEG_DT0 mmddyy10. ; 
+		ANCHOR_BEG_DT0 = ANCHOR_BEG_DT;
+
+		/*	*20200304 Update: Mask identifiable dates;*/
+	 	 ANCHOR_BEG_DT = intnx('year',intnx('day', ANCHOR_BEG_DT, floor(ranuni(7)*60)),10,'sameday');	
+	  	Anchor_Year = put(year(ANCHOR_BEG_DT), 4.);
+	   	Anchor_YearQtr = put(year(ANCHOR_BEG_DT), 4.)||' Q'||strip(qtr(ANCHOR_BEG_DT));
+	  	if month(ANCHOR_BEG_DT) < 10 then Anchor_YearMo = put(year(ANCHOR_BEG_DT), 4.)||' M0'||strip(month(ANCHOR_BEG_DT));
+	  	else Anchor_YearMo = put(year(ANCHOR_BEG_DT), 4.)||' M'||strip(month(ANCHOR_BEG_DT));
+
+	  increment = ANCHOR_BEG_DT - ANCHOR_BEG_DT0;
+
+  	%macro date(date);
+
+		format &date.0  mmddyy10.;
+		 &date.0 = &date. ;
+	 %if &date. = BENE_DOB %then %do ;
+	&date. = &date.0 + (-3*increment);
+	%end;
+	%else %do ;
+		&date. = &date.0 + increment;
+	%end ; 
+
+	%mend date;
+
+	%date(ANCHOR_END_DT);
+	%date(DOD);
+	%date(BENE_DOB);
+	%date(epi_end_date);
+
 	%end;
 	%if &file = pjourney %then %do;
 		/*	*20170821 Update: Mask identifiable variables;*/
@@ -314,6 +268,7 @@ run;
 		do i = 1 to dim(v_name);
 			if substr(v_name[i],1,11)="Observation" then v_name[i] = "Observation: Provider (123456): MM/DD/YY ";
 			else if substr(v_name[i],1,18)="Emergency Room - S" then v_name[i] = "Emergency Room - Stand Alone: Provider (123456): MM/DD/YY";
+			else if substr(v_name[i],1,13)="Emergency - W" then v_name[i] = "Emergency - W/in 1 Day of Admit: Provider (123456): MM/DD/YY";
 			else if substr(v_name[i],1,18)="Emergency Room - P" then v_name[i] = "Emergency Room - Preceding Admit: Provider (123456): MM/DD/YY";
 			else if substr(v_name[i],1,9)="Operating" then v_name[i] = "Operating Physician Visit: Provider (123456): MM/DD/YY";
 			else if substr(v_name[i],1,5)="Other" then v_name[i] = "Other Physician Visit: Provider (123456): MM/DD/YY";
@@ -336,8 +291,33 @@ run;
 		/*	*20170821 Update: mask HIC number;*/
 /*		readmit_med_rec_number = "123456789";*/
 		fac_counter = _N_;
+
+
+		/* 20200304 */
+		format startdate0 enddate0  er_startdate0 mmddyy10. ;
+		readmit_med_rec_number = "123456789";
+		fac_counter = _N_;
+		startdate0 = startdate ;
+		enddate0 = enddate ;
+		er_startdate0 = er_startdate ;
+		startdate = intnx('year',intnx('day', startdate0, floor(ranuni(7)*60)),10,'sameday');	
+		increment = startdate - startdate0;
+
+	%macro date(date);
+	 %if &date. = BENE_DOB %then %do ;
+	&date. = &date.0 + (-3*increment);
+	%end;
+	%else %do ;
+		&date. = &date.0 + increment;
+	%end ; 
+
+	%mend date;
+	%date(enddate);
+	%date(er_startdate);
+
 	%end;
 	%if &file = exclusions %then %do;
+
 		/*	*20181226 Update: mask bene sk;*/
 		BENE_SK = "123456789";
 		MBI_ID="987654321";
@@ -345,14 +325,79 @@ run;
 		if BENE_GENDER="Female" then BENE_GENDER="F";
 		else if BENE_GENDER="Male" then BENE_GENDER="M";
 
+		format ANCHOR_BEG_DT0 mmddyy10. ; 
+		ANCHOR_BEG_DT0 = ANCHOR_BEG_DT;
+
+		/*	*20200304 Update: Mask identifiable dates;*/
+	 	 ANCHOR_BEG_DT = intnx('year',intnx('day', ANCHOR_BEG_DT, floor(ranuni(7)*60)),10,'sameday');	
+	  	Anchor_Year = put(year(ANCHOR_BEG_DT), 4.);
+	   	Anchor_YearQtr = put(year(ANCHOR_BEG_DT), 4.)||' Q'||strip(qtr(ANCHOR_BEG_DT));
+	  	if month(ANCHOR_BEG_DT) < 10 then Anchor_YearMo = put(year(ANCHOR_BEG_DT), 4.)||' M0'||strip(month(ANCHOR_BEG_DT));
+	  	else Anchor_YearMo = put(year(ANCHOR_BEG_DT), 4.)||' M'||strip(month(ANCHOR_BEG_DT));
+
+	  	increment = ANCHOR_BEG_DT - ANCHOR_BEG_DT0;
+
+  	%macro date(date);
+format &date.0  mmddyy10.;
+		 &date.0 = &date. ;
+
+		&date. = &date.0 + increment;
+
+	%mend date;
+	%date(ANCHOR_END_DT);
+
 	%end;
-	%if &file = provider %then %do;
+
+	%end;
+	/* %if &file = provider %then %do; */
+	%if &file = prov_detail %then %do;
 		prov_counter= _N_;
+
+	/* 20200304 */
+		format service_date0   mmddyy10. ;
+		service_date0 = service_date ;
+		service_date = intnx('year',intnx('day', service_date0, floor(ranuni(7)*60)),10,'sameday');	
+
 	%end;
 	%if &file = bpid_member %then %do;
 		BENE_SK = 123456789;
 		BPID_Member = BPID || "_" || BENE_SK;
 	%end;
+
+	/*** 20200302 ***/
+		%if &file = pat_detail %then %do;
+
+		format begin_date0 end_date0  mmddyy10. ;
+		begin_date0 = begin_date ;
+		end_date0 = end_date ;
+		begin_date = intnx('year',intnx('day', begin_date0, floor(ranuni(7)*60)),10,'sameday');	
+		increment = begin_date - begin_date0;
+
+	%macro date(date);
+
+		&date. = &date.0 + increment;
+
+	%mend date;
+	%date(end_date);
+
+	%end; 
+
+	/* %if &file = complications %then %do; */
+	 %if &file = comp %then %do; 
+
+			format complication_startdate0 complication_enddate0  mmddyy10. ;
+			complication_startdate0 = complication_startdate ;
+			complication_enddate0 = complication_enddate ;
+			complication_startdate = intnx('year',intnx('day', complication_startdate0, floor(ranuni(7)*60)),10,'sameday');	
+			increment = complication_startdate - complication_startdate0;
+
+	%macro date(date);
+		&date. = &date.0 + increment;
+	%mend date;
+	%date(complication_enddate);
+
+	%end; 
+
 	run;
 
 %mend stack_output_demo;
@@ -363,8 +408,8 @@ run;
 %stack_output_demo(pjourneyagg,&label.);
 %stack_output_demo(pat_detail,&label.);
 %stack_output_demo(prov_detail,&label.);
-%stack_output_demo(util,&label.);
-%stack_output_demo(phys_summ,&label.);
+%stack_output_demo(util,&label.); 
+ %stack_output_demo(phys_summ,&label.); 
 %stack_output_demo(comp,&label.);
 %stack_output_demo(bpid_member,&label.);
 
@@ -399,7 +444,7 @@ data perf_demo ;
 run ;
 *** PREMIER BENCHMARKS ******;
 data benchmarks_pmr;
-	set bench.benchmarks_bpcia_pmr_17;
+	set bench.benchmarks_bpcia_pmr_18;
 	where fracture = "N/A";
 run;
 
@@ -494,14 +539,7 @@ run;
 %macro stack_output(file);
 
 	data out.all_&file._&name.;
-		set out.&file._:;
-		%if &file = ccn_enc %then %do;
-			fac_counter = _N_;
-		%end;
-		%else %if &file = provider %then %do;
-			prov_counter = _N_;
-		%end;
-
+		set out.all_&file.;
 		%if &name = CCF %then %do;
 		where BPID in (&CCF_lst.) ; 
 		%end ;
@@ -528,58 +566,6 @@ run;
 %stack_output(comp);
 %stack_output(bpid_member);
 
-*not for qlikview;
-/*%stack_output(provider);*/
-/*%stack_output(ccn_enc);*/
-
-*FUTURE USE;
-/*%stack_output(perf_base); *Baseline only;*/
-/*%stack_output(exclusions);*/
-/*%stack_output(tff_exclusions,output); *Excluded episodes;*/
-/*%stack_output(claims_lag,&label.);*/
-/*%stack_output(tp_variability,&label.); *20170831 Update: Add new target price variability;*/
-/*%stack_output(tff_detail_output); *All episodes;*/
-
-
-*** PREMIER BENCHMARKS ******;
-data benchmarks_pmr;
-	set bench.benchmarks_bpcia_pmr_17;
-	where fracture = "N/A";
-run;
-
-proc sql;
-	create table p1 as
-	select a.*
-		,b.*
-	from out.all_perf_&name. as a
-	left join benchmarks_pmr as b
-	on a.Anchor_code = b.drg
-	and timeframe_id = b._id 
-	and client_type = 1
-	order by epi_id_milliman, timeframe
-;
-quit;
-*** BASELINE BENCHMARKS ******;
-data benchmarks_base;
-	set out.baseline_benchmark_:;
-run;
-
-proc sql;
-	create table b1 as
-	select a.*
-		,b.*
-	from p1 as a
-	left join benchmarks_base as b
-	on  a.BPID=b.BPID
-	and a.Anchor_code = b.Anchor_code
-	and a.timeframe_id = b.timeframe_id 
-	order by epi_id_milliman, timeframe
-;
-quit;
-
-data out.all_perf_&name.;
-	set b1;
-run;
 
 ******* EXPORT QVW_FILES *******;
 %sas_2_csv(out.all_epi_detail_&name.,epi_detail.csv);
@@ -594,24 +580,12 @@ run;
 %sas_2_csv(out.all_comp_&name.,comp.csv);
 %sas_2_csv(out.all_bpid_member_&name.,bpid_member.csv);
 
-*not for qlikview;
-/*%sas_2_csv(out.all_provider,provider.csv);*/
-/*%sas_2_csv(out.all_ccn_enc,pac.csv);*/
-
-*FUTURE USE;
-/*%sas_2_csv(out.all_perf_base,performance_base.csv);*/
-/*%sas_2_csv(out.all_exclusions,exclusions.csv);*/
-/*%sas_2_csv(out.all_tff_exclusions,exclu_timeframe_filter.csv);*/
-/*%sas_2_csv(out.all_claims_lag,claims_lag.csv);*/
-/*%sas_2_csv(out.all_tp_variability,tp_variability.csv);*/
-/*%sas_2_csv(out.all_tff_detail_output,timeframe_filter.csv);*/
-
 %mend stacking_pre_other;
 
 /*************;*/
 /**/
 *** FULL RUN ***;
-%stacking(R:\data\HIPAA\BPCIA_BPCI Advanced\80 - Qlikview\Outfiles);
+/*%stacking(R:\data\HIPAA\BPCIA_BPCI Advanced\80 - Qlikview\Outfiles);*/
 
 *** DEVELOPMENT RUN ***;
 /*%stacking(R:\data\HIPAA\BPCIA_BPCI Advanced\80 - Qlikview\Outfiles\Development);*/

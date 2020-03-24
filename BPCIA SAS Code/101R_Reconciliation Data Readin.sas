@@ -1,5 +1,5 @@
 proc printto;run;
-proc printto log="H:\BPCIA_BPCI Advanced\50 - BPCI Advanced Ongoing Reporting - 2019\Work Papers\SAS\logs\101P - Performance Data Readin_&sysdate..log" print=print new;
+proc printto log="H:\BPCIA_BPCI Advanced\50 - BPCI Advanced Ongoing Reporting - 2019\Work Papers\SAS\logs\101R - Reconciliation Data Readin_&sysdate..log" print=print new;
 run;
 
 *********************************************************
@@ -16,16 +16,16 @@ Generate Hospital Data from:
 options mprint mlogic spool;
 
 ****** USER INPUTS **********************************************************************************;
-%let dte = 202002;
+%let dte = PP1Initial;
 
-%let label = y&dte.; 
-%let pth =R:\data\HIPAA\BPCIA_BPCI Advanced\02 - Performance Data\Data &dte. ;
+%let label = &dte.; 
+%let pth =R:\data\HIPAA\BPCIA_BPCI Advanced\03 - Reconciliation Data\&dte. ;
 
 
 ****** REFERENCE PROGRAMS **********************************************************************************;
 %let path = H:\BPCIA_BPCI Advanced\50 - BPCI Advanced Ongoing Reporting - 2019\Work Papers\SAS;
 
-%include "&path.\100P_Read Performance Data.sas";
+%include "&path.\100R_Read Reconciliation Data.sas";
 %include 'H:\_HealthLibrary\SAS\dirmemlist.sas' ;
 
 ****** LIBRARY ASSIGNMENT **********************************************************************************;
@@ -144,7 +144,7 @@ quit;
 %call(Premier,1104-0000,1104_0000,&label.);
 %call(Premier,1105-0000,1105_0000,&label.);
 %call(Premier,1106-0000,1106_0000,&label.);
-*%call(Premier,1125-0000,1125_0000,&label.);
+%call(Premier,1125-0000,1125_0000,&label.);
 %call(Premier,1148-0000,1148_0000,&label.);
 %call(Premier,1167-0000,1167_0000,&label.);
 %call(Premier,1343-0000,1343_0000,&label.);
@@ -261,7 +261,7 @@ data Summary;
 run;
 
 proc export data= Summary
-            outfile= "R:\data\HIPAA\BPCIA_BPCI Advanced\99 - Investigations\Performance Period Claims\sasout_Performance Claims Dates_&sysdate..xlsx"
+            outfile= "R:\data\HIPAA\BPCIA_BPCI Advanced\99 - Investigations\Performance Period Claims\sasout_Reconciliation Claims Dates_&sysdate..xlsx"
             dbms=xlsx replace; 
 run;
 

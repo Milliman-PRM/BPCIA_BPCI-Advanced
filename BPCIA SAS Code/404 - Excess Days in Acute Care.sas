@@ -91,7 +91,7 @@ data index_admissions_&bpid1._&bpid2._0;
 			EPISODE_GROUP_NAME='Acute myocardial infarction'
 		and type='IP_Idx' /* grabs only index stays */
 		and BENE_AGE>=65
-		and DROPFLAG_DEATH_DUR_ANCHOR=0
+		/*and DROPFLAG_DEATH_DUR_ANCHOR=0*/
 		and ('0001' <= pv and pv <= '0899') /* keeps only short-term acute care hospitals */
 		and stus_cd ne 7 /* stus_cd indicates that a patient was discharged against medical advice */
 		and STAY_ADMSN_DT ne STAY_DSCHRGDT

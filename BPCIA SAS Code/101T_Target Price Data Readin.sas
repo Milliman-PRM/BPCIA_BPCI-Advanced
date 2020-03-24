@@ -28,7 +28,7 @@ Step 1 - Map updated BPIDs onto archived versions of the TP_Component and Peer G
 		set arch.TP_Components(rename=(EPI_INDEX=EPI_INDEX_OLD CONVENER_ID=CONVENER_ID_OLD INITIATOR_BPID=INITIATOR_BPID_OLD));
 		length EPI_INDEX $50. CONVENER_ID INITIATOR_BPID $9. time_period $32.;
 		format BPID_change 1. time_period $32. epi_start epi_end MMDDYY10.;
-		time_period='Baseline';
+		time_period='Baseline - MY 1&2';
 		rel_dt=0;
 		epi_start=mdy(1,1,2013);
 		epi_end=mdy(12,31,2016);
@@ -81,7 +81,7 @@ Step 1 - Map updated BPIDs onto archived versions of the TP_Component and Peer G
 		set arch.Peer_Group(rename=(CONVENER_ID=CONVENER_ID_OLD INITIATOR_BPID=INITIATOR_BPID_OLD));
 		length CONVENER_ID INITIATOR_BPID $9. time_period $32.;
 		format BPID_change 1. time_period $32. epi_start epi_end MMDDYY10.;
-		time_period='Baseline';
+		time_period='Baseline - MY 1&2';
 		rel_dt=0;
 		epi_start=mdy(1,1,2013);
 		epi_end=mdy(12,31,2016);
@@ -123,14 +123,14 @@ Step 1 - Map updated BPIDs onto archived versions of the TP_Component and Peer G
 /****************************************************************************************************************
 Step 2 - Stack current and archived versions of of the TP_Component and Peer Group files
 ****************************************************************************************************************/
-%macro PERFORMANCE(client, rel_date, timeper, epi_start, epi_end);
+%macro PERFORMANCE(client, rel_date, timeper, epi_start, epi_end, filename);
 
 	libname perf "R:\data\HIPAA\BPCIA_BPCI Advanced\04 - Target Price Reports\Distributed &rel_date.\&client.\Stacked Files";
 
 	/* TP Components */
 	* create _old versions of BPID and Convener ID so new data set will stack onto old;
 	data tpcomp_comb_&client._pre;
-		set perf.TP_Components(rename=(EPI_INDEX=EPI_INDEX_OLD CONVENER_ID=CONVENER_ID_OLD INITIATOR_BPID=INITIATOR_BPID_OLD));
+		set perf.&filename.(rename=(EPI_INDEX=EPI_INDEX_OLD CONVENER_ID=CONVENER_ID_OLD INITIATOR_BPID=INITIATOR_BPID_OLD));
 		length EPI_INDEX $50 CONVENER_ID INITIATOR_BPID $9. time_period $32.;
 		EPI_INDEX=EPI_INDEX_OLD; CONVENER_ID=CONVENER_ID_OLD; INITIATOR_BPID=INITIATOR_BPID_OLD;
 		EPI_INDEX_OLD=''; CONVENER_ID_OLD=''; INITIATOR_BPID_OLD='';
@@ -237,12 +237,208 @@ Step 2 - Stack current and archived versions of of the TP_Component and Peer Gro
 		if length(compress(ccn_join)) = 5 then ccn_join = '0' || ccn_join;
 
 	run;
+	
+/*
+	data rr_&client.;
+		set perf.Reconciliation_Report;
+	run;
+*/
 %mend PERFORMANCE;
 
-%PERFORMANCE(Premier, 20181231, '01/01/2019 - 09/30/2019', mdy(1,1,2019), mdy(9,30,2019));
-%PERFORMANCE(Other, 20181231, '01/01/2019 - 09/30/2019', mdy(1,1,2019), mdy(9,30,2019));
-%PERFORMANCE(Premier, 20181001, '10/01/2018 - 12/31/2018', mdy(10,1,2018), mdy(12,31,2018));
-%PERFORMANCE(Other, 20181001, '10/01/2018 - 12/31/2018', mdy(10,1,2018), mdy(12,31,2018));
+%PERFORMANCE(Premier, 20191121, '10/01/2019 - 12/31/2019', mdy(10,1,2019), mdy(12,31,2019),TP_Components);
+%PERFORMANCE(Other, 20191121, '10/01/2019 - 12/31/2019', mdy(10,1,2019), mdy(12,31,2019),TP_Components);
+
+
+%macro PERFORMANCE2(client, rel_date, timeper, epi_start, epi_end, filename);
+
+	libname perf "R:\data\HIPAA\BPCIA_BPCI Advanced\04 - Target Price Reports\Distributed &rel_date.\&client.\Stacked Files";
+
+	/* Peer Group */
+	* create _old versions of BPID and Convener ID so new data set will stack onto old;
+	data pg_comb_&client._pre_&rel_date.;
+		set perf.Peer_Group(rename=(CONVENER_ID=CONVENER_ID_OLD INITIATOR_BPID=INITIATOR_BPID_OLD));
+		length CONVENER_ID INITIATOR_BPID $9. time_period $32.;
+		CONVENER_ID=CONVENER_ID_OLD; INITIATOR_BPID=INITIATOR_BPID_OLD;
+		CONVENER_ID_OLD=''; INITIATOR_BPID_OLD='';
+		format BPID_change 1. time_period $32. epi_start epi_end MMDDYY10.;
+		time_period=&timeper.;
+		rel_dt=&rel_date.;
+		epi_start=&epi_start.;
+		epi_end=&epi_end.;
+
+			 if INITIATOR_BPID='1374-0004' then BPID_change=1;
+		else if INITIATOR_BPID='1374-0008' then BPID_change=1;
+		else if INITIATOR_BPID='1374-0009' then BPID_change=1;
+		else if INITIATOR_BPID='5084-0042' then BPID_change=1;
+		else if INITIATOR_BPID='5084-0064' then BPID_change=1;
+		else if INITIATOR_BPID='5084-0034' then BPID_change=1;
+		else if INITIATOR_BPID='5392-0004' then BPID_change=1;
+		else if INITIATOR_BPID='5478-0002' then BPID_change=1;
+		else if INITIATOR_BPID='5479-0002' then BPID_change=1;
+		else if INITIATOR_BPID='5480-0002' then BPID_change=1;
+		else if INITIATOR_BPID='5481-0002' then BPID_change=1;
+		else if INITIATOR_BPID='5746-0002' then BPID_change=1;
+		else if INITIATOR_BPID='5916-0002' then BPID_change=1;
+		else if INITIATOR_BPID='6049-0002' then BPID_change=1;
+		else if INITIATOR_BPID='6050-0002' then BPID_change=1;
+		else if INITIATOR_BPID='6051-0002' then BPID_change=1;
+		else if INITIATOR_BPID='6052-0002' then BPID_change=1;
+		else if INITIATOR_BPID='6053-0002' then BPID_change=1;
+		else if INITIATOR_BPID='6054-0002' then BPID_change=1;
+		else if INITIATOR_BPID='6055-0002' then BPID_change=1;
+		else if INITIATOR_BPID='6056-0002' then BPID_change=1;
+		else if INITIATOR_BPID='6057-0002' then BPID_change=1;
+		else if INITIATOR_BPID='6058-0002' then BPID_change=1;
+		else if INITIATOR_BPID='6059-0002' then BPID_change=1;
+		else if INITIATOR_BPID='1191-0002' then BPID_change=1;
+		else BPID_change=0;
+
+		format ccn_join $6.;
+		ccn_join = CCN;
+		if length(compress(ccn_join)) = 5 then ccn_join = '0' || ccn_join;
+
+	run;
+	
+%mend PERFORMANCE2;
+
+%PERFORMANCE2(Premier, 20181231, '01/01/2019 - 09/30/2019', mdy(1,1,2019), mdy(9,30,2019),Peer_Group);
+%PERFORMANCE2(Other, 20181231, '01/01/2019 - 09/30/2019', mdy(1,1,2019), mdy(9,30,2019),Peer_Group);
+%PERFORMANCE2(Premier, 20181001, '10/01/2018 - 12/31/2018', mdy(10,1,2018), mdy(12,31,2018),Peer_Group);
+%PERFORMANCE2(Other, 20181001, '10/01/2018 - 12/31/2018', mdy(10,1,2018), mdy(12,31,2018),Peer_Group);
+
+
+%macro RECON(client, rel_date, timeper, epi_start, epi_end, filename);
+
+	libname perf "R:\data\HIPAA\BPCIA_BPCI Advanced\09 - Reconciliation Reports\PP1 Initial\&client.\Stacked Files";
+
+	/* TP Components */
+	* create _old versions of BPID and Convener ID so new data set will stack onto old;
+	data tpcomp_comb_&client._pre;
+		set perf.&filename.(rename=(EPI_INDEX=EPI_INDEX_OLD CONVENER_ID=CONVENER_ID_OLD INITIATOR_BPID=INITIATOR_BPID_OLD));
+		length EPI_INDEX $50 CONVENER_ID INITIATOR_BPID $9. time_period $32.;
+		EPI_INDEX=EPI_INDEX_OLD; CONVENER_ID=CONVENER_ID_OLD; INITIATOR_BPID=INITIATOR_BPID_OLD;
+		EPI_INDEX_OLD=''; CONVENER_ID_OLD=''; INITIATOR_BPID_OLD='';
+		format BPID_change 1. time_period $32. epi_start epi_end MMDDYY10.;
+		time_period=&timeper.;
+		rel_dt=&rel_date.;
+		epi_start=&epi_start.;
+		epi_end=&epi_end.;
+		
+			 if INITIATOR_BPID='1374-0004' then BPID_change=1;
+		else if INITIATOR_BPID='1374-0008' then BPID_change=1;
+		else if INITIATOR_BPID='1374-0009' then BPID_change=1;
+		else if INITIATOR_BPID='5084-0042' then BPID_change=1;
+		else if INITIATOR_BPID='5084-0064' then BPID_change=1;
+		else if INITIATOR_BPID='5084-0034' then BPID_change=1;
+		else if INITIATOR_BPID='5392-0004' then BPID_change=1;
+		else if INITIATOR_BPID='5478-0002' then BPID_change=1;
+		else if INITIATOR_BPID='5479-0002' then BPID_change=1;
+		else if INITIATOR_BPID='5480-0002' then BPID_change=1;
+		else if INITIATOR_BPID='5481-0002' then BPID_change=1;
+		else if INITIATOR_BPID='5746-0002' then BPID_change=1;
+		else if INITIATOR_BPID='5916-0002' then BPID_change=1;
+		else if INITIATOR_BPID='6049-0002' then BPID_change=1;
+		else if INITIATOR_BPID='6050-0002' then BPID_change=1;
+		else if INITIATOR_BPID='6051-0002' then BPID_change=1;
+		else if INITIATOR_BPID='6052-0002' then BPID_change=1;
+		else if INITIATOR_BPID='6053-0002' then BPID_change=1;
+		else if INITIATOR_BPID='6054-0002' then BPID_change=1;
+		else if INITIATOR_BPID='6055-0002' then BPID_change=1;
+		else if INITIATOR_BPID='6056-0002' then BPID_change=1;
+		else if INITIATOR_BPID='6057-0002' then BPID_change=1;
+		else if INITIATOR_BPID='6058-0002' then BPID_change=1;
+		else if INITIATOR_BPID='6059-0002' then BPID_change=1;
+		else if INITIATOR_BPID='1191-0002' then BPID_change=1;
+		else BPID_change=0;
+
+		format ccn_join $6.;
+		ccn_join = ASSOC_ACH_CCN;
+		if ccn_join = '' then ccn_join = CCN_TIN;
+		if length(compress(ccn_join)) = 5 then ccn_join = '0' || ccn_join;
+
+		format PCMA HBP best12.;
+		PCMA = Final_PCMA;
+		if PCMA=. and Prelim_PCMA^=. then PCMA=Prelim_PCMA;
+		HBP = Final_HBP;
+		if HBP=. and Prelim_HBP^=. then HBP=Prelim_HBP;
+
+	run;
+
+	* limit the new TP data;
+	proc sql;
+		create table tp_com_&client._pre_lim_&rel_date. as
+		select a.*
+		from tpcomp_comb_&client._pre as a
+		inner join ref.bpcia_episode_initiator_info as b
+		on a.initiator_bpid = b.BPCI_Advanced_ID_number_2
+		;
+		title "current_bpids_&client."; select count(distinct initiator_bpid) as distinct_bpid from tp_com_&client._pre_lim_&rel_date.; 
+		;
+	quit;
+
+	proc sql;
+		create table active_epi_&client._&rel_date. as
+		select distinct time_period, CONVENER_ID, INITIATOR_BPID, EPI_TYPE, EPI_CAT_adj, EPI_CAT_Short 
+		from tp_com_&client._pre_lim_&rel_date.;
+	quit;
+
+	/* Peer Group */
+	* create _old versions of BPID and Convener ID so new data set will stack onto old;
+	/*data pg_comb_&client._pre_&rel_date.;
+		set perf.Peer_Group(rename=(CONVENER_ID=CONVENER_ID_OLD INITIATOR_BPID=INITIATOR_BPID_OLD));
+		length CONVENER_ID INITIATOR_BPID $9. time_period $32.;
+		CONVENER_ID=CONVENER_ID_OLD; INITIATOR_BPID=INITIATOR_BPID_OLD;
+		CONVENER_ID_OLD=''; INITIATOR_BPID_OLD='';
+		format BPID_change 1. time_period $32. epi_start epi_end MMDDYY10.;
+		time_period=&timeper.;
+		rel_dt=&rel_date.;
+		epi_start=&epi_start.;
+		epi_end=&epi_end.;
+
+			 if INITIATOR_BPID='1374-0004' then BPID_change=1;
+		else if INITIATOR_BPID='1374-0008' then BPID_change=1;
+		else if INITIATOR_BPID='1374-0009' then BPID_change=1;
+		else if INITIATOR_BPID='5084-0042' then BPID_change=1;
+		else if INITIATOR_BPID='5084-0064' then BPID_change=1;
+		else if INITIATOR_BPID='5084-0034' then BPID_change=1;
+		else if INITIATOR_BPID='5392-0004' then BPID_change=1;
+		else if INITIATOR_BPID='5478-0002' then BPID_change=1;
+		else if INITIATOR_BPID='5479-0002' then BPID_change=1;
+		else if INITIATOR_BPID='5480-0002' then BPID_change=1;
+		else if INITIATOR_BPID='5481-0002' then BPID_change=1;
+		else if INITIATOR_BPID='5746-0002' then BPID_change=1;
+		else if INITIATOR_BPID='5916-0002' then BPID_change=1;
+		else if INITIATOR_BPID='6049-0002' then BPID_change=1;
+		else if INITIATOR_BPID='6050-0002' then BPID_change=1;
+		else if INITIATOR_BPID='6051-0002' then BPID_change=1;
+		else if INITIATOR_BPID='6052-0002' then BPID_change=1;
+		else if INITIATOR_BPID='6053-0002' then BPID_change=1;
+		else if INITIATOR_BPID='6054-0002' then BPID_change=1;
+		else if INITIATOR_BPID='6055-0002' then BPID_change=1;
+		else if INITIATOR_BPID='6056-0002' then BPID_change=1;
+		else if INITIATOR_BPID='6057-0002' then BPID_change=1;
+		else if INITIATOR_BPID='6058-0002' then BPID_change=1;
+		else if INITIATOR_BPID='6059-0002' then BPID_change=1;
+		else if INITIATOR_BPID='1191-0002' then BPID_change=1;
+		else BPID_change=0;
+
+		format ccn_join $6.;
+		ccn_join = CCN;
+		if length(compress(ccn_join)) = 5 then ccn_join = '0' || ccn_join;
+
+	run;
+	*/
+
+	data rr_&client.;
+		set perf.Reconciliation_Report;
+	run;
+
+%mend RECON;
+
+%RECON(Premier, 20181231, '01/01/2019 - 09/30/2019', mdy(1,1,2019), mdy(9,30,2019),CY19_FY19_TP_Components);
+%RECON(Other, 20181231, '01/01/2019 - 09/30/2019', mdy(1,1,2019), mdy(9,30,2019),CY19_FY19_TP_Components);
+%RECON(Premier, 20181001, '10/01/2018 - 12/31/2018', mdy(10,1,2018), mdy(12,31,2018),CY18_FY19_TP_Components);
+%RECON(Other, 20181001, '10/01/2018 - 12/31/2018', mdy(10,1,2018), mdy(12,31,2018),CY18_FY19_TP_Components);
 
 
 data out.active_epis;
@@ -265,6 +461,14 @@ run;
 
 		if a then do;
 			epi_dropped_flag=0;
+		end;
+
+		if EPI_TYPE = 'ip' then EPI_TYPE = 'IP';
+		if EPI_TYPE = 'op' then EPI_TYPE = 'OP';
+
+		if PGP_ACH = '' then do;
+			if length(CCN_TIN) <= 6 then PGP_ACH = 'ACH';
+			else PGP_ACH = 'PGP';
 		end;
 
 		proc sort; by INITIATOR_BPID EPI_CAT EPI_TYPE ccn_join descending rel_dt;
@@ -305,6 +509,12 @@ run;
 		dupout=dups;
 		by CONVENER_ID INITIATOR_BPID CCN ACADEMIC URBAN_RURAL SAFETY_NET BED_SIZE CENSUS time_period;
 	run;
+	
+	data out.Recon_Reports_All;
+		set rr_premier
+			rr_other
+			;
+	run;
 %mend stack_w_archive;
 
 %stack_w_archive();
@@ -324,14 +534,13 @@ Step 3 - out tables, limit TP_Components to BPIDs in the Data Tracker, and expor
 			title "&table."; select count(distinct initiator_bpid) as distinct_bpid from out.&table._all; 
 		quit;
 		/* partition to decrease interface size */
-		data out.&table._pmr out.&table._oth out.&table._cc out.&table._1;
+		data out.&table._pmr out.&table._oth out.&table._ccf out.&table._1 out.&table._dev;
 			set out.&table._all;
-			if initiator_bpid in (&DEV_EI_1st.) then output out.&table_dev;
 			if initiator_bpid in (&PMR_EI_lst.) then output out.&table._pmr;
 			else if initiator_bpid in (&NON_PMR_EI_lst.) then output out.&table._oth;
 			else if initiator_bpid in (&CCF_lst.) then output out.&table._ccf;
 			
-
+			if initiator_bpid in (&DEV_EI_lst.) then output out.&table._dev;
 			if initiator_bpid in (&PMR_EI_lst.) or initiator_bpid in (&NON_PMR_EI_lst.) then output out.&table._1;
 		run;
 		/* Export partitions */
@@ -381,6 +590,7 @@ Step 3 - out tables, limit TP_Components to BPIDs in the Data Tracker, and expor
 
 %out(TP_Components);
 %out(Peer_Group);
+%out(Recon_Reports);
 
 /****************************************************************************************************************
 Step 4 - Create de-identified DEMO version

@@ -11,8 +11,8 @@ libname out "&dataDir.\07 - Processed Data";
 *DEV;
 /*libname out "&dataDir.\07 - Processed Data\Development";*/
 
-libname out2 "R:\data\HIPAA\BPCIA_BPCI Advanced\07 - Processed Data\Past files for checking\20190829";
-libname check "R:\data\HIPAA\BPCIA_BPCI Advanced\07 - Processed Data\Past files for checking\20191001";
+libname out2 "R:\data\HIPAA\BPCIA_BPCI Advanced\07 - Processed Data\Past files for checking\20200129";
+libname check "R:\data\HIPAA\BPCIA_BPCI Advanced\07 - Processed Data\Past files for checking\20200226";
 
 
 %include "H:\_HealthLibrary\SAS\000 - General SAS Macros.sas";
@@ -623,12 +623,12 @@ run;
 ***** RUNS ******;
 
 /** 1 COST CHECK - Patient Detail matches Episode Detail and data3 file;*/
-%one(1);
-%one(2);
+%one(mil);
+%one(pmr);
 
 * 2 EPISODE COUNT CHECK - episode counts match up everywhere;
-%two(1);
-%two(2);
+%two(mil);
+%two(pmr);
 
 * 4 Check LOS distribution of SNF and IP;
 %four;
@@ -653,20 +653,21 @@ run;
 
 *8 - check number of episodes for each clinical episode type by BPID;
 *number of unique clinical episodes by BPID;
-%eight(1);
-%eight(2);
+%eight(mil);
+%eight(pmr);
 
 ** COMPARISONS WITH PREVIOUS FILE **;
 
 *3 Compare old vs. new utilization and costs;
-%three(1);
-%three(2);
+%three(mil);
+%three(pmr);
 
 *9 - Compare Premier benchmarks to previous distribution;
 /*%nine;*/
 
 *10 - Correct wage adjustement of claims files matches episode cost from raw epi file where expected (the obs in the output file should match the episodes with CMS-Milliman cost discrepancy);
-%ten(1);
+%ten(mil);
+%ten(pmr);
 /*%sas_2_csv(checkoutput10_1,checkoutput10.csv);*/
 
 **************;
