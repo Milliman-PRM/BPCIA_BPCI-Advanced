@@ -58,8 +58,7 @@ data DME_&sub2._&BPID._&i._MY3 ;
  set temp_DME; 
 BENE_SK = compress(BENE_SK,",");
 CLAIMNO = compress(CLAIMNO,",");
-format MEASURE_YEAR $10.;
-MEASURE_YEAR = 'MY3';
+MEASURE_YEAR = 'MY3_MY3';
 run ;
 
 
@@ -395,8 +394,7 @@ data HHA_&sub2._&BPID._&i._MY3 ;
  set temp_HHA; 
 BENE_SK = compress(BENE_SK,",");
 CLAIMNO = compress(CLAIMNO,",");
-format MEASURE_YEAR $10.;
-MEASURE_YEAR = 'MY3';
+MEASURE_YEAR = 'MY3_MY3';
 run ;
 %mend HHA_MY3;
 
@@ -464,8 +462,7 @@ data HS_&sub2._&BPID._&i._MY3 ;
  set temp_HS; 
 BENE_SK = compress(BENE_SK,",");
 CLAIMNO = compress(CLAIMNO,",");
-format MEASURE_YEAR $10.;
-MEASURE_YEAR = 'MY3';
+MEASURE_YEAR = 'MY3_MY3';
 run ;
 %mend HS_MY3;
 
@@ -558,8 +555,7 @@ run;
 data IP_&sub2._&BPID._&i._MY3 ;
  set temp_IP; 
 BENE_SK = compress(BENE_SK,",");
-format MEASURE_YEAR $10.;
-MEASURE_YEAR = 'MY3';
+MEASURE_YEAR = 'MY3_MY3';
 run ;
 %mend IP_MY3;
 
@@ -628,8 +624,7 @@ data OP_&sub2._&BPID._&i._MY3 ;
  set temp_OP; 
 BENE_SK = compress(BENE_SK,",");
 CLAIMNO = compress(CLAIMNO,",");
-format MEASURE_YEAR $10.;
-MEASURE_YEAR = 'MY3';
+MEASURE_YEAR = 'MY3_MY3';
 run ;
 %mend OP_MY3;
 
@@ -689,8 +684,7 @@ data PB_&sub2._&BPID._&i._MY3 ;
  set temp_PB; 
 BENE_SK = compress(BENE_SK,",");
 CLAIMNO = compress(CLAIMNO,",");
-format MEASURE_YEAR $10.;
-MEASURE_YEAR = 'MY3';
+MEASURE_YEAR = 'MY3_MY3';
 run ;
 %mend PB_MY3;
 
@@ -759,8 +753,7 @@ data SNF_&sub2._&BPID._&i._MY3 ;
  set temp_SNF; 
 BENE_SK = compress(BENE_SK,",");
 CLAIMNO = compress(CLAIMNO,",");
-format MEASURE_YEAR $10.;
-MEASURE_YEAR = 'MY3';
+MEASURE_YEAR = 'MY3_MY3';
 run ;
 %mend SNF_MY3;
 
@@ -958,8 +951,7 @@ data EPI_&sub2._&BPID._&i._MY3 ;
  set temp_EPI; 
 BENE_SK = compress(BENE_SK,",");
 ANCHOR_CLAIMNO = compress(ANCHOR_CLAIMNO,",");
-format MEASURE_YEAR $10.;
-MEASURE_YEAR = 'MY3';
+MEASURE_YEAR = 'MY3_MY3';
 run ;
 %mend EPI_MY3;
 
