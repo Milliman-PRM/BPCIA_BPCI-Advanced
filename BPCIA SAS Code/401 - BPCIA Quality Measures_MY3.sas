@@ -7,9 +7,9 @@ Code to create the Qaulity Measure for the BPCI Advanced
 *********************************************************
 *********************************************************;
 libname bpcia "H:\Nonclient\Medicare Bundled Payment Reference\Program - BPCIA\SAS Datasets";
-libname out "R:\data\HIPAA\BPCIA_BPCI Advanced\07 - Processed Data";
+libname out "R:\data\HIPAA\BPCIA_BPCI Advanced\07 - Processed Data\Baseline Interface";
 %include "H:\Nonclient\Medicare Bundled Payment Reference\Program - BPCIA\SAS Code\000 - BPCIA_Interface_BPIDs.sas";
-%let mode=main ; *Main=Main Interface, Base=Baseline Interface ;
+%let mode=base ; *Main=Main Interface, Base=Baseline Interface ;
 
 *********************************************************;
 *Baseline Out Library;
@@ -116,24 +116,24 @@ quit ;
 		 a.Measure
 %if &type. = Mort  %then %do ; 
 		,"CABG" as Clinical_Episode_Name 
-		,b.Coronary_artery_bypass_graft as CABG
+		,"1" as CABG
 %end;
 %else %if &type. = PSI  %then %do ; 
 		,"All Inpatient" as Clinical_Episode_Name 
-		,b.ALL_IP as PSI
+		,"1" as PSI
 %end; 
 %else %if &type. = Comp  %then %do ; 
 		,"Major joint - lower extr and Double joint - lower extr" as Clinical_Episode_Name 
-		,b.Major_joint_replacement_of_the_l as Comp
-		,b.Double_joint_replacement_of_the_ as Double
+		,"1" as Comp
+		,"1" as Double
 %end; 
 %else %if &type. = Heart  %then %do ; 
 		,"AMI" as Clinical_Episode_Name 
-		,b.Acute_myocardial_infarction as AMI
+		,"1" as AMI
 %end; 
 %else %if &type. = Readmit  %then %do ; 
 		,"All" as Clinical_Episode_Name 
-		,b.ALL as All
+		,"1" as All
 %end; 
 		 ,a.Measure_Period_Start
 		 ,a.Measure_Period
@@ -161,7 +161,7 @@ quit ;
 %end; 
 
 	from Table_&type. as a
-	left join bpcia.BPCIA_Episode_Initiator_Info as b
+	left join bpcia.BPCIA_Episode_Initiator_Info_MY3 as b
 	on a.BPID = b.BPCI_Advanced_ID_Number_2
 
 ;
@@ -218,6 +218,7 @@ quit;
 
 /**Macro to stack and out all the measures for all the CCNS that are present within the Source files */;
   %macro Quality_Measure_full(name);
+
 	data Quality_Measure_&name._0 ;
 	%if &mode.=main %then %do ;
 	      set final_table_comp: (where = (Comp = '1' or Double = '1') )
@@ -242,43 +243,82 @@ quit;
 	*Splitting the stacked file into two files - one for Premier the other for Milliman. */;
 	data Quality_Measure_&name. ;
 		set Quality_Measure_&name._0 ; 
-	%if &name. = PMR %then %do ;
-				where BPID in (&PMR_EI_lst.) ; 
-	%end;
-	%else %if &name. = Milliman %then %do ; 
-				where BPID in (&NON_PMR_EI_lst.) ; 
-				%end;
-				%else %do ; 
-				where BPID in (&DEV_EI_lst.) ; 
-				%end;
-		run ; 
-
+		%if &name. = 1 %then %do ;
+			where BPID in (&MY3_lst.) ; 
+		%end;
+		%else %if &name. = PMR_Exist %then %do ; 
+			where BPID in (&PMR_3_Exist_EI_lst.) ; 
+		%end;
+		%else %if &name. = PMR_New %then %do ; 
+			where BPID in (&PMR_3_New_EI_lst.) ; 
+		%end;
+		%else %if &name. = PMR %then %do ; 
+			where BPID in (&PMR_3_EI_lst.) ; 
+		%end;
+		%else %if &name. = CCB %then %do ; 
+			where BPID in (&CCB_3_EI_lst.) ; 
+		%end;
+		%else %if &name. = CCF %then %do ; 
+			where BPID in (&CCF_3_EI_lst.) ; 
+		%end;
+		%else %if &name. = GHS %then %do ; 
+			where BPID in (&GHS_3_EI_lst.) ; 
+		%end;
+		%else %if &name. = HAL %then %do ; 
+			where BPID in (&HAL_3_EI_lst.) ; 
+		%end;
+		%else %if &name. = HSS %then %do ; 
+			where BPID in (&HSS_3_EI_lst.) ; 
+		%end;
+		%else %if &name. = ICS %then %do ; 
+			where BPID in (&ICS_3_EI_lst.) ; 
+		%end;
+		%else %if &name. = MUSC %then %do ; 
+			where BPID in (&MUSC_3_EI_lst.) ; 
+		%end;
+		%else %if &name. = USPI %then %do ; 
+			where BPID in (&USPI_3_EI_lst.) ; 
+		%end;
+		%else %if &name. = WSP %then %do ; 
+			where BPID in (&WSP_3_EI_lst.) ; 
+		%end;
+	run ;
 
 	proc sort 
 				data = Quality_Measure_&name.
-							out= bpcia.Quality_Measure_&name. ;
+							out= bpcia.Quality_Measure_MY3_&name. ;
 				by   BPID CCN Measure max_date_flag   ;
 	run ; 
 
 	proc sort 
 				data = Quality_Measure_&name._0
-							out=bpcia.Quality_Measure_full ;
+							out=bpcia.Quality_Measure_MY3_full ;
 				by   BPID CCN Measure max_date_flag   ;
 	run ; 
 
-%sas_2_csv(bpcia.Quality_Measure_&name.,BPCIA Quality Measures &name..csv) ; 
+%sas_2_csv(bpcia.Quality_Measure_MY3_&name.,BPCIA Quality Measures MY3 &name..csv) ; 
 
 %mend Quality_Measure_full;
 
+%Quality_Measure_full(1) ; 
+%Quality_Measure_full(PMR_Exist) ; 
+%Quality_Measure_full(PMR_New) ; 
 %Quality_Measure_full(PMR) ; 
-%Quality_Measure_full(Milliman) ; 
-/*%Quality_Measure_full(Dev) ; */
+%Quality_Measure_full(CCB) ; 
+%Quality_Measure_full(CCF) ; 
+%Quality_Measure_full(GHS) ; 
+%Quality_Measure_full(HAL) ; 
+%Quality_Measure_full(HSS) ; 
+%Quality_Measure_full(ICS) ; 
+%Quality_Measure_full(MUSC) ; 
+%Quality_Measure_full(USPI) ; 
+%Quality_Measure_full(WSP) ; 
 
-%sas_2_csv(bpcia.Quality_Measure_full,BPCIA Quality Measures Full.csv) ; 
+%sas_2_csv(bpcia.Quality_Measure_MY3_full,BPCIA Quality Measures MY3 Full.csv) ; 
 
   %macro Quality_Measure_latest(name);
 data Quality_Measure_latest_date (keep=CCN BPID Measure Anchor_Facility Measure_Pcnt_RAW_Not_Rounded ); 
-set bpcia.Quality_Measure_full ; 
+set bpcia.Quality_Measure_MY3_full ; 
 where max_date_flag = 1 ;
 run ; 
 
@@ -293,124 +333,164 @@ proc transpose data=Quality_Measure_latest_date out=Quality_Measure_latest_date_
   var Measure_Pcnt_RAW_Not_Rounded;
 run;
 
-data bpcia.Quality_Measure_latest_date;
+data bpcia.Quality_Measure_MY3_LD;
 set Quality_Measure_latest_date_0;
 BPID_CCN_Key = BPID||"_"||CCN ; 
 run ;
 
-data bpcia.Quality_Measure_latest_&name. ;
-		set bpcia.Quality_Measure_latest_date ; 
-	%if &name. = PMR %then %do ;
-				where BPID in (&PMR_EI_lst.) ; 
-				%end;
-				%else %if &name. = Milliman %then %do ; 
-				where BPID in (&NON_PMR_EI_lst.) ; 
-				%end;
-				%else %do ; 
-				where BPID in (&DEV_EI_lst.) ; 
-				%end; 
+data bpcia.Quality_Measure_MY3_LD_&name. ;
+		set bpcia.Quality_Measure_MY3_LD ; 
+		%if &name. = 1 %then %do ;
+			where BPID in (&MY3_lst.) ; 
+		%end;
+		%else %if &name. = PMR_Exist %then %do ; 
+			where BPID in (&PMR_3_Exist_EI_lst.) ; 
+		%end;
+		%else %if &name. = PMR_New %then %do ; 
+			where BPID in (&PMR_3_New_EI_lst.) ; 
+		%end;
+		%else %if &name. = PMR %then %do ; 
+			where BPID in (&PMR_3_EI_lst.) ; 
+		%end;
+		%else %if &name. = CCB %then %do ; 
+			where BPID in (&CCB_3_EI_lst.) ; 
+		%end;
+		%else %if &name. = CCF %then %do ; 
+			where BPID in (&CCF_3_EI_lst.) ; 
+		%end;
+		%else %if &name. = GHS %then %do ; 
+			where BPID in (&GHS_3_EI_lst.) ; 
+		%end;
+		%else %if &name. = HAL %then %do ; 
+			where BPID in (&HAL_3_EI_lst.) ; 
+		%end;
+		%else %if &name. = HSS %then %do ; 
+			where BPID in (&HSS_3_EI_lst.) ; 
+		%end;
+		%else %if &name. = ICS %then %do ; 
+			where BPID in (&ICS_3_EI_lst.) ; 
+		%end;
+		%else %if &name. = MUSC %then %do ; 
+			where BPID in (&MUSC_3_EI_lst.) ; 
+		%end;
+		%else %if &name. = USPI %then %do ; 
+			where BPID in (&USPI_3_EI_lst.) ; 
+		%end;
+		%else %if &name. = WSP %then %do ; 
+			where BPID in (&WSP_3_EI_lst.) ; 
+		%end;
 		run ; 
 
-%sas_2_csv(bpcia.Quality_Measure_latest_&name.,BPCIA_Quality_Measures_Latest_Date_&name..csv) ; 
+%sas_2_csv(bpcia.Quality_Measure_MY3_LD_&name.,BPCIA_Quality_Measures_MY3_Latest_Date_&name..csv) ; 
 
 %mend Quality_Measure_latest;
 
+%Quality_Measure_latest(1) ; 
+%Quality_Measure_latest(PMR_Exist) ; 
+%Quality_Measure_latest(PMR_New) ; 
 %Quality_Measure_latest(PMR) ; 
-%Quality_Measure_latest(Milliman) ; 
-/*%Quality_Measure_latest(Dev) ; */
+%Quality_Measure_latest(CCB) ; 
+%Quality_Measure_latest(CCF) ; 
+%Quality_Measure_latest(GHS) ; 
+%Quality_Measure_latest(HAL) ; 
+%Quality_Measure_latest(HSS) ; 
+%Quality_Measure_latest(ICS) ; 
+%Quality_Measure_latest(MUSC) ; 
+%Quality_Measure_latest(USPI) ; 
+%Quality_Measure_latest(WSP) ; 
 
-%sas_2_csv(bpcia.Quality_Measure_latest_date,BPCIA_Quality_Measures_Latest_Date.csv) ; 
-
-
-%macro Quality_Measure_demo(bpid1,bpid2,bpid3,bpid4,bpid5,bpid6,bpid7,bpid8);
-
-	data Quality_Measure_&mode._demo_0 ;
-	%if &mode.=main %then %do ;
-	      set final_table_comp: (where = (Comp = '1' ) )
-		  	  final_table_Heart: (where = ( AMI = '1') ) 
-			  final_table_Mort: (where = (CABG = '1') )
-			  final_table_Readmit: (where = (All = '1') )
-			  final_table_PSI: (where = (PSI = '1') ) ;
-
-	%end ;
-
-	%else %if &mode.=base %then %do ;
-			set final_table_comp: 
-		  	   final_table_Heart: 
-			   final_table_Mort: 
-			   final_table_Readmit: 
-		       final_table_PSI: ;
-	%end ;
-
-	where BPID in ("&bpid1.-0000","&bpid2.-0000","&bpid3.-0000","&bpid4.-0000","&bpid5.-0000","&bpid6.-0000","&bpid7.-0000","&bpid8.-0002");
- 	
-	*20180610 Update - Overwrite BPID;
-	if BPID ="&bpid1.-0000" then BPID = "1111-0000";
-	else if BPID = "&bpid2.-0000" then BPID = "2222-0000";
-	else if BPID = "&bpid3.-0000" then BPID = "3333-0000";
-	else if BPID = "&bpid4.-0000" then BPID = "4444-0000";
-	else if BPID = "&bpid5.-0000" then BPID = "5555-0000";
-	else if BPID = "&bpid6.-0000" then BPID = "6666-0000";
-	else if BPID = "&bpid7.-0000" then BPID = "7777-0000";
-	else if BPID = "&bpid8.-0002" then BPID = "8888-0000";
-
-	BPID_CCN_Key = BPID||"_"||CCN ; 
-
-	run ;
-
-	proc sql ;
-		create table Quality_Measure_&mode._demo_1 as
-		select distinct a.*
-		from Quality_Measure_&mode._demo_0 as a
-		inner join outbase.all_epi_detail_demo as b
-		on a.CCN = b.anchor_ccn 
-		;
-	quit ; 
-		
-	
-	proc sort data = Quality_Measure_&mode._demo_1 
-							out= bpcia.Quality_Measure_&mode._demo ;
-	by  BPID CCN Measure Measure_Period_Start  ;
-	run ; 
-
-	
-%sas_2_csv(bpcia.Quality_Measure_&mode._demo,BPCIA_Quality_Measures_&mode._demo.csv) ; 
-
-%mend Quality_Measure_demo;
-
-*%Quality_Measure_demo(1148,1167,1343,1368,2379,2587,2607,5479) ; 
+%sas_2_csv(bpcia.Quality_Measure_MY3_LD,BPCIA_Quality_Measures_MY3_Latest_Date.csv) ; 
 
 
-  %macro Quality_Measure_latest_demo;
-data Quality_Measure_latest_&mode._demo (keep=CCN BPID Measure Anchor_Facility Measure_Pcnt_RAW_Not_Rounded ); 
-set bpcia.Quality_Measure_&mode._demo ; 
-where max_date_flag = 1 ;
-run ; 
-
-proc sort data =Quality_Measure_latest_&mode._demo ; 
-by  bpid ccn Anchor_Facility ; 
-run ; 
-
-
-proc transpose data=Quality_Measure_latest_&mode._demo out=QM_latest_&mode._demo_0 ;
-  by bpid ccn Anchor_Facility;
-  id measure;
-  var Measure_Pcnt_RAW_Not_Rounded;
-run;
-
-data bpcia.Quality_Measure_latest_&mode._demo;
-set QM_latest_&mode._demo_0;
-BPID_CCN_Key = BPID||"_"||CCN ; 
-run ;
-
-/*data bpcia.Quality_Measure_latest_&mode. ;*/
-/*		set bpcia.Quality_Measure_latest_&mode. ; */
-/*		run ; */
-
-%sas_2_csv(bpcia.Quality_Measure_latest_&mode._demo,BPCIA_Quality_Measures_Latest_Date_&mode._demo.csv) ; 
-
-%mend Quality_Measure_latest_demo;
-
-*%Quality_Measure_latest_demo ; 
-
-
+/*%macro Quality_Measure_demo(bpid1,bpid2,bpid3,bpid4,bpid5,bpid6,bpid7,bpid8);*/
+/**/
+/*	data Quality_Measure_&mode._demo_0 ;*/
+/*	%if &mode.=main %then %do ;*/
+/*	      set final_table_comp: (where = (Comp = '1' ) )*/
+/*		  	  final_table_Heart: (where = ( AMI = '1') ) */
+/*			  final_table_Mort: (where = (CABG = '1') )*/
+/*			  final_table_Readmit: (where = (All = '1') )*/
+/*			  final_table_PSI: (where = (PSI = '1') ) ;*/
+/**/
+/*	%end ;*/
+/**/
+/*	%else %if &mode.=base %then %do ;*/
+/*			set final_table_comp: */
+/*		  	   final_table_Heart: */
+/*			   final_table_Mort: */
+/*			   final_table_Readmit: */
+/*		       final_table_PSI: ;*/
+/*	%end ;*/
+/**/
+/*	where BPID in ("&bpid1.-0000","&bpid2.-0000","&bpid3.-0000","&bpid4.-0000","&bpid5.-0000","&bpid6.-0000","&bpid7.-0000","&bpid8.-0002");*/
+/* 	*/
+/*	*20180610 Update - Overwrite BPID;*/
+/*	if BPID ="&bpid1.-0000" then BPID = "1111-0000";*/
+/*	else if BPID = "&bpid2.-0000" then BPID = "2222-0000";*/
+/*	else if BPID = "&bpid3.-0000" then BPID = "3333-0000";*/
+/*	else if BPID = "&bpid4.-0000" then BPID = "4444-0000";*/
+/*	else if BPID = "&bpid5.-0000" then BPID = "5555-0000";*/
+/*	else if BPID = "&bpid6.-0000" then BPID = "6666-0000";*/
+/*	else if BPID = "&bpid7.-0000" then BPID = "7777-0000";*/
+/*	else if BPID = "&bpid8.-0002" then BPID = "8888-0000";*/
+/**/
+/*	BPID_CCN_Key = BPID||"_"||CCN ; */
+/**/
+/*	run ;*/
+/**/
+/*	proc sql ;*/
+/*		create table Quality_Measure_&mode._demo_1 as*/
+/*		select distinct a.**/
+/*		from Quality_Measure_&mode._demo_0 as a*/
+/*		inner join outbase.all_epi_detail_demo as b*/
+/*		on a.CCN = b.anchor_ccn */
+/*		;*/
+/*	quit ; */
+/*		*/
+/*	*/
+/*	proc sort data = Quality_Measure_&mode._demo_1 */
+/*							out= bpcia.Quality_Measure_&mode._demo ;*/
+/*	by  BPID CCN Measure Measure_Period_Start  ;*/
+/*	run ; */
+/**/
+/*	*/
+/*%sas_2_csv(bpcia.Quality_Measure_&mode._demo,BPCIA_Quality_Measures_&mode._demo.csv) ; */
+/**/
+/*%mend Quality_Measure_demo;*/
+/**/
+/**%Quality_Measure_demo(1148,1167,1343,1368,2379,2587,2607,5479) ; */
+/**/
+/**/
+/*  %macro Quality_Measure_latest_demo;*/
+/*data Quality_Measure_latest_&mode._demo (keep=CCN BPID Measure Anchor_Facility Measure_Pcnt_RAW_Not_Rounded ); */
+/*set bpcia.Quality_Measure_&mode._demo ; */
+/*where max_date_flag = 1 ;*/
+/*run ; */
+/**/
+/*proc sort data =Quality_Measure_latest_&mode._demo ; */
+/*by  bpid ccn Anchor_Facility ; */
+/*run ; */
+/**/
+/**/
+/*proc transpose data=Quality_Measure_latest_&mode._demo out=QM_latest_&mode._demo_0 ;*/
+/*  by bpid ccn Anchor_Facility;*/
+/*  id measure;*/
+/*  var Measure_Pcnt_RAW_Not_Rounded;*/
+/*run;*/
+/**/
+/*data bpcia.Quality_Measure_latest_&mode._demo;*/
+/*set QM_latest_&mode._demo_0;*/
+/*BPID_CCN_Key = BPID||"_"||CCN ; */
+/*run ;*/
+/**/
+/*/*data bpcia.Quality_Measure_latest_&mode. ;*/*/
+/*/*		set bpcia.Quality_Measure_latest_&mode. ; */*/
+/*/*		run ; */*/
+/**/
+/*%sas_2_csv(bpcia.Quality_Measure_latest_&mode._demo,BPCIA_Quality_Measures_Latest_Date_&mode._demo.csv) ; */
+/**/
+/*%mend Quality_Measure_latest_demo;*/
+/**/
+/**%Quality_Measure_latest_demo ; */
+/**/
+/**/

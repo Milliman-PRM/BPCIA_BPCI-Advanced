@@ -12,7 +12,7 @@ Purpose is to store longer macros that are called.
 
 proc sort data=epi0 ; by memberid ANCHOR_BEG_DT ANCHOR_TYPE ANCHOR_END_DT POST_DSCH_BEG_DT POST_DSCH_END_DT; run;
 
-%if &label. ^= ybase %then %do;
+%if &label. ^= ybase and &mode. ^= base %then %do;
 	*Create variables used to determine excluded episodes.;
 	*prev_beg_date, prev_end_date, prev_id, and first_ep_mjrle track the first episodes.;
 	*counter tracks the order number episode for MJRLE episodes.;
@@ -186,7 +186,7 @@ proc sort data=epi0 ; by memberid ANCHOR_BEG_DT ANCHOR_TYPE ANCHOR_END_DT POST_D
 
 
 %MACRO TRANS_EXC;
-%if &label. ^= ybase %then %do;
+%if &label. ^= ybase and &mode. ^= base %then %do;
 	*Only keep inpatient index admissions at an ACH;
 	data ip_idx;
 		set ip_&label._&bpid1._&bpid2.;
@@ -207,6 +207,7 @@ proc sort data=epi0 ; by memberid ANCHOR_BEG_DT ANCHOR_TYPE ANCHOR_END_DT POST_D
 
 		cms_drg=0+ANCHOR_CODE;
 		cms_prov=anc_ccn;
+		if first.EPI_ID_MILLIMAN and last.EPI_ID_MILLIMAN then delete;
 		if first.EPI_ID_MILLIMAN then mill_prov=PROVIDER;
 		if last.EPI_ID_MILLIMAN then do;
 			mill_drg=STAY_DRG_CD;
@@ -215,10 +216,18 @@ proc sort data=epi0 ; by memberid ANCHOR_BEG_DT ANCHOR_TYPE ANCHOR_END_DT POST_D
 	run;
 
 	***Check for mismatches;
-	data excl_trans_&bpid1._&bpid2.;
+	data t2;
 		set t1;
 		if cms_drg^=mill_drg or cms_prov^=mill_prov;
+		if mill_drg^=.;
 	run;
+
+	proc sql;
+		create table excl_trans_&bpid1._&bpid2. as
+		select a.*
+		from epi_pre as a
+		where a.EPI_ID_MILLIMAN in (select distinct EPI_ID_MILLIMAN from t2);
+	quit;
 			
 	*Stack episode exclusion files created from CMS exclusions and all Milliman exclusion files;
 	data out.epiexc_perf_&label._&bpid1._&bpid2.;
@@ -275,48 +284,32 @@ proc sort data=epi0 ; by memberid ANCHOR_BEG_DT ANCHOR_TYPE ANCHOR_END_DT POST_D
 
 
 %MACRO CLINEPI;
-%if &label. ^= ybase %then %do;
+%if &label. ^= ybase and &mode. ^= base and &mode. ^= recon %then %do;
 	data clinepi1_&bpid1._&bpid2.;
 		set out.epi_ybase_&bpid1._&bpid2. (in=a)
-			out.epi_y201810_&bpid1._&bpid2. (in=b)
-			out.epi_y201811_&bpid1._&bpid2. (in=c)
-			out.epi_y201812_&bpid1._&bpid2. (in=d)
-			out.epi_y201901_&bpid1._&bpid2. (in=e)
-			out.epi_y201902_&bpid1._&bpid2. (in=f)
-			out.epi_y201903_&bpid1._&bpid2. (in=g)
-			out.epi_y201904_&bpid1._&bpid2. (in=h)
-			out.epi_y201905_&bpid1._&bpid2. (in=i)
-			out.epi_y201906_&bpid1._&bpid2. (in=j)
-			out.epi_y201907_&bpid1._&bpid2. (in=k)
-			out.epi_y201908_&bpid1._&bpid2. (in=l)
+			out.epi_y201909_&bpid1._&bpid2. (in=b)
+			out.epi_y201910_&bpid1._&bpid2. (in=c)
+			out.epi_y201911_&bpid1._&bpid2. (in=d)
+			out.epi_y201912_&bpid1._&bpid2. (in=e)
+			out.epi_y202001_&bpid1._&bpid2. (in=f)
+			out.epi_y202002_&bpid1._&bpid2. (in=g)
 		;
 		Epis_Baseline=0;
-		Epis_201810=0;
-		Epis_201811=0;
-		Epis_201812=0;
-		Epis_201901=0;
-		Epis_201902=0;
-		Epis_201903=0;
-		Epis_201904=0;
-		Epis_201905=0;
-		Epis_201906=0;
-		Epis_201907=0;
-		Epis_201908=0;
+		Epis_201909=0;
+		Epis_201910=0;
+		Epis_201911=0;
+		Epis_201912=0;
+		Epis_202001=0;
+		Epis_202002=0;
 		if a then Epis_Baseline=1;
-		if b then Epis_201810=1;
-		if c then Epis_201811=1;
-		if d then Epis_201812=1;
-		if e then Epis_201901=1;
-		if f then Epis_201902=1;
-		if g then Epis_201903=1;
-		if h then Epis_201904=1;
-		if i then Epis_201905=1;
-		if j then Epis_201906=1;
-		if k then Epis_201907=1;
-		if l then Epis_201908=1;
-
+		if b then Epis_201909=1;
+		if c then Epis_201910=1;
+		if d then Epis_201911=1;
+		if e then Epis_201912=1;
+		if f then Epis_202001=1;
+		if g then Epis_202002=1;
 		Total_Episodes=0;
-		if a or l then Total_Episodes=1;
+		if a or g then Total_Episodes=1;
 
 		if EPISODE_GROUP_NAME = "Disorders Of Liver Except Malignancy, Cirrhosis Or Alcoholic Hepatitis" then
 		EPISODE_GROUP_NAME = "Disorders of liver except malignancy, cirrhosis or alcoholic hepatitis" ;
@@ -358,17 +351,12 @@ proc sort data=epi0 ; by memberid ANCHOR_BEG_DT ANCHOR_TYPE ANCHOR_END_DT POST_D
 			max(ANCHOR_END_DT) as MAX_ANCHOR_END_DT format=MMDDYY10.,
 			sum(Total_Episodes) as Total_Episodes,
 			sum(Epis_Baseline) as Epis_Baseline,
-			sum(Epis_201810) as Epis_201810,
-			sum(Epis_201811) as Epis_201811,
-			sum(Epis_201812) as Epis_201812,
-			sum(Epis_201901) as Epis_201901,
-			sum(Epis_201902) as Epis_201902,
-			sum(Epis_201903) as Epis_201903,
-			sum(Epis_201904) as Epis_201904,
-			sum(Epis_201905) as Epis_201905,
-			sum(Epis_201906) as Epis_201906,
-			sum(Epis_201907) as Epis_201907,
-			sum(Epis_201908) as Epis_201908
+			sum(Epis_201909) as Epis_201909,
+			sum(Epis_201910) as Epis_201910,
+			sum(Epis_201911) as Epis_201911,
+			sum(Epis_201912) as Epis_201912,
+			sum(Epis_202001) as Epis_202001,
+			sum(Epis_202002) as Epis_202002
 		from clinepi5_&bpid1._&bpid2.
 		group by BPID, Clinical_Episode, PERFORMANCE_PERIOD, Client, Health_system_name, Facility_PGP
 		order by BPID, Clinical_Episode, PERFORMANCE_PERIOD, Client, Health_system_name, Facility_PGP;

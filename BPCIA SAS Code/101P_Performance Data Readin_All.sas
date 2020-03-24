@@ -19,13 +19,13 @@ options mprint mlogic spool;
 %let dte = 202002;
 
 %let label = y&dte.; 
-%let pth =R:\data\HIPAA\BPCIA_BPCI Advanced\02 - Performance Data\Data &dte. ;
 
 
 ****** REFERENCE PROGRAMS **********************************************************************************;
-%let path = H:\BPCIA_BPCI Advanced\50 - BPCI Advanced Ongoing Reporting - 2019\Work Papers\SAS;
+%let path = H:\BPCIA_BPCI Advanced\50 - BPCI Advanced Ongoing Reporting - 2020\Work Papers\SAS;
 
 %include "&path.\100P_Read Performance Data.sas";
+%include "&path.\100P_Read Performance Data_MY3.sas";
 %include 'H:\_HealthLibrary\SAS\dirmemlist.sas' ;
 
 ****** LIBRARY ASSIGNMENT **********************************************************************************;
@@ -37,8 +37,18 @@ data in.dirlist_master_&label.;
 run;
 
 ****** CALL MACROS *****************************************************************************************;
-%macro call(sub1,id, BPID,sub2);
+%macro call(sub1,id, BPID,sub2, MY_Category);
 
+/***
+MY_Category
+12 - MY1 & MY2
+123 MY1 & MY2 & MY3
+3 MY3
+****/
+
+%if &MY_Category. = 12 OR &MY_Category. = 123  %then %do;
+
+%let pth =R:\data\HIPAA\BPCIA_BPCI Advanced\02 - Performance Data\Data &dte. ;
 %let folder = &pth.\&sub1.\&id.; 
 
 TITLE1 'BPCI Advanced';
@@ -79,6 +89,52 @@ run;
 	%if %sysfunc(find(&&read&i,pb_,i))>0 %then %pb(&&read&i, &i);
 	%if %sysfunc(find(&&read&i,sn_,i))>0 %then %snf(&&read&i, &i);
 %end;
+%end;
+
+%if &MY_Category. = 123 OR &MY_Category. = 3  %then %do;
+
+%let pth =R:\data\HIPAA\BPCIA_BPCI Advanced\02 - Performance Data\Data &dte.\MY3;
+%let folder = &pth.\&sub1.\&id.; 
+
+TITLE1 'BPCI Advanced';
+TITLE2 "CLIENT: &sub1.  BPID:&BPID." ;
+
+*save out directory location;
+filename DIRLIST pipe "dir ""&folder.\*.csv"" /b ";
+
+*create dataset with all the file names in the dir above;
+data dirlist;
+	infile dirlist lrecl=200 truncover;
+	input file_name $100.;
+run;
+
+data in.dirlist_master_&label.;
+	set in.dirlist_master_&label. dirlist;
+run;
+
+*store the full file path of each file path in dir;
+*store the number of files;
+data _null_;
+	set dirlist end=end;
+	count+1;
+	call symputx('read'||put(count,4.-l),cats("&folder.\",file_name));
+	if end then call symputx('max',count);
+run;
+
+*loop through each of the files;
+*use the file name to determine which macro to call;
+%do i=1 %to &max;
+	%put &&read&i;
+	%if %sysfunc(find(&&read&i,epi_,i))>0 %then %epi_MY3(&&read&i, &i);
+	%if %sysfunc(find(&&read&i,ip_,i))>0 %then %ip_MY3(&&read&i, &i);
+	%if %sysfunc(find(&&read&i,dm_,i))>0 %then %dme_MY3(&&read&i, &i);
+	%if %sysfunc(find(&&read&i,hh_,i))>0 %then %hha_MY3(&&read&i, &i);
+	%if %sysfunc(find(&&read&i,hs_,i))>0 %then %hs_MY3(&&read&i, &i);
+	%if %sysfunc(find(&&read&i,opl_,i))>0 %then %op_MY3(&&read&i, &i);
+	%if %sysfunc(find(&&read&i,pb_,i))>0 %then %pb_MY3(&&read&i, &i);
+	%if %sysfunc(find(&&read&i,sn_,i))>0 %then %snf_MY3(&&read&i, &i);
+%end;
+%end;
 
 *stack like-named files;
 data in.DME_&sub2._&BPID.;
@@ -114,10 +170,11 @@ quit;
 
 %mend call;
 
+%call(Premier,1167-0000,1167_0000,&label.,3);
 
 ********************************************************* ;
 ********************************************************* ;
-
+/*
 %call(Other,1191-0001,1191_0001,&label.);
 %call(Other,1209-0000,1209_0000,&label.);
 %call(Other,1374-0001,1374_0001,&label.);
@@ -181,7 +238,7 @@ quit;
 %call(Premier,5481-0001,5481_0001,&label.);
 %call(Premier,5746-0001,5746_0001,&label.);
 %call(Premier,2302-0000,2302_0000,&label.);
-
+*/
 
 /************************************************************************************;*/
 /***** END OF PROGRAM ***************************************************************;*/

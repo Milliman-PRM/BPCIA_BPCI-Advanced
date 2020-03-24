@@ -1,11 +1,11 @@
 proc printto;run;
-proc printto log="H:\BPCIA_BPCI Advanced\50 - BPCI Advanced Ongoing Reporting - 2019\Work Papers\SAS\logs\101P - Performance Data Readin_&sysdate..log" print=print new;
+proc printto log="H:\BPCIA_BPCI Advanced\50 - BPCI Advanced Ongoing Reporting - 2019\Work Papers\SAS\logs\101B_Baseline Data Readin_&sysdate..log";
 run;
 
 *********************************************************
 *********************************************************
 Generate Hospital Data from:
-100P - Read Raw Data
+100 - Read Raw Data
 
 *********************************************************
 *********************************************************;
@@ -16,16 +16,16 @@ Generate Hospital Data from:
 options mprint mlogic spool;
 
 ****** USER INPUTS **********************************************************************************;
-%let dte = 202002;
-
-%let label = y&dte.; 
-%let pth =R:\data\HIPAA\BPCIA_BPCI Advanced\02 - Performance Data\Data &dte. ;
-
+%let label = ybase; *Turn on for baseline data, turn off for quarterly data;
+%let pthMY1MY2 =R:\data\HIPAA\BPCIA_BPCI Advanced\01 - Baseline Data\MY1 & MY2 ;
+%let pthMY3 =R:\data\HIPAA\BPCIA_BPCI Advanced\01 - Baseline Data\MY3 ;
 
 ****** REFERENCE PROGRAMS **********************************************************************************;
-%let path = H:\BPCIA_BPCI Advanced\50 - BPCI Advanced Ongoing Reporting - 2019\Work Papers\SAS;
+%let path = H:\BPCIA_BPCI Advanced\50 - BPCI Advanced Ongoing Reporting - 2020\Work Papers\SAS;
 
-%include "&path.\100P_Read Performance Data.sas";
+*198;
+%include "&path.\100B_Read Baseline Data.sas";
+%include "&path.\100B_Read Baseline Data_MY3_SP.sas";
 %include 'H:\_HealthLibrary\SAS\dirmemlist.sas' ;
 
 ****** LIBRARY ASSIGNMENT **********************************************************************************;
@@ -37,9 +37,17 @@ data in.dirlist_master_&label.;
 run;
 
 ****** CALL MACROS *****************************************************************************************;
-%macro call(sub1,id, BPID,sub2);
+%macro call(sub1,id, BPID,sub2,MY_Category);
 
-%let folder = &pth.\&sub1.\&id.; 
+/***
+MY_Category
+12 - MY1 & MY2
+123 MY1 & MY2 & MY3
+3 MY3
+****/
+
+%if &MY_Category. = 12 OR &MY_Category. = 123  %then %do;
+%let folder = &pthMY1MY2.\&sub1.\&id.; 
 
 TITLE1 'BPCI Advanced';
 TITLE2 "CLIENT: &sub1.  BPID:&BPID." ;
@@ -68,6 +76,7 @@ run;
 
 *loop through each of the files;
 *use the file name to determine which macro to call;
+
 %do i=1 %to &max;
 	%put &&read&i;
 	%if %sysfunc(find(&&read&i,epi_,i))>0 %then %epi(&&read&i, &i);
@@ -78,6 +87,53 @@ run;
 	%if %sysfunc(find(&&read&i,opl_,i))>0 %then %op(&&read&i, &i);
 	%if %sysfunc(find(&&read&i,pb_,i))>0 %then %pb(&&read&i, &i);
 	%if %sysfunc(find(&&read&i,sn_,i))>0 %then %snf(&&read&i, &i);
+	%end;
+%end;
+
+%if &MY_Category. = 123 OR &MY_Category. = 3  %then %do;
+%let folder = &pthMY3.\&sub1.\&id.; 
+
+TITLE1 'BPCI Advanced';
+TITLE2 "CLIENT: &sub1.  BPID:&BPID." ;
+
+*save out directory location;
+filename DIRLIST pipe "dir ""&folder.\*.csv"" /b ";
+
+*create dataset with all the file names in the dir above;
+data dirlist;
+	infile dirlist lrecl=200 truncover;
+	input file_name $100.;
+run;
+
+data in.dirlist_master_&label.;
+	set in.dirlist_master_&label. dirlist;
+run;
+
+*store the full file path of each file path in dir;
+*store the number of files;
+data _null_;
+	set dirlist end=end;
+	count+1;
+	call symputx('read'||put(count,4.-l),cats("&folder.\",file_name));
+	if end then call symputx('max',count);
+run;
+
+*loop through each of the files;
+*use the file name to determine which macro to call;
+
+%do i=1 %to &max;
+	%put &&read&i;
+	 %if %sysfunc(find(&&read&i,epi_,i))>0 %then %epi_MY3(&&read&i, &i);
+	%if %sysfunc(find(&&read&i,ip_,i))>0 %then %ip_MY3(&&read&i, &i); 
+	%if %sysfunc(find(&&read&i,dm_,i))>0 %then %dme_MY3(&&read&i, &i);
+	%if %sysfunc(find(&&read&i,hh_,i))>0 %then %hha_MY3(&&read&i, &i);
+	%if %sysfunc(find(&&read&i,hs_,i))>0 %then %hs_MY3(&&read&i, &i);
+	%if %sysfunc(find(&&read&i,opl_,i))>0 %then %op_MY3(&&read&i, &i);
+	%if %sysfunc(find(&&read&i,pb_,i))>0 %then %pb_MY3(&&read&i, &i);
+	%if %sysfunc(find(&&read&i,sn_,i))>0 %then %snf_MY3(&&read&i, &i); 
+	%end;
+
+
 %end;
 
 *stack like-named files;
@@ -109,15 +165,16 @@ run;
 *delete work datasets - Comment out to retain work files in session;
 *proc datasets lib=work memtype=data kill;
 
-run;
-quit;
+*run;
+*quit;
 
 %mend call;
 
-
+%call(Premier,1167-0000,1167_0000,&label.,3);
 ********************************************************* ;
 ********************************************************* ;
 
+/*
 %call(Other,1191-0001,1191_0001,&label.);
 %call(Other,1209-0000,1209_0000,&label.);
 %call(Other,1374-0001,1374_0001,&label.);
@@ -138,13 +195,14 @@ quit;
 %call(Other,6057-0001,6057_0001,&label.);
 %call(Other,6058-0001,6058_0001,&label.);
 %call(Other,6059-0001,6059_0001,&label.);
+
 %call(Premier,1075-0000,1075_0000,&label.);
 %call(Premier,1102-0000,1102_0000,&label.);
 %call(Premier,1103-0000,1103_0000,&label.);
 %call(Premier,1104-0000,1104_0000,&label.);
 %call(Premier,1105-0000,1105_0000,&label.);
 %call(Premier,1106-0000,1106_0000,&label.);
-*%call(Premier,1125-0000,1125_0000,&label.);
+%call(Premier,1125-0000,1125_0000,&label.);
 %call(Premier,1148-0000,1148_0000,&label.);
 %call(Premier,1167-0000,1167_0000,&label.);
 %call(Premier,1343-0000,1343_0000,&label.);
@@ -153,6 +211,7 @@ quit;
 %call(Premier,2048-0000,2048_0000,&label.);
 %call(Premier,2049-0000,2049_0000,&label.);
 %call(Premier,2070-0000,2070_0000,&label.);
+%call(Premier,2302-0000,2302_0000,&label.);
 %call(Premier,2374-0000,2374_0000,&label.);
 %call(Premier,2376-0000,2376_0000,&label.);
 %call(Premier,2378-0000,2378_0000,&label.);
@@ -180,95 +239,14 @@ quit;
 %call(Premier,5480-0001,5480_0001,&label.);
 %call(Premier,5481-0001,5481_0001,&label.);
 %call(Premier,5746-0001,5746_0001,&label.);
-%call(Premier,2302-0000,2302_0000,&label.);
-
-
-/************************************************************************************;*/
-/***** END OF PROGRAM ***************************************************************;*/
-/************************************************************************************;*/
-
-%MACRO STACK(file);
-
-data temp_&file. ;
-	set in.&file._&label.: ;
-run;
-%if &file. = epi %then %do;
-proc sql;
-	create table summary_&file.a as
-	select "&file.a" as Service, 
-		min(ANCHOR_BEG_DT) as min_fromdt,
-		max(ANCHOR_BEG_DT) as max_fromdt,
-		min(ANCHOR_END_DT) as min_thrudt,
-		max(ANCHOR_END_DT) as max_thrudt
-	from temp_&file.;
-quit;
-proc sql;
-	create table summary_&file.b as
-	select "&file.b" as Service, 
-		min(POST_DSCH_BEG_DT) as min_fromdt,
-		max(POST_DSCH_BEG_DT) as max_fromdt,
-		min(POST_DSCH_END_DT) as min_thrudt,
-		max(POST_DSCH_END_DT) as max_thrudt
-	from temp_&file.;
-quit;
-%end;
-%else %if &file. = ip %then %do;
-proc sql;
-	create table summary_&file.a as
-	select "&file.a" as Service, 
-		min(stay_admsn_dt) as min_fromdt,
-		max(stay_admsn_dt) as max_fromdt,
-		min(stay_dschrgdt) as min_thrudt,
-		max(stay_dschrgdt) as max_thrudt
-	from temp_&file.;
-quit;
-proc sql;
-	create table summary_&file.b as
-	select "&file.b" as Service, 
-		min(stay_from_dt) as min_fromdt,
-		max(stay_from_dt) as max_fromdt,
-		min(stay_thru_dt) as min_thrudt,
-		max(stay_thru_dt) as max_thrudt
-	from temp_&file.;
-quit;
-%end;
-%else %do;
-proc sql;
-	create table summary_&file. as
-	select "&file." as Service, 
-		min(from_dt) as min_fromdt,
-		max(from_dt) as max_fromdt,
-		min(thru_dt) as min_thrudt,
-		max(thru_dt) as max_thrudt
-	from temp_&file.;
-quit;
-%end;
-
-%MEND;
-
-%STACK(epi);
-%STACK(ip);
-%STACK(dme);
-%STACK(hha);
-%STACK(hs);
-%STACK(op);
-%STACK(pb);
-%STACK(snf);
-
-data Summary;
-	format Service $4. min_fromdt max_fromdt min_thrudt max_thrudt mmddyy10. ;
-	set summary_: ;
-run;
-
-proc export data= Summary
-            outfile= "R:\data\HIPAA\BPCIA_BPCI Advanced\99 - Investigations\Performance Period Claims\sasout_Performance Claims Dates_&sysdate..xlsx"
-            dbms=xlsx replace; 
-run;
-
-
-proc printto;run;
+*/
 
 %let _edtm=%sysfunc(datetime());
 %let _runtm=%sysevalf(%sysfunc(putn(&_edtm - &_sdtm, 12.))/60.0);
 %put It took &_runtm minutes to run the program;
 
+proc printto;run;
+
+/************************************************************************************;*/
+/***** END OF PROGRAM ***************************************************************;*/
+/************************************************************************************;*/

@@ -26,20 +26,20 @@ SET UP
 
 ****** USER INPUTS ******************************************************************************************;
 * TURN ON FOR BASELINE / TURN OFF FOR PERFORMANCE *****;
-/*%let label = ybase; *Update with change in period;*/
-/*%let prevlabel = ybase;*/
-/*%let reporting_period=201806;*Change for every Update*; */
+%let label = ybase3; *Update with change in period;
+%let prevlabel = ybase3;
+%let reporting_period=201909;*Change for every Update*; 
 
 * TURN ON FOR PERFORMANCE / TURN OFF FOR BASELINE *****;
-%let label = y202002; *Update with change in period;
-%let prevlabel = y202001; *Update with the prior period;
-%let reporting_period=202003;*Change for every Update*; 
+/*%let label = y201908; *Update with change in period;*/
+/*%let prevlabel = y201907; *Update with the prior period;*/
+/*%let reporting_period=201908;*Change for every Update*; */
 
 * UPDATE WITH EVERY PERF UPDATE *****;
-%let transmit_date = '07FEB2020'd;*Change for every Update*; 
+%let transmit_date = '16AUG2019'd;*Change for every Update*; 
 
 * MAIN VS BASELINE INTERFACE *****;
-%let mode = main; *main=main interface, base = baseline interface;
+%let mode = base; *main=main interface, base = baseline interface;
 
 proc printto;run;
 
@@ -61,17 +61,17 @@ libname in "&dataDir.\06 - Imported Raw Data\";
 %macro modesetup;
 %if &mode.=main %then %do;
 libname out "&dataDir.\07 - Processed Data";
-proc printto log="H:\BPCIA_BPCI Advanced\50 - BPCI Advanced Ongoing Reporting - 2020\Work Papers\SAS\logs\300 - Qlikview Code_&label._&sysdate..log" print=print new;
+proc printto log="H:\BPCIA_BPCI Advanced\50 - BPCI Advanced Ongoing Reporting - 2019\Work Papers\SAS\logs\300 - Qlikview Code_&label._&sysdate..log" print=print new;
 run;
 %end;
 %else %if &mode.=base %then %do;
-libname out "&dataDir.\07 - Processed Data\Baseline Interface Demo";
-proc printto log="H:\BPCIA_BPCI Advanced\50 - BPCI Advanced Ongoing Reporting - 2020\Work Papers\SAS\logs\300 - Baseline Qlikview Code_&label._&sysdate..log" print=print new;
+libname out "&dataDir.\07 - Processed Data\Baseline Interface";
+proc printto log="H:\BPCIA_BPCI Advanced\50 - BPCI Advanced Ongoing Reporting - 2019\Work Papers\SAS\logs\300 - Baseline Qlikview Code_&label._&sysdate..log" print=print new;
 run;
 %end;
 %else %if &mode.=dev %then %do;
 libname out "&dataDir.\07 - Processed Data\Development";
-proc printto log="H:\BPCIA_BPCI Advanced\50 - BPCI Advanced Ongoing Reporting - 2020\Work Papers\SAS\logs\300 - Dev Qlikview Code_&label._&sysdate..log" print=print new;
+proc printto log="H:\BPCIA_BPCI Advanced\50 - BPCI Advanced Ongoing Reporting - 2019\Work Papers\SAS\logs\300 - Dev Qlikview Code_&label._&sysdate..log" print=print new;
 run;
 %end;
 %mend modesetup;
@@ -81,7 +81,7 @@ run;
 libname ref "H:\Nonclient\Medicare Bundled Payment Reference\General\SAS Datasets" ;
 libname bpciaref "H:\Nonclient\Medicare Bundled Payment Reference\Program - BPCIA\SAS Datasets"; 
 libname cjrref "H:\Nonclient\Medicare Bundled Payment Reference\Program - CJR\SAS Datasets";
-libname bench "R:\client work\CMS_PAC_Bundle_Processing\Benchmark Releases\v.201912\sasout";
+libname bench "R:\client work\CMS_PAC_Bundle_Processing\Benchmark Releases\v.201909\sasout";
 
 ****** EXPORT INFO *****************************************************************************************;
 %let exportDir = R:\data\HIPAA\BPCIA_BPCI Advanced\90 - Sasout;
@@ -230,11 +230,6 @@ create table report6 as
 		  ,sum(case when sumcat in ('Radiology') and timeframe ^=0 then std_allowed_wage else . end) as T4_RADIOLOGY_ALLOWED
 		  ,sum(case when sumcat in ('OP_Rehab') and timeframe ^=0 then std_allowed_wage else . end) as T4_OP_REHAB_ALLOWED
 		  ,sum(case when sumcat in ('Other') and timeframe ^=0 then std_allowed_wage else . end) as T4_OTHER_ALLOWED
-		  ,sum(case when sumcat1 in ('Emergency - Stand Alone') and timeframe ^=0 then std_allowed else . end) as T4_ER_S_ALLOWED
-          ,sum(case when sumcat1 in ('Emergency - W/in 1 Day of Admit') and timeframe ^=0 then std_allowed else . end) as T4_ER_R_ALLOWED
-
-		   /*TIMEFRAME 4: HOSPICE INFORMATION*/
-		  ,sum(case when type in ('HS') and timeframe ^=0 then std_allowed_wage else . end) as T4_HOSPICE_ALLOWED
 
 	from out.data3_&label._&bpid1._&bpid2. /*Might change based off the new 200 code */
 	group by EPI_ID_MILLIMAN,sumcat
@@ -335,7 +330,7 @@ create table report6_1 as
 		  ,sum(max(T&TP._IP_A_FAC_ALLOWED),max(T&TP._IP_A_PROF_ALLOWED),max(T&TP._IP_O_FAC_ALLOWED),max(T&TP._IP_O_PROF_ALLOWED)
 			  ,max(T&TP._LTAC_ALLOWED),max(T&TP._LTAC_PROF_ALLOWED),max(T&TP._IRF_ALLOWED),max(T&TP._IRF_PROF_ALLOWED),max(T&TP._HH_ALLOWED)
 			  ,max(T&TP._SNF1_ALLOWED),max(T&TP._SNF_PROF_ALLOWED),max(T&TP._AMBULANCE_ALLOWED),max(T&TP._PARTB_RX_ALLOWED)
-			  ,max(T&TP._PATHOLOGY_ALLOWED),max(T&TP._RADIOLOGY_ALLOWED),max(T&TP._OP_REHAB_ALLOWED),sum(T&TP._OTHER_ALLOWED)) as T&TP._TOTAL_ALLOWED
+			  ,max(T&TP._PATHOLOGY_ALLOWED),max(T&TP._RADIOLOGY_ALLOWED),max(T&TP._OP_REHAB_ALLOWED),max(T&TP._OTHER_ALLOWED)) as T&TP._TOTAL_ALLOWED
 %end;
 
 		  /*TIMEFRAME 4: READMIT ANCHOR INFORMATION*/
@@ -377,11 +372,6 @@ create table report6_1 as
 		  ,max(T4_RADIOLOGY_ALLOWED) as T4_RADIOLOGY_ALLOWED
 		  ,max(T4_OP_REHAB_ALLOWED) as T4_OP_REHAB_ALLOWED
 		  ,max(T4_OTHER_ALLOWED) as T4_OTHER_ALLOWED
-		  ,max(T4_ER_S_ALLOWED) as T4_ER_S_ALLOWED
-          ,max(T4_ER_R_ALLOWED) as T4_ER_R_ALLOWED
-
-		  /*TIMEFRAME 4: HOSPICE INFORMATION*/
-		  ,max(T4_HOSPICE_ALLOWED) as T4_HOSPICE_ALLOWED 
 
 		  /*TIMEFRAME 4: TOTAL ALLOWED COSTS*/
 		  ,sum(max(T4_IP_A_FAC_ALLOWED),max(T4_IP_A_PROF_ALLOWED),max(T4_IP_O_FAC_ALLOWED),max(T4_IP_O_PROF_ALLOWED)
@@ -467,7 +457,7 @@ quit;
 
 proc sort data=out.data3_&label._&bpid1._&bpid2. out=report6_total_details;
 	by EPI_ID_MILLIMAN  dos;
-	where (timeframe not in (0)) or sumcat in ('HH');
+	where timeframe not in (0);
 run;
 
 /*Code to create "total episode values" (T4)*/
@@ -476,34 +466,25 @@ data report6_total_details2 (keep = BPID 				epi_id_milliman T4_IP_A_FAC_CCN 		T
 								   	T4_LTAC_CCN 		T4_LTAC_STARTDATE 			T4_LTAC_ENDDATE
 								   	T4_IRF_CCN 			T4_IRF_STARTDATE 			T4_IRF_ENDDATE
 						 		   	T4_HH_CCN 			T4_HH_STARTDATE 			T4_HH_ENDDATE 
-								   	T4_SNF_CCN 			T4_SNF_STARTDATE 			T4_SNF_ENDDATE
-									T4_ER_S_CCN         T4_ER_S_STARTDATE           T4_ER_S_ENDDATE
-                                    T4_ER_R_CCN         T4_ER_R_STARTDATE           T4_ER_R_ENDDATE
-									T4_HOSPICE_CCN      T4_HOSPICE_STARTDATE        T4_HOSPICE_ENDDATE);
+								   	T4_SNF_CCN 			T4_SNF_STARTDATE 			T4_SNF_ENDDATE);
 	set report6_total_details;
 	by epi_id_milliman;
 
-	length T4_IP_A_FAC_CCN 		T4_IP_O_FAC_CCN 	T4_LTAC_CCN 	T4_IRF_CCN 		T4_HH_CCN 	T4_SNF_CCN T4_ER_S_CCN T4_ER_R_CCN $12;
+	length T4_IP_A_FAC_CCN 		T4_IP_O_FAC_CCN 	T4_LTAC_CCN 	T4_IRF_CCN 		T4_HH_CCN 	T4_SNF_CCN $12;
 	
 	retain T4_IP_A_FAC_CCN 		T4_IP_A_FAC_STARTDATE 		T4_IP_A_FAC_ENDDATE
 		   T4_IP_O_FAC_CCN 		T4_IP_O_FAC_STARTDATE 		T4_IP_O_FAC_ENDDATE
 		   T4_LTAC_CCN 			T4_LTAC_STARTDATE 			T4_LTAC_ENDDATE
 		   T4_IRF_CCN 			T4_IRF_STARTDATE 			T4_IRF_ENDDATE
  		   T4_HH_CCN 			T4_HH_STARTDATE 			T4_HH_ENDDATE 
-		   T4_SNF_CCN 			T4_SNF_STARTDATE 			T4_SNF_ENDDATE
-		   T4_ER_S_CCN          T4_ER_S_STARTDATE           T4_ER_S_ENDDATE
-           T4_ER_R_CCN          T4_ER_R_STARTDATE           T4_ER_R_ENDDATE
-           T4_HOSPICE_CCN       T4_HOSPICE_STARTDATE        T4_HOSPICE_ENDDATE;
+		   T4_SNF_CCN 			T4_SNF_STARTDATE 			T4_SNF_ENDDATE;
 
 	format T4_IP_A_FAC_STARTDATE 		T4_IP_A_FAC_ENDDATE
 	   	   T4_IP_O_FAC_STARTDATE 		T4_IP_O_FAC_ENDDATE
 	       T4_LTAC_STARTDATE 			T4_LTAC_ENDDATE
 	       T4_IRF_STARTDATE 			T4_IRF_ENDDATE
  	       T4_HH_STARTDATE 				T4_HH_ENDDATE 
-	       T4_SNF_STARTDATE 			T4_SNF_ENDDATE
-		   T4_ER_S_STARTDATE            T4_ER_S_ENDDATE
-           T4_ER_R_STARTDATE            T4_ER_R_ENDDATE 
-		   T4_HOSPICE_STARTDATE         T4_HOSPICE_ENDDATE mmddyy10.;
+	       T4_SNF_STARTDATE 			T4_SNF_ENDDATE mmddyy10.;
 
 
 	if first.epi_id_milliman then do;
@@ -513,9 +494,6 @@ data report6_total_details2 (keep = BPID 				epi_id_milliman T4_IP_A_FAC_CCN 		T
 		   T4_IRF_CCN=''; 		T4_IRF_STARTDATE=.; 		T4_IRF_ENDDATE=.;
  		   T4_HH_CCN=''; 		T4_HH_STARTDATE=.; 			T4_HH_ENDDATE=.;
 		   T4_SNF_CCN=''; 		T4_SNF_STARTDATE=.; 		T4_SNF_ENDDATE=.;
-		   T4_ER_S_CCN='';      T4_ER_S_STARTDATE=.;        T4_ER_S_ENDDATE=.;
-           T4_ER_R_CCN='';      T4_ER_R_STARTDATE=.;        T4_ER_R_ENDDATE=.;
-           T4_HOSPICE_CCN='';   T4_HOSPICE_STARTDATE=.;     T4_HOSPICE_ENDDATE=.;
 	end;
 
 	if sumcat in ('IP_s_F') and (T4_IP_A_FAC_STARTDATE in (.) or dos < T4_IP_A_FAC_STARTDATE) then do;
@@ -554,23 +532,6 @@ data report6_total_details2 (keep = BPID 				epi_id_milliman T4_IP_A_FAC_CCN 		T
 			T4_SNF_ENDDATE = DSCHRG_DT;	
 	end;
 
-	else if sumcat1 in ('Emergency - Stand Alone') and (T4_ER_S_STARTDATE in (.) or dos < T4_ER_S_STARTDATE) then do;
-			T4_ER_S_CCN = PROVIDER_CCN; 		
-			T4_ER_S_STARTDATE = dos;	 	
-			T4_ER_S_ENDDATE = DSCHRG_DT;	
-	end;
-
-	else if sumcat1 in ('Emergency - W/in 1 Day of Admit') and (T4_ER_R_STARTDATE in (.) or dos < T4_ER_R_STARTDATE) then do;
-			T4_ER_R_CCN = PROVIDER_CCN; 		
-			T4_ER_R_STARTDATE = dos;	 	
-			T4_ER_R_ENDDATE = DSCHRG_DT;	
-	end;
-
-	else if sumcat1 in ('HS') and (T4_HOSPICE_STARTDATE in (.) or dos < T4_HOSPICE_STARTDATE) then do;
-			T4_HOSPICE_CCN = PROVIDER_CCN; 		
-			T4_HOSPICE_STARTDATE = dos;	 	
-			T4_HOSPICE_ENDDATE = DSCHRG_DT;	
-	end;
 
 	if last.epi_id_milliman then output;
 
@@ -816,7 +777,7 @@ create table Episode_Detail_1 as
 		,a.anchor_type
 		,a.ANCHOR_CODE
 		,a.FRACTURE_FLAG
-		,case when anchor_type = "op" then a.anchor_code else coalesce(b.anchor_facility_code,a.anchor_code) end as Anchor_First_Facility_Code
+		,coalesce(b.anchor_facility_code,a.anchor_code) as Anchor_First_Facility_Code
 		,case when anchor_type = "op" and b.transfer_flag = . then b.T0_IP_IDX_ALLOWED else b.anchor_facility_cost end as Anchor_first_facility_cost
 		,case when anchor_type = "op" and b.transfer_flag = . then 0 else sum(b.T0_IP_IDX_ALLOWED,b.anchor_facility_cost*-1) end as Anchor_other_facility_allowed
 		,b.transfer_flag
@@ -928,9 +889,6 @@ create table Episode_Detail_1 as
 		,case when T4_SNF_STARTDATE ^= . then 'Yes'
 			  else 'No'
 			  end as SNF_FLAG4
-		,case when T4_HOSPICE_STARTDATE ^= . then 'Yes'
-			  else 'No'
-			  end as HOSPICE_FLAG4
 		/*20170831 - Update end*/
 		,case when a.BENE_AGE < 65 then 'Under 65'
 			 when 65 <= a.BENE_AGE <= 70 then '65 - 70'
@@ -943,15 +901,18 @@ create table Episode_Detail_1 as
 			 when a.BENE_AGE > 100 then '101 and Older'
 			 end as Age_Group
 		/*Update 20181201: Add performance beneficiary information*/
+/*		%if &label = ybase %then %do;*/
+/*		,"-" as bene_gender length=10*/
+/*		,. as bene_birth_dt*/
+/*		,a.bene_death_dt*/
+/*		,"-" as MBI_ID length=20*/
+/*		%end;*/
+/*		%else %do;*/
 		,a.bene_gender length=10
 		,a.bene_birth_dt
 		,a.bene_death_dt
-		%if &label = ybase %then %do;
-		,"-" as MBI_ID length=20
-		%end;
-		%else %do;
 		,a.MBI_ID length=20
-		%end;
+/*		%end;*/
 		,b.*
 from data1_&label._&bpid1._&bpid2. as a
 	left join report6_comb_drgs as b
@@ -967,16 +928,14 @@ create table Episode_Detail_1a as
 		,put(b.anchor_ccn,z6.) as anchor_ccn
 		,b.curhic_uneq
 		,case when b.DEATH_DUR_POSTDSCHRG = 1 then 'Yes' else 'No' end as death_flag
-		%if &label = ybase %then %do;
-		,"-" as DROPFLAG_PRELIM_CJR_OVERLAP length=10
-		,"-" as DROPFLAG_PRELIM_BPCI_A_OVERLAP length=10
+/*		%if &label = ybase %then %do;*/
+		,"-" as flag_overlap length=10
 		,"-" as mult_attr_provs length=10
-		%end;
-		%else %do;
-		,case when b.DROPFLAG_PRELIM_CJR_OVERLAP = 1 then "Yes" else "No" end as DROPFLAG_PRELIM_CJR_OVERLAP length=10
-		,case when b.DROPFLAG_PRELIM_BPCI_A_OVERLAP = 1 then "Yes" else "No" end as DROPFLAG_PRELIM_BPCI_A_OVERLAP length=10
-		,case when b.mult_attr_provs = 1 then "Yes" else "No" end as mult_attr_provs length=10
-		%end;
+/*		%end;*/
+/*		%else %do;*/
+/*		,case when b.flag_overlap = 1 then "Yes" else "No" end as flag_overlap length=10*/
+/*		,case when b.mult_attr_provs = 1 then "Yes" else "No" end as mult_attr_provs length=10*/
+/*		%end;*/
 		,b.Mortality_CABG
 	from Episode_Detail_1 as a
 		left join
@@ -1008,7 +967,7 @@ create table Episode_Detail_4 as
 		  ,b.Health_system_interface_abbrevia as EI_system_abbr
 		  ,propcase(c.fac_name) as Anchor_Facility_Name 
 	from Episode_Detail_3 as a
-	left join bpciaref.bpcia_episode_initiator_info as b
+	left join bpciaref.bpcia_episode_initiator_info_MY3 as b
 	on a.bpid = b.BPCI_Advanced_ID_Number_2
 	left join ref.ccns_codemap as c
 	on a.anchor_ccn = c.ccn;
@@ -1041,21 +1000,21 @@ create table Episode_Detail_5 as
 quit;
 
 *Get first CCN for each post-acute care type for total;
-data episode_ccns (keep = epi_id_milliman timeframe sumcat sumcat1 clm_provider ccn2 dos );
+data episode_ccns (keep = epi_id_milliman timeframe sumcat clm_provider ccn2 dos );
 	set report6_total_details;
-	where sumcat in ('IP_s_F','IP_d_F','IP_LTAC_F','IP_Rehab_F','HH','SNF_F') or substr(sumcat1,1,1) = 'E';
+	where sumcat in ('IP_s_F','IP_d_F','IP_LTAC_F','IP_Rehab_F','HH','SNF_F');
 	clm_provider = strip(Provider_CCN);
 	run;
 proc sort data = episode_ccns;
-	by epi_id_milliman sumcat sumcat1 dos;
+	by epi_id_milliman sumcat dos;
 run;
 
-data episode_ccns_a (drop=CCN2 timeframe sumcat sumcat1 dos);
+data episode_ccns_a (drop=CCN2 timeframe sumcat dos);
 set episode_ccns;
-by epi_id_milliman sumcat sumcat1 dos;
-	if sumcat1 = '' then do ;
-		if first.sumcat then do;
-			if sumcat = 'IP_s_F' then do;
+by epi_id_milliman sumcat dos;
+if first.sumcat then do;
+
+		if sumcat = 'IP_s_F' then do;
 				type = "T4_IP_A_FAC_CCN_NAME";
 			end;
 			if sumcat = 'IP_d_F' then do;
@@ -1075,27 +1034,15 @@ by epi_id_milliman sumcat sumcat1 dos;
 			end;
 			output;
 		end;
-	end;
-	else if sumcat1 ne '' then do ;
-		if first.sumcat1 then do;
-			if sumcat1 = 'Emergency - Stand Alone' then do;
-				type = "T4_ER_S_CCN_NAME";
-			end;
-			if sumcat1 = 'Emergency - W/in 1 Day of Admit' then do;
-				type = "T4_ER_R_CCN_NAME";
-			end;
-			output;
-		end;
-	end;
 run;
 
 /*standardize CCN data for each post-acute time period*/
-data episode_ccns2 (drop=CCN2 timeframe sumcat sumcat1 dos);
+data episode_ccns2 (drop=CCN2 timeframe sumcat dos);
 	set episode_ccns(drop=CCN2 in=a)
 		episode_ccns (drop=clm_provider in=b)
 		episode_ccns_a (in=c);
 
-		if a and sumcat1 = '' then do;
+		if a then do;
 			if sumcat = 'IP_s_F' then do;
 				type = "T"||strip(timeframe)||"_IP_A_FAC_CCN_NAME";
 			end;
@@ -1117,7 +1064,7 @@ data episode_ccns2 (drop=CCN2 timeframe sumcat sumcat1 dos);
 		output;
 		end;
 
-		if b and sumcat1 = '' then do;
+		if b then do;
 			clm_provider=ccn2;
 			type = "T"||strip(timeframe)||"_SNF2_CCN_NAME";
 			
@@ -1182,7 +1129,7 @@ create table Episode_Detail_6 as
 	from Episode_Detail_5 as a
 	left join Episode_CCNs6 as b
 	on a.epi_id_milliman = b.key
-	left join bpciaref.BPCIA_DRG_Mapping as c
+	left join bpciaref.BPCIA_DRG_Mapping_MY3 as c
 	on a.ANCHOR_CODE = c.code;
 ;
 /*Added the Clinical Episode Names to Episode_Detail */
@@ -1195,57 +1142,56 @@ create table Episode_Detail_7 as
 		  ,strip(BPID)||" - "||strip(b.Short_name) as BPID_ClinicalEp
 		  ,strip(BPID)||" - "||strip(b.Short_name)||" - "||strip(anchor_ccn) as BPID_ClinicalEp_ccn
 	from Episode_Detail_6 as a
-	left join bpciaref.BPCIA_Clinical_Episode_Names as b
+	left join bpciaref.BPCIA_Clinical_Episode_Names_MY3 as b
 	on a.BPCI_Episode_Idx = b.BPCI_Episode_Index
 ;
 	create table out.epi_detail_&label._&bpid1._&bpid2. as
 	select distinct a.*
 			,b.TOT_STD_ALLOWED as cms_standardized /*Looking for EPI TOTAL */
-			%if label = ybase %then %do;
+/*			%if label = ybase %then %do;*/
 			,b.EPI_STD_PMT_FCTR
-			%end;
-			%else %do;
-			,0 as EPI_STD_PMT_FCTR
-			%end;
+/*			%end;*/
+/*			%else %do;*/
+/*			,0 as EPI_STD_PMT_FCTR*/
+/*			%end;*/
 			,b.WINSORIZE_EPI_1_99
 			,b.EPI_STD_PMT_FCTR_WIN_1_99
 			,b.ref_year
-			,case when a.BPID in (&PMR_EI_lst.)
+			,case when a.BPID in (&PMR_3_EI_lst.)
 					then 1 else 0 end as client_type
-			%if &label = ybase %then %do;
+/*			%if &label = ybase %then %do;*/
 			,"BASE" as period
-			,"Baseline (2014 - 2016)" as timeframe_filter format = $100. length=100 
-			%end;
-			%else %do;
-			,"PERF" as period
-			, case when '01OCT2018'd le POST_DSCH_END_DT le '30JUN2019'd then "Performance Period 1"
-				   when '01JUL2019'd le POST_DSCH_END_DT le '31DEC2019'd then "Performance Period 2"
-				   when '01JAN2020'd le POST_DSCH_END_DT le '30JUN2020'd then "Performance Period 3"
-				   when '01JUL2020'd le POST_DSCH_END_DT le '31DEC2020'd then "Performance Period 4"
-				   when '01JAN2021'd le POST_DSCH_END_DT le '30JUN2021'd then "Performance Period 5"
-				   when '01JUL2021'd le POST_DSCH_END_DT le '31DEC2021'd then "Performance Period 6"
-				   when '01JAN2022'd le POST_DSCH_END_DT le '30JUN2022'd then "Performance Period 7"
-				   when '01JUL2022'd le POST_DSCH_END_DT le '31DEC2022'd then "Performance Period 8"
-				   when '01JAN2023'd le POST_DSCH_END_DT le '30JUN2023'd then "Performance Period 9"
-				   when '01JUL2023'd le POST_DSCH_END_DT le '31DEC2023'd then "Performance Period 10"
-			end as timeframe_filter format = $100. length=100
-			%end;
+			,"Baseline (MY3)" as timeframe_filter format = $100. length=100 
+/*			%end;*/
+/*			%else %do;*/
+/*			,"PERF" as period*/
+/*			, case when '01OCT2018'd le POST_DSCH_END_DT le '30JUN2019'd then "Performance Period 1"*/
+/*				   when '01JUL2019'd le POST_DSCH_END_DT le '31DEC2019'd then "Performance Period 2"*/
+/*				   when '01JAN2020'd le POST_DSCH_END_DT le '30JUN2020'd then "Performance Period 3"*/
+/*				   when '01JUL2020'd le POST_DSCH_END_DT le '31DEC2020'd then "Performance Period 4"*/
+/*				   when '01JAN2021'd le POST_DSCH_END_DT le '30JUN2021'd then "Performance Period 5"*/
+/*				   when '01JUL2021'd le POST_DSCH_END_DT le '31DEC2021'd then "Performance Period 6"*/
+/*				   when '01JAN2022'd le POST_DSCH_END_DT le '30JUN2022'd then "Performance Period 7"*/
+/*				   when '01JUL2022'd le POST_DSCH_END_DT le '31DEC2022'd then "Performance Period 8"*/
+/*				   when '01JAN2023'd le POST_DSCH_END_DT le '30JUN2023'd then "Performance Period 9"*/
+/*				   when '01JUL2023'd le POST_DSCH_END_DT le '31DEC2023'd then "Performance Period 10"*/
+/*			end as timeframe_filter format = $100. length=100*/
+/*			%end;*/
 			,case when (&transmit_date. - b.POST_DSCH_END_DT) >= 60 then "Yes" else "No" end as COMP_EP_FLAG
 			,b.POST_DSCH_END_DT as epi_end_date
 			,case when month(b.POST_DSCH_END_DT) < 10 then strip(put(year(b.POST_DSCH_END_DT),4.)||" M0"||strip(put(month(b.POST_DSCH_END_DT),2.)))
 			 else strip(put(year(b.POST_DSCH_END_DT),4.)||" M"||strip(put(month(b.POST_DSCH_END_DT),2.))) 
 			 end as Episode_End_YearMo
-			%if &label = ybase %then %do;
-			,"Unknown" as PATIENT_NAME format = $255. length=255
-			%end;
-			%else %do;
+/*			%if &label = ybase %then %do;*/
+/*			,"Unknown" as PATIENT_NAME format = $255. length=255*/
+/*			%end;*/
+/*			%else %do;*/
 			,case when b.BENE_SRNM_NAME in ("","~") then "Unknown"
 			else propcase(STRIP(b.BENE_SRNM_NAME)||", "||STRIP(b.BENE_GVN_NAME)) 
 			end as PATIENT_NAME format = $255. length=255
-			%end;
+/*			%end;*/
 			,b.CNT_ATTR_PGP
 			,b.BPID || "_" || b.BENE_SK as BPID_Member
-			,a.clinical_episode_abbr as episode_description
 			from episode_detail_7 as a 
 			left join out.epi_&label._&bpid1._&bpid2. as b
 			on a.epi_id_milliman = b.epi_id_milliman
@@ -1255,7 +1201,7 @@ quit ;
 /*/*********************************************************************************************/*/
 /*/*Code to create a CCN-level observational dataset********************************************/*/
 /*/*********************************************************************************************/*/;
-data ccn_enc_ip (keep=BPID anchor_ccn claimno EPISODE_INITIATOR epi_id_milliman drg_cd type allowed std_allowed_wage provider_ccn0 admsn_dt DSCHRGDT util_day dos timeframe GEO_BENE_SK pdgns_cd pproc_cd transfer_stay admitting_diag_code DGNSCD02-DGNSCD25 edac_flag);
+data ccn_enc_ip (keep=BPID anchor_ccn claimno EPISODE_INITIATOR epi_id_milliman drg_cd type allowed std_allowed_wage provider_ccn0 admsn_dt DSCHRGDT util_day timeframe GEO_BENE_SK pdgns_cd pproc_cd transfer_stay admitting_diag_code DGNSCD02-DGNSCD25 edac_flag);
 	set		out.ipr_&label._&bpid1._&bpid2.;
 /*	where timeframe ^=0 ; */
 	format DRG_CD $3.;
@@ -1288,7 +1234,6 @@ proc sql;
 			  ,max(util_day) as util_day 
 			  ,pdgns_cd 
 			  ,pproc_cd
-			  ,dos
 			  ,timeframe
 			  ,admitting_diag_code
 			  ,DGNSCD02,DGNSCD03,DGNSCD04,DGNSCD05,DGNSCD06,DGNSCD07,DGNSCD08,DGNSCD09,DGNSCD10,DGNSCD11,DGNSCD12,DGNSCD13,DGNSCD14,DGNSCD15,DGNSCD16,DGNSCD17,DGNSCD18,DGNSCD19,DGNSCD20,DGNSCD21,DGNSCD22,DGNSCD23,DGNSCD24,DGNSCD25
@@ -1308,7 +1253,6 @@ proc sql;
 			  ,DSCHRGDT
 			  ,pdgns_cd 
 			  ,pproc_cd
-			  ,dos
 			  ,timeframe
 			  ,admitting_diag_code
 			  ,DGNSCD02,DGNSCD03,DGNSCD04,DGNSCD05,DGNSCD06,DGNSCD07,DGNSCD08,DGNSCD09,DGNSCD10,DGNSCD11,DGNSCD12,DGNSCD13,DGNSCD14,DGNSCD15,DGNSCD16,DGNSCD17,DGNSCD18,DGNSCD19,DGNSCD20,DGNSCD21,DGNSCD22,DGNSCD23,DGNSCD24,DGNSCD25
@@ -1318,12 +1262,12 @@ quit;
 
 *!! JL BPCIA update: Temporary - to fix formats and rename variables to get them all to stack;
 data ccn_enc_snf;
-set out.snf_&label._&bpid1._&bpid2. (keep= EPISODE_INITIATOR claimno BPID epi_id_milliman type allowed std_allowed_wage PROVIDER admsn_dt DSCHRGDT THRU_DT util_day dos timeframe DGNSCD01-DGNSCD25 rename=(PROVIDER=provider_ccn0 DGNSCD01=pdgns_cd /*util_day = util_day_pre*/)) ;
+set out.snf_&label._&bpid1._&bpid2. (keep= EPISODE_INITIATOR claimno BPID epi_id_milliman type allowed std_allowed_wage PROVIDER admsn_dt DSCHRGDT THRU_DT util_day timeframe DGNSCD01-DGNSCD25 rename=(PROVIDER=provider_ccn0 DGNSCD01=pdgns_cd /*util_day = util_day_pre*/)) ;
 /*	util_day = min(util_day_pre,90);*/
 run;
 
 data ccn_enc_hha;
-set out.hha_&label._&bpid1._&bpid2.(keep=BENE_SK  claimno anchor_ccn EPISODE_INITIATOR BPID epi_id_milliman type allowed std_allowed_wage PROVIDER dos timeframe DGNSCD01-DGNSCD25 FROM_DT THRU_DT util_day
+set out.hha_&label._&bpid1._&bpid2.(keep=BENE_SK  claimno anchor_ccn EPISODE_INITIATOR BPID epi_id_milliman type allowed std_allowed_wage PROVIDER timeframe DGNSCD01-DGNSCD25 FROM_DT THRU_DT util_day
 											 rename=(BENE_SK=GEO_BENE_SK DGNSCD01=pdgns_cd FROM_DT=admsn_dt THRU_DT=DSCHRGDT) in=d) ;
 	provider_ccn0 = strip(provider);
 run;
@@ -1342,7 +1286,7 @@ run;
 
 data ccn_enc(drop=provider_ccn0);
 set		
-		ccn_enc_ip_a (keep=GEO_BENE_SK anchor_ccn EPISODE_INITIATOR BPID epi_id_milliman drg_cd type allowed std_allowed_wage provider_ccn0 admsn_dt DSCHRGDT util_day  pdgns_cd pproc_cd dos timeframe admitting_diag_code DGNSCD02-DGNSCD25 edac_flag)
+		ccn_enc_ip_a (keep=GEO_BENE_SK anchor_ccn EPISODE_INITIATOR BPID epi_id_milliman drg_cd type allowed std_allowed_wage provider_ccn0 admsn_dt DSCHRGDT util_day  pdgns_cd pproc_cd timeframe admitting_diag_code DGNSCD02-DGNSCD25 edac_flag)
 		ccn_enc_snf
 		ccn_enc_hha
 		ccn_enc_op
@@ -1366,7 +1310,6 @@ proc sql;
 			  ,pproc_cd
 			  ,max(at_npi) as at_npi
 			  ,timeframe
-			  ,dos
 			  ,admsn_dt
 			  ,hcpcs_cd
 			  ,rev_cntr
@@ -1389,7 +1332,6 @@ proc sql;
 			  ,pdgns_cd
 			  ,pproc_cd
 			  ,timeframe
-			  ,dos
 			  ,admsn_dt
 			  ,hcpcs_cd
 			  ,rev_cntr
@@ -1451,10 +1393,8 @@ proc sql;
 			  ,pdgns_cd
 			  ,pproc_cd
 			  ,timeframe
-			  ,dos
 			  ,hcpcs_cd
 			  ,rev_cntr
-			  ,admitting_diag_code as readmit_admit_diag
 			  ,admitting_diag_code
 			  ,DGNSCD02,DGNSCD03,DGNSCD04,DGNSCD05,DGNSCD06,DGNSCD07,DGNSCD08,DGNSCD09,DGNSCD10,DGNSCD11,DGNSCD12,DGNSCD13,DGNSCD14,DGNSCD15,DGNSCD16,DGNSCD17,DGNSCD18,DGNSCD19,DGNSCD20,DGNSCD21,DGNSCD22,DGNSCD23,DGNSCD24,DGNSCD25
 			  ,at_npi
@@ -1479,7 +1419,6 @@ proc sql;
 			  ,pproc_cd
 			  ,at_npi
 			  ,timeframe
-			  ,dos
 			  ,hcpcs_cd
 			  ,rev_cntr
 			  ,admitting_diag_code
@@ -1492,7 +1431,6 @@ quit;
 proc sql;
 create table ccn_enc5 as 
 		select a.ANCHOR_BEG_DT
-			,a.ANCHOR_END_DT
 			,a.EncounterID
 			,a.DataYearMo
 			,a.Anchor_YearQtr
@@ -1510,68 +1448,14 @@ create table ccn_enc5 as
 		and a.BPID = b.BPID
 	;
 
-	/* New Time Frame for the Facilites page */ 
-
-	create table ccn_enc5a as
-	select *
-	,case when timeframe = 0  then  0
-			when timeframe ^= 0 and (dos - ANCHOR_END_DT) le 7 then 1
-			when timeframe ^= 0 and (dos - ANCHOR_END_DT) le 14 then 2
-			when timeframe ^= 0 and (dos - ANCHOR_END_DT) le 30 then 3
-			when timeframe ^= 0 and (dos - ANCHOR_END_DT) le 60 then 4
-			when timeframe ^= 0 and (dos - ANCHOR_END_DT) le 90 then 5
-			end as new_timeframe
-	from ccn_enc5 ;
-
-	create table ccn_enc5b as
-	select *
-	,case when timeframe = 0  then  "Anchor"
-			when new_timeframe = 1 then "1 - 7 Days"
-			when new_timeframe = 2 then "8 - 14 Days"
-			when new_timeframe = 3 then "15 - 30 Days"
-			when new_timeframe = 4 then "31 - 60 Days"
-			when new_timeframe = 5 then "61 - 90 Days"
-			end as new_timeframe2
-	,case when new_timeframe in (1) then 1
-			  		else 0
-					end as new_fac_timeframe_1_7
-  ,case when new_timeframe in (1,2) then 1
-			  		else 0
-					end as new_fac_timeframe_1_14
-  ,case when new_timeframe in (1,2,3) then 1
-			  		else 0
-					end as new_fac_timeframe_1_30
-  ,case when new_timeframe in (1,2,3,4) then 1
-			  		else 0
-					end as new_fac_timeframe_1_60
-  ,case when new_timeframe in (1,2,3,4,5) then 1
-			  		else 0
-					end as new_fac_timeframe_1_90
-	,case when new_timeframe in (0,1,2,3,4,5) then 1
-			  		else 0
-					end as new_fac_timeframe_all
-	from ccn_enc5a ;
-
 /*add CCN Names to CCN post-acute episodes*/
 	create table ccn_enc6 as
 		select a.*
 			,propcase(b.fac_name) as CCN_Name
-		from ccn_enc5b as a
+		from ccn_enc5 as a
 		left join ref.ccns_codemap as b
 		on a.provider_ccn_use = b.ccn
 		order by epi_id_milliman;
-
-/*add readmission admit diag description to CCN post-acute episodes*/
-	create table ccn_enc7 as	
-		select a.*
-			,case when a.readmit_admit_diag = "" then ""
-			 else b.diag_desc 
-			 end as readmit_admit_diag_desc
-		from ccn_enc6 as a
-		left join ref.Icd9diag_codemap as b
-		on a.readmit_admit_diag = b.diag
-		and ((a.enddate < '01OCT2015'd and b.version = 9) or (a.enddate >= '01OCT2015'd and b.version = 0)) ;
-;
 
 /*add msdrg description to CCN post-acute episodes*/
 	create table ccn_enc8 as	
@@ -1584,7 +1468,7 @@ create table ccn_enc5 as
 			 end as prim_proc_desc
 			,d.MSDRG_DESCRIPTION as drg_desc
 			,e.proc_desc as hcpcs_desc	
-		from ccn_enc7 as a
+		from ccn_enc6 as a
 		left join ref.Icd9diag_codemap as b
 		on a.PDGNS_CD = b.diag
 		and ((a.enddate < '01OCT2015'd and b.version = 9) or (a.enddate >= '01OCT2015'd and b.version = 0)) 
@@ -1600,10 +1484,6 @@ create table ccn_enc5 as
 proc sql;
 create table ccn_enc10 as
 		select distinct a.*
-			  ,case when readmit_admit_diag ="" then ""
-			  		when readmit_admit_diag ^="" and readmit_admit_diag_desc = "" then strip(readmit_admit_diag)
-					else strip(readmit_admit_diag)||": "||strip(lowcase(readmit_admit_diag_desc))
-					end as readmit_admit_diag_with_desc
 		      ,case when PDGNS_CD ="" then ""
 			  		when PDGNS_CD ^="" and prim_diag_desc = "" then strip(PDGNS_CD)
 					else strip(PDGNS_CD)||": "||strip(lowcase(prim_diag_desc))
@@ -1687,48 +1567,10 @@ quit;
 data ccn_enc10b;
 set ccn_enc10a;
 	if caretype = "Emergency" then do;
-    	if IP_visit_flag = 1 then caretype = "Emergency - W/in 1 Day of Admit";
+    	if IP_visit_flag = 1 then caretype = "Emergency - Preceding Admit";
 		 else caretype = "Emergency - Stand Alone";
 	end;
 run;
-
-proc sql ; 
-		create table ccn_enc10c as 
-			select a.*
-			,case when type in ('OP_ER') then CCN_Name end as CCN_Name_ER
-		  	,case when type in ('OP_ER') then CCN_Name_Desc end as CCN_Name_Desc_ER
-			,case when type in ('OP_ER') then timeframe2 end as timeframe_er
-			,case when type in ('OP_ER') then hcpcs_with_desc end as er_hcpcs
-			,case when type in ('OP_ER') then prim_diag_with_desc end as er_diag 
-			,case when type in ('OP_ER') then startdate end as er_startdate format=mmddyy10.
- 		    ,case when type in ('OP_ER') then allowed end as er_allowed
-			,case when type in ('OP_ER') then std_allowed_wage end as er_std_allowed
-			,case when type in ('OP_ER') then CCN_Name_Desc end as er_CCN_Name_Desc
-			,case when type in ('OP_ER') then CareType end as er_CareType
-/*			,case when type in ('OP_ER') and STUS_CD = 1 then 'Discharged to home/self care'*/
-/*      			   when type in ('OP_ER') and STUS_CD in (2,43,66) then 'Discharged/transferred to acute care hospital'*/
-/*      			   when type in ('OP_ER') and STUS_CD in (3,61) then 'Discharged/transferred to SNF'*/
-/*      			   when type in ('OP_ER') and STUS_CD in (62) then 'Discharged/transferred to IRF'*/
-/*      			   when type in ('OP_ER') and STUS_CD in (63) then 'Discharged/transferred to LTCH'*/
-/*      			   when type in ('OP_ER') and STUS_CD in (50,51) then 'Discharged/transferred to hospice'*/
-/*      			   when type in ('OP_ER') and STUS_CD in (6) then 'Discharged to home health'*/
-/*      			   when type in ('OP_ER') and STUS_CD in (9) then 'Admitted to this facility'*/
-/*      			   when type in ('OP_ER') and STUS_CD in (65,70,4,5) then 'Discharged to another type of HC institution'*/
-/*      			   when type in ('OP_ER') and STUS_CD in (7) then 'Left against medical advice'*/
-/*      			   when type in ('OP_ER') and STUS_CD in (20,41) then 'Death'*/
-/*      				when type in ('OP_ER') then 'Unknown/other'*/
-/*					end as ERDischargeStatus*/
-			,case when type in ('IP_s','IP_d','IP_Idx') then prim_diag_with_desc end as readmit_prim_diag format=$255.
-			,case when type in ('OP_ER') and strip(put(a.at_npi,best12.)) = "" and b.Provider_Last_Name__Legal_Name_ = "" then "Unknown ()"
-			   	  when type in ('OP_ER') and strip(put(a.at_npi,best12.)) ^= "" and b.Provider_Last_Name__Legal_Name_ = ""  and Provider_Organization_Name__Leg ^="" then strip(propcase(Provider_Organization_Name__Leg))||" ("||strip(put(a.at_npi,best12.))||")"
-			      when type in ('OP_ER') and strip(put(a.at_npi,best12.)) ^= "" and b.Provider_Last_Name__Legal_Name_ = ""  then "Unknown"||" ("||strip(put(a.at_npi,best12.))||")" 
-				  when type in ('OP_ER') then strip(propcase(b.Provider_Last_Name__Legal_Name_))||", "||strip(propcase(b.Provider_First_Name))||" ("||strip(put(a.at_npi,best12.))||")" 
-			   end as ER_Physician
-		from ccn_enc10b as a
-		left join ref.npi_data as b
-			on strip(put(a.at_npi,best12.))=b.npi;
-
-quit;
 
 /*********************************************************************************************/
 /*Make Complications detail*/
@@ -1738,7 +1580,7 @@ proc sql;
 	create table ccn_enc11 as 
 		select a.*
 			,b.cc_denom as cc_elig
-			from ccn_enc10c as a
+			from ccn_enc10b as a
 			left join out.Cc_sum_&label._&bpid1._&bpid2. as b
 			on a.EPI_ID_MILLIMAN = b.EPI_ID_MILLIMAN
 			;
@@ -2107,7 +1949,7 @@ quit;
 data out.provider_&label._&bpid1._&bpid2.;
 set npi_level4;
 	if type = "Prof_ER" then do;
-    	if IP_visit_flag = 1 then type = "Prof_ER_W";
+    	if IP_visit_flag = 1 then type = "Prof_ER_P";
 		 else type = "Prof_ER_S";
 	end;
 run;
@@ -2213,7 +2055,6 @@ data patientjourney_2 (drop = i start_date end_date provider_ccn type admsn_dt d
 	set patientjourney_1b;
 	length provider d1-d90 d_first d_first_name d_second d_second_name d_third d_third_name type2 type_lag $255;	
 	format d1-d90 type2 provider type_lag $255.;
-	format d_first_admit_date d_first_disch_date d_second_admit_date d_second_disch_date d_third_admit_date d_third_disch_date mmddyy10.;
 
 	by epi_id_milliman;
 
@@ -2229,11 +2070,7 @@ data patientjourney_2 (drop = i start_date end_date provider_ccn type admsn_dt d
 		provider = "";
 	end;
 
-	retain start_date2 end_date2 type2 d1-d90 
-		d_first d_first_name d_first_cost d_first_util_days d_first_admit_date d_first_disch_date 
-		d_second d_second_name d_second_cost d_second_util_days d_second_admit_date d_second_disch_date 
-		d_third d_third_name d_third_cost d_third_util_days d_third_admit_date d_third_disch_date 
-		rank2 rank_lag;
+	retain start_date2 end_date2 type2 d1-d90 d_first d_first_name d_first_cost d_first_util_days d_second d_second_name d_second_cost d_second_util_days d_third d_third_name d_third_cost d_third_util_days rank2 rank_lag;
 
 	if first.epi_id_milliman then do;
 
@@ -2247,16 +2084,10 @@ data patientjourney_2 (drop = i start_date end_date provider_ccn type admsn_dt d
 		rank_lag = .;
 		d_first_cost = .;
 		d_first_util_days = .;  
-		d_first_admit_date = .;  
-		d_first_disch_date = .;  
  		d_second_cost = .;  
 		d_second_util_days = .;  
-		d_second_admit_date = .;  
-		d_second_disch_date = .;  
 		d_third_cost = .;  
 		d_third_util_days = .;  
-		d_third_admit_date = .;  
-		d_third_disch_date = .;  
 
 		d1 = ''; d2 = ''; d3 = ''; d4 = ''; d5 = ''; d6 = ''; d7 = ''; d8 = ''; d9 = '';
 		d10 = ''; d11 = ''; d12 = ''; d13 = ''; d14 = ''; d15 = ''; d16 = ''; d17 = ''; d18 = ''; d19 = '';
@@ -2303,40 +2134,30 @@ data patientjourney_2 (drop = i start_date end_date provider_ccn type admsn_dt d
 			d_first_name = provider;
 			d_first_cost = std_allowed_wage;
 			d_first_util_days = util_day; 
-			d_first_admit_date = admsn_dt; 
-			d_first_disch_date = dschrgdt; 
 		end;
 		else if d_first = '' and d2 ^= '' and start_date = 1 then do;
 			d_first = type;
 			d_first_name = provider;
 			d_first_cost = std_allowed_wage;
 			d_first_util_days = util_day; 
-			d_first_admit_date = admsn_dt; 
-			d_first_disch_date = dschrgdt;
 		end;
 		else if d_first = '' and d3 ^= '' and start_date = 2 then do;
 			d_first = type;
 			d_first_name = provider;
 			d_first_cost = std_allowed_wage;
 			d_first_util_days = util_day; 
-			d_first_admit_date = admsn_dt; 
-			d_first_disch_date = dschrgdt;
 		end;
 		else if d_first = '' and d4 ^= '' and start_date = 3 and type = 'HH' then do;
 			d_first = type;
 			d_first_name = provider;
 			d_first_cost = std_allowed_wage;
 			d_first_util_days = util_day; 
-			d_first_admit_date = admsn_dt; 
-			d_first_disch_date = dschrgdt;
 		end;
 		else if d_first = '' and d5 ^= '' and start_date = 4 and type = 'HH' then do;
 			d_first = type;
 			d_first_name = provider;
 			d_first_cost = std_allowed_wage;
 			d_first_util_days = util_day; 
-			d_first_admit_date = admsn_dt; 
-			d_first_disch_date = dschrgdt;
 		end;
 	end;
 
@@ -2348,8 +2169,7 @@ data patientjourney_2 (drop = i start_date end_date provider_ccn type admsn_dt d
 				d_second_name = provider;
 				d_second_cost = std_allowed_wage;  
  				d_second_util_days = util_day;  
-				d_second_admit_date = admsn_dt; 
-				d_second_disch_date = dschrgdt;
+
 			end;
 			else if type = 'SNF' and type_lag = 'SNF' then do;
 				if start_date - end_date_lag <=3 then do;
@@ -2357,8 +2177,6 @@ data patientjourney_2 (drop = i start_date end_date provider_ccn type admsn_dt d
 					d_second_name = provider;
 					d_second_cost = std_allowed_wage;  
 					d_second_util_days = util_day;  
-					d_second_admit_date = admsn_dt; 
-					d_second_disch_date = dschrgdt;
 				end;
 				else if start_date - end_date_lag > 3 then do;
 					d_second = 'Home';
@@ -2367,8 +2185,6 @@ data patientjourney_2 (drop = i start_date end_date provider_ccn type admsn_dt d
 					d_third_name = provider;
 					d_third_cost = std_allowed_wage;  
   					d_third_util_days = util_day;   
-					d_third_admit_date = admsn_dt; 
-					d_third_disch_date = dschrgdt;
 				end;
 			end;
 			else if start_date - end_date_lag > 1 then do;
@@ -2377,16 +2193,12 @@ data patientjourney_2 (drop = i start_date end_date provider_ccn type admsn_dt d
 					d_second_name = provider;
 					d_second_cost = std_allowed_wage;  
 					d_second_util_days = util_day;  
-					d_second_admit_date = admsn_dt; 
-					d_second_disch_date = dschrgdt;
 				end;
 				else if type_lag = 'HH' and end_date_lag < 0 then do;
 					d_second = type;
 					d_second_name = provider;
 					d_second_cost = std_allowed_wage;  
 					d_second_util_days = util_day;  
-					d_second_admit_date = admsn_dt; 
-					d_second_disch_date = dschrgdt;
 				end;
 				else do;
 					d_second = 'Home';
@@ -2395,8 +2207,6 @@ data patientjourney_2 (drop = i start_date end_date provider_ccn type admsn_dt d
 					d_third_name = provider;
 					d_third_cost = std_allowed_wage;  
   					d_third_util_days = util_day;  
-					d_third_admit_date = admsn_dt; 
-					d_third_disch_date = dschrgdt;
 				end;
 			end;
 			else do;
@@ -2404,8 +2214,7 @@ data patientjourney_2 (drop = i start_date end_date provider_ccn type admsn_dt d
 				d_second_name = provider;
 				d_second_cost = std_allowed_wage;  
   				d_second_util_days = util_day;  
-				d_second_admit_date = admsn_dt; 
-				d_second_disch_date = dschrgdt;
+
 			end;
 		end;
 		else if provider = d_first_name then do; /*If next site is same as previous and it is the same SNF within 3 days, it should be continuous*/
@@ -2420,8 +2229,6 @@ data patientjourney_2 (drop = i start_date end_date provider_ccn type admsn_dt d
 					d_third_name = provider;
 					d_third_cost = std_allowed_wage;  
  					d_third_util_days = util_day; 
-					d_third_admit_date = admsn_dt; 
-					d_third_disch_date = dschrgdt;
 				end;
 			end; 
 			else if type = 'HH' and type_lag = 'HH' then do; end; /*20180212 JL UPDATE*/
@@ -2439,8 +2246,6 @@ data patientjourney_2 (drop = i start_date end_date provider_ccn type admsn_dt d
 				d_third_name = provider;
 				d_third_cost = std_allowed_wage;  
  				d_third_util_days = util_day;
-				d_third_admit_date = admsn_dt; 
-				d_third_disch_date = dschrgdt;
 			end;
 			else if type = 'SNF' and type_lag = 'SNF' then do;
 				if start_date - end_date_lag <=3 then do;
@@ -2448,8 +2253,6 @@ data patientjourney_2 (drop = i start_date end_date provider_ccn type admsn_dt d
 					d_third_name = provider;
 					d_third_cost = std_allowed_wage;  
  					d_third_util_days = util_day;  
-					d_third_admit_date = admsn_dt; 
-					d_third_disch_date = dschrgdt;
 				end;
 				else if start_date - end_date_lag > 3 then do;
 					d_third = 'Home';
@@ -2463,8 +2266,6 @@ data patientjourney_2 (drop = i start_date end_date provider_ccn type admsn_dt d
 						d_third_name = provider;
 						d_third_cost = std_allowed_wage;  
  		 				d_third_util_days = util_day;  
-						d_third_admit_date = admsn_dt; 
-						d_third_disch_date = dschrgdt;
 					end;
 					else do;
 						d_third = 'Home';
@@ -2482,9 +2283,7 @@ data patientjourney_2 (drop = i start_date end_date provider_ccn type admsn_dt d
 				d_third = type;
 				d_third_name = provider;
 				d_third_cost = std_allowed_wage;  
-  				d_third_util_days = util_day; 
-				d_third_admit_date = admsn_dt; 
-				d_third_disch_date = dschrgdt; 
+  				d_third_util_days = util_day;  
 			end;
 		end;
 		else if provider = d_second_name then do; /*If next site is same as previous and it is the same SNF within 3 days, it should be continuous*/
@@ -2667,7 +2466,6 @@ create table readmit_source1 as
 					 ,b.startdate as er_admsn_dt
 					 ,b.enddate as er_dschrgdt
 					 ,b.CCN_Name_Desc
-					 ,b.er_CCN_Name_Desc
 					 ,b.caretype as er_type
 					 ,c.service_date as prov_service_date
 					 ,c.Physician as prov_Provider
@@ -2713,7 +2511,7 @@ create table ccn_enc12 as
 		  ,b.readmit_source as source_of_admit
 		  ,case when b.readmit_source_type = "Other Readmit" then "Other Facility" /* 20180126 Updated the naming */ 
 				when b.readmit_source_type = "Anchor Readmit" then "Anchor Facility"
-				when b.readmit_source_type in ("Prof_ER_W","Emergency - W/in 1 Day of Admit") then "Emergency - W/in 1 Day of Admit"
+				when b.readmit_source_type = "Prof_ER_P" then "Emergency - Preceding Admit"
 				else b.readmit_source_type end as source_of_admit_type length =50
 	from ccn_enc11 as a
 		left join readmit_source4 as b
@@ -2749,7 +2547,6 @@ proc sql;
 			  ,b.admsn_dt as readmit_admit
 			  ,b.dschrgdt as readmit_dschrg
 			  ,b.util_day as readmit_LOS		/*20170421: Update readmit LOS*/
-			  ,b.std_allowed_wage as readmit_allowed
 			  ,1 as snfirf_readmit_flag
 			  ,b.third_digit
 		from post_acute_snfirf as a
@@ -2790,7 +2587,6 @@ proc sql;
 			  ,b.readmit_name
 			  ,b.readmit_name_desc
 			  ,b.readmit_los
-			  ,b.readmit_allowed
 			  ,b.snfirf_readmit_flag
 			  /*20170905 - fac_timeframe update*/
 			  ,case when a.timeframe in (1) then 1
@@ -2996,7 +2792,7 @@ quit;
 data visits3;
 	set visits3b;
 	if clinic_visit_type = "Emergency Room" then do;
-		if IP_visit_flag = 1 then clinic_visit_type = "Emergency - W/in 1 Day of Admit";
+		if IP_visit_flag = 1 then clinic_visit_type = "Emergency Room - Preceding Admit";
 		else clinic_visit_type = "Emergency Room - Stand Alone";
 	end;
 run;
@@ -3124,21 +2920,17 @@ create table patient_detail1 as
 	,BPID
 	,CCN_Name_desc as service_provider
 	,'Anchor Hospital Stay' as caretype
-	,type
 	,startdate as begin_date 
 	,enddate as end_date 
 	,'' as attending_name 
 	,'' as operating_name
 	,'' as ER_Physician
-	,'' as er_CCN_Name_Desc
-    ,'' as er_diag
 	,prim_diag_with_desc as primary_diag
 	,prim_proc_with_desc as primary_proc
 	,drg_with_desc as msdrg
 	,-1 as timeframe
 	,'Anchor' as timeframe2
 	,'Anchor' as timeframe3
-	,new_timeframe2
 	,std_allowed_wage
 	,util_day		/*20170323 JL Add*/
 
@@ -3152,16 +2944,12 @@ create table patient_detail1 as
 	,"" as At_MD_Flag
 
 	,'' as source_of_admit
-	,'' as source_of_admit_type length =50
+	,'' as source_of_admit_type
 	,'' as readmit_ccn
 	,'' as readmit_name
 	,'' as readmit_name_desc
 	,. as readmit_LOS
-	,'' as readmit_admit_diag_with_desc
-	,. as readmit_allowed
 	,. as snfirf_readmit_flag
-	,0 as fac_timeframe_1_7
-	,0 as fac_timeframe_1_14
 	,0 as fac_timeframe_1_30
 	,0 as fac_timeframe_1_60
 	,0 as fac_timeframe_1_90
@@ -3185,21 +2973,17 @@ union all
 		,BPID
 		,CCN_Name_desc as service_provider
 		,'Anchor Hospital Stay' as caretype
-		,type
 		,startdate as begin_date 
 		,enddate as end_date 
 		,'' as attending_name 
 		,'' as operating_name
 		,'' as ER_Physician
-		,'' as er_CCN_Name_Desc
-   		,'' as er_diag
 		,prim_diag_with_desc as primary_diag
 		,hcpcs_with_desc  as primary_proc
 		,drg_with_desc as msdrg
 		,-1 as timeframe
 		,'Anchor' as timeframe2
 		,'Anchor' as timeframe3
-		,new_timeframe2
 		,std_allowed_wage
 		,util_day		/*20170323 JL Add*/
 
@@ -3213,16 +2997,12 @@ union all
 		,"" as At_MD_Flag
 
 		,'' as source_of_admit
-		,'' as source_of_admit_type length =50
+		,'' as source_of_admit_type
 		,'' as readmit_ccn
 		,'' as readmit_name
 		,'' as readmit_name_desc
 		,. as readmit_LOS
-		,'' as readmit_admit_diag_with_desc
-		,. as readmit_allowed
 		,. as snfirf_readmit_flag
-		,0 as fac_timeframe_1_7
-		,0 as fac_timeframe_1_14
 		,0 as fac_timeframe_1_30
 		,0 as fac_timeframe_1_60
 		,0 as fac_timeframe_1_90
@@ -3268,21 +3048,17 @@ union all
 		,BPID
 		,physician as service_provider
 		,type as caretype
-		,type
 		,service_date as begin_date 
 		,. as end_date 
 		,'' as attending_name
 		,'' as operating_name
 		,'' as ER_Physician
-		,'' as er_CCN_Name_Desc
-    	,'' as er_diag
 		,prim_diag_with_desc as primary_diag 
 		,prof_hcpcs_code_desc as primary_proc
 		,'' as msdrg
-		,case when (timeframe = 0 and type in ('Prof_ER_W','Prof_ER_S') and service_date <= ANCHOR_BEG_DT) then -2 else timeframe end as timeframe
+		,case when (timeframe = 0 and type in ('Prof_ER_P','Prof_ER_S') and service_date <= ANCHOR_BEG_DT) then -2 else timeframe end as timeframe
 		,timeframe2
 		,case when timeframe2 = 'Anchor' then 'Anchor' else 'Post-Acute' end as timeframe3
-		,'' as new_timeframe2
 		,std_allowed_wage
 		,. as util_day		/*20170323 JL Add*/
 
@@ -3296,16 +3072,12 @@ union all
 		,At_MD_Flag
 
 		,'' as source_of_admit
-		,'' as source_of_admit_type length =50
+		,'' as source_of_admit_type
 		,'' as readmit_ccn
 		,'' as readmit_name
 		,'' as readmit_name_desc
 		,. as readmit_LOS
-		,'' as readmit_admit_diag_with_desc
-		,. as readmit_allowed
 		,. as snfirf_readmit_flag
-		,. as fac_timeframe_1_7
-		,. as fac_timeframe_1_14
 		,. as fac_timeframe_1_30
 		,. as fac_timeframe_1_60
 		,. as fac_timeframe_1_90
@@ -3350,21 +3122,17 @@ union all
 		,a.BPID
 		,a.CCN_Name_Desc as service_provider
 		,a.caretype
-		,a.type
 		,a.startdate as begin_date format=mmddyy10.
 		,a.enddate as end_date format=mmddyy10.
 		,'' as attending_name /*Need to fix with CCN_ENC */
 		,'' as operating_name
 		,ER_Physician
-		,er_CCN_Name_Desc
-    	,er_diag
 		,prim_diag_with_desc as primary_diag
 		,case when substr(caretype,1,3) in ('Eme','Out','Pro','Reh','Obs') then hcpcs_with_desc else prim_proc_with_desc end as primary_proc
 		,drg_with_desc as msdrg
-		,case when (timeframe = 0 and caretype in ('Emergency - W/in 1 Day of Admit','Emergency - Stand Alone') and startdate <= ANCHOR_BEG_DT) then -2 else timeframe end as timeframe
+		,case when (timeframe = 0 and caretype in ('Emergency - Preceding Admit','Emergency - Stand Alone') and startdate <= ANCHOR_BEG_DT) then -2 else timeframe end as timeframe
 		,a.timeframe2
 		,case when a.timeframe2 = 'Anchor' then 'Anchor' else 'Post-Acute' end as timeframe3
-		,a.new_timeframe2
 		,a.std_allowed_wage
 		,a.util_day		
 
@@ -3378,16 +3146,12 @@ union all
 		,"" as At_MD_Flag
 
 		,source_of_admit
-		,source_of_admit_type length =50
+		,source_of_admit_type
 		,readmit_ccn
 		,readmit_name
 		,readmit_name_desc
 		,readmit_LOS
-		,readmit_admit_diag_with_desc
-		,readmit_allowed
 		,snfirf_readmit_flag
-		,new_fac_timeframe_1_7 as fac_timeframe_1_7
-		,new_fac_timeframe_1_14 as fac_timeframe_1_14
 		,fac_timeframe_1_30
 		,fac_timeframe_1_60
 		,fac_timeframe_1_90
@@ -3401,7 +3165,7 @@ union all
 		,'' as provider_specialty
 		,case when TRANSFER_STAY=. then 0 else TRANSFER_STAY end as TRANSFER_STAY
 	from out.ccn_enc_&label._&bpid1._&bpid2. as a
-	where timeframe2 ^= 'Anchor' or (timeframe2 = 'Anchor' and (caretype in ('Emergency - W/in 1 Day of Admit','Emergency - Stand Alone','Rehab','Home Health','Hospice','LTCH','SNF','IRF','Observation') or substr(caretype,1,10) ='Outpatient'))
+	where timeframe2 ^= 'Anchor' or (timeframe2 = 'Anchor' and (caretype in ('Emergency - Preceding Admit','Emergency - Stand Alone','Rehab','Home Health','Hospice','LTCH','SNF','IRF','Observation') or substr(caretype,1,10) ='Outpatient'))
 
 	order by BPID, epi_id_milliman, begin_date;
 
@@ -3480,7 +3244,7 @@ data patient_detail3 (drop=counter);
 	else if substr(caretype,1,9)='Prof_Path' then caretype_long= 'Professional - Pathology';
 	else if substr(caretype,1,7)='Prof_Am' then caretype_long= 'Professional - Ambulance';
 	else if substr(caretype,1,7)='Prof_Re' then caretype_long= 'Professional - Rehab';
-	else if substr(caretype,1,9)='Prof_ER_W' then caretype_long= 'Professional - Emergency - W/in 1 Day of Admit';
+	else if substr(caretype,1,9)='Prof_ER_P' then caretype_long= 'Professional - Emergency Preceding Admit';
 	else if substr(caretype,1,9)='Prof_ER_S' then caretype_long= 'Professional - Emergency Stand Alone';
 	else if substr(caretype,1,9)='Prof_Part' then caretype_long= 'Part B Pharmacy';
 	else if substr(caretype,1,4)='Radi' then caretype_long= 'Radiology';
@@ -3488,7 +3252,7 @@ data patient_detail3 (drop=counter);
 	else if substr(caretype,1,4)='Anch' then caretype_long= 'Anchor Hospital Stay';
 /*	else if substr(caretype,1,2)='OP' then caretype_long= 'Outpatient';*/
 	else if substr(caretype,1,3)='DME' then caretype_long= 'DME';
-	else if substr(caretype,1,13)='Emergency - P' then caretype_long= 'Emergency - W/in 1 Day of Admit';
+	else if substr(caretype,1,13)='Emergency - P' then caretype_long= 'Emergency - Preceding Admit';
 	else if substr(caretype,1,13)='Emergency - S' then caretype_long= 'Emergency - Stand Alone';
 	else caretype_long=caretype;
 	/*20180625 MK Addition*/
@@ -3512,45 +3276,6 @@ data patient_detail4;
 		if claim_category='Facility' then service_provider_ccn = scan(service_provider, -2, '()');
 			else  service_provider_ccn='.';
 
-			/***** ADDED 2/26/2020 *******/
-	IF type = 'Prof_Ambulance' THEN type =  'Professional - Ambulance';
-	IF type = 'Prof_Anesthesia' THEN type =  'Professional - Anesthesia';
-	IF type = 'Prof_Cardiovascular' THEN type =  'Professional - Cardiovascular';
-	IF type = 'Prof_ER_W' THEN type =  'Professional - ER W/in 1 Day of Admit';
-	IF type = 'Prof_ER_S' THEN type =  'Professional - ER Stand Alone';
-	IF type = 'Prof_IPVisits' THEN type =  'Professional - IP Visits';
-	IF type = 'Prof_Laboratory' THEN type =  'Professional - Laboratory';
-	IF type = 'Prof_Observation' THEN type =  'Professional - Observation';
-	IF type = 'Prof_Other' THEN type =  'Professional - Other';
-	IF type = 'Prof_PartBRx' THEN type =  'Professional - Part B Rx';
-	IF type = 'Prof_Pathology' THEN type =  'Professional - Pathology';
-	IF type = 'Prof_Pathology-Venipuncture' THEN type =  'Professional - Pathology - Venipuncture';
-	IF type = 'Prof_Radiology-CT' THEN type =  'Professional - Radiology - CT';
-	IF type = 'Prof_Radiology-Gen' THEN type =  'Professional - Radiology - Gen';
-	IF type = 'Prof_Radiology-MRI' THEN type =  'Professional - Radiology - MRI';
-	IF type = 'Prof_Radiology-PET' THEN type =  'Professional - Radiology - PET';
-	IF type = 'Prof_Rehab' THEN type =  'Professional - Rehab';
-	IF type = 'Prof_Surgery' THEN type =  'Professional - Surgery';
-
-	IF caretype = 'Prof_Ambulance' THEN caretype =  'Professional - Ambulance';
-	IF caretype = 'Prof_Anesthesia' THEN caretype =  'Professional - Anesthesia';
-	IF caretype = 'Prof_Cardiovascular' THEN caretype =  'Professional - Cardiovascular';
-	IF caretype = 'Prof_ER_W' THEN caretype =  'Professional - ER W/in 1 Day of Admit';
-	IF caretype = 'Prof_ER_S' THEN caretype =  'Professional - ER Stand Alone';
-	IF caretype = 'Prof_IPVisits' THEN caretype =  'Professional - IP Visits';
-	IF caretype = 'Prof_Laboratory' THEN caretype =  'Professional - Laboratory';
-	IF caretype = 'Prof_Observation' THEN caretype =  'Professional - Observation';
-	IF caretype = 'Prof_Other' THEN caretype =  'Professional - Other';
-	IF caretype = 'Prof_PartBRx' THEN caretype =  'Professional - Part B Rx';
-	IF caretype = 'Prof_Pathology' THEN caretype =  'Professional - Pathology';
-	IF caretype = 'Prof_Pathology-Venipuncture' THEN caretype =  'Professional - Pathology - Venipuncture';
-	IF caretype = 'Prof_Radiology-CT' THEN caretype =  'Professional - Radiology - CT';
-	IF caretype = 'Prof_Radiology-Gen' THEN caretype =  'Professional - Radiology - Gen';
-	IF caretype = 'Prof_Radiology-MRI' THEN caretype =  'Professional - Radiology - MRI';
-	IF caretype = 'Prof_Radiology-PET' THEN caretype =  'Professional - Radiology - PET';
-	IF caretype = 'Prof_Rehab' THEN caretype =  'Professional - Rehab';
-	IF caretype = 'Prof_Surgery' THEN caretype =  'Professional - Surgery';
-
 		*** Identification of Short Term Acute and CAH stays for readmissions *** ;
 	pv = substr(service_provider_ccn,3,4);
 	readm_cand = 0;
@@ -3559,9 +3284,9 @@ data patient_detail4;
 	*** Identification of PPS-exempts cancer hospital admissions for to be excluded for readmissions *** ;
 	else if service_provider_ccn in ('050146','050660','100079','100271','220162','330154','330354','360242','390196','450076','500138') then readm_cand=0;  
 run;
-
+/*
 data bpcia_episode_initiator_info;
-	set bpciaref.bpcia_episode_initiator_info;
+	set bpciaref.bpcia_episode_initiator_info_MY3;
 	djrle = sum(Double_joint_replacement_of_the_,0);
 	mjrle = sum(Major_joint_replacement_of_the_l,0);
 	comp_flag_num = max(djrle,mjrle);
@@ -3583,7 +3308,56 @@ proc sql;
 			on a.BPID = b.BPCI_Advanced_ID_Number_2
 ;
 quit;
+*/
+data bpcia_episode_initiator_info_1;
+	set out.epi_&label._&bpid1._&bpid2.;
+	PSI_Flag_num=0;
+	CABG_Flag_num=0;
+	AMI_Flag_num=0;
+	Comp_Flag_num=0;
 
+	if anchor_type = 'ip' then PSI_Flag_num=1;
+	if EPISODE_GROUP_NAME = 'Coronary artery bypass graft' then CABG_Flag_num=1;
+	if EPISODE_GROUP_NAME = 'Acute myocardial infarction' then AMI_Flag_num=1;
+	if EPISODE_GROUP_NAME in ('Major joint replacement of the lower extremity','Double joint replacement of the lower extremity') then Comp_Flag_num=1;
+
+	keep BPID PSI_Flag_num CABG_Flag_num AMI_Flag_num Comp_Flag_num;
+run;
+
+proc sql;
+	create table bpcia_episode_initiator_info_2 as
+	select BPID,
+		max(PSI_Flag_num) as PSI_Flag_num,
+		max(CABG_Flag_num) as CABG_Flag_num,
+		max(AMI_Flag_num) as AMI_Flag_num,
+		max(Comp_Flag_num) as Comp_Flag_num
+	from bpcia_episode_initiator_info_1
+	group by BPID;
+quit;
+
+data bpcia_episode_initiator_info;
+	set bpcia_episode_initiator_info_2;
+	All_Flag = '1';
+	if PSI_Flag_num=1 then PSI_Flag='1'; else PSI_Flag='';
+	if CABG_Flag_num=1 then CABG_Flag='1'; else CABG_Flag='';
+	if AMI_Flag_num=1 then AMI_Flag='1'; else AMI_Flag='';
+	if Comp_Flag_num=1 then Comp_Flag='1'; else Comp_Flag='';
+run;
+
+proc sql;
+	create table out.pat_detail_&label._&bpid1._&bpid2. as
+		select distinct
+			a.*
+			,coalesce(All_Flag,'') as All_Flag
+			,coalesce(PSI_Flag,'') as PSI_Flag
+			,coalesce(CABG_Flag,'') as CABG_Flag
+			,coalesce(AMI_Flag,'') as AMI_Flag
+			,coalesce(Comp_Flag,'') as Comp_Flag
+		from patient_detail4 as a left join 
+			bpcia_episode_initiator_info as b
+			on a.BPID = b.BPID
+;
+quit;
 
 proc sort data=out.pat_detail_&label._&bpid1._&bpid2.; by BPID epi_id_milliman timeframe transfer_stay begin_date rank3 end_date_drop; run;
 
@@ -3896,7 +3670,7 @@ quit;
 /*SD ADDITION END 20190304 - Mortality rates DURING episode*/
 
 *20190501 JL Update - calculate baseline benchmarks during baseline run only (join later);
-%if &label = ybase %then %do;
+/*%if &label = ybase %then %do;*/
 proc sql;
 	create table baseline_util  as 
 		select distinct 	
@@ -3924,7 +3698,7 @@ proc sql;
 quit;
 
 proc sql;
-	create table baseline_benchmark_&bpid1._&bpid2.  as 
+	create table out.baseline_benchmark_&bpid1._&bpid2.  as 
 		select distinct 	
 				*
 				,base_fip_n/epi_total as base_fip_freq
@@ -3943,15 +3717,7 @@ proc sql;
 				,timeframe_id
 ;
 quit;
-
-data out.baseline_benchmark_&bpid1._&bpid2.;
-	set baseline_benchmark_&bpid1._&bpid2.;
-	suppress_flag_fip_base=0; suppress_flag_snf_base=0; suppress_flag_irf_base=0;
-	if base_fip_avg_days = . then suppress_flag_fip_base=1;
-	if base_irf_avg_days = . then suppress_flag_irf_base=1;
-	if base_snf_avg_days = . then suppress_flag_snf_base=1;
-run;
-%end;
+/*%end;*/
 *20190501 JL update end;
 
 Proc sql ; 
@@ -4052,7 +3818,7 @@ Proc sql ;
 *SD: Add performance period episode flag to table ;
 create table episode_detail_12 as
 		select distinct a.*
-			,b.perf_period_epi_flag
+			,coalesce(b.perf_period_epi_flag,1) as perf_period_epi_flag
 		from episode_detail_11 as a
 			left join bpcia_performance_episodes as b
 			on	a.BPID = b.BPID
@@ -4083,27 +3849,27 @@ create table episode_detail_12 as
 			,b.excess_op_ed_days
 			,b.excess_obs_days
 			,b.total_excess_days
-		%if &mode.=base %then %do;
+/*		%if &mode.=base %then %do;*/
 			,case when clinical_episode_abbr2 not in('AMI') then '-'
 			when b.total_excess_days >0 then "Yes"
 			when b.total_excess_days =0 then "No" else "N/A"
 			end as excess_days_status2
-			,case when clinical_episode_abbr2 not in('MJRLE','DJRLE') then '-'
+			,case when clinical_episode_abbr2 not in('MJRLE (MY3)','DJRLE') then '-'
 				else complication_status end as complication_status2
 			,mortality_CABG as mortality_CABG2
-		%end;
-		%else %do;
-			,case when perf_period_epi_flag=. then '-'
-			when clinical_episode_abbr2 not in('AMI') then '-'
-			when b.total_excess_days >0 then "Yes"
-			when b.total_excess_days =0 then "No" else "N/A"
-			end as excess_days_status2
-			,case when perf_period_epi_flag=. then'-'
-			when clinical_episode_abbr2 not in('MJRLE','DJRLE') then '-'
-				else complication_status end as complication_status2
-			,case when perf_period_epi_flag=. then '-'
-				else mortality_CABG end as mortality_CABG2
-		%end;
+/*		%end;*/
+/*		%else %do;*/
+/*			,case when perf_period_epi_flag=. then '-'*/
+/*			when clinical_episode_abbr2 not in('AMI') then '-'*/
+/*			when b.total_excess_days >0 then "Yes"*/
+/*			when b.total_excess_days =0 then "No" else "N/A"*/
+/*			end as excess_days_status2*/
+/*			,case when perf_period_epi_flag=. then'-'*/
+/*			when clinical_episode_abbr2 not in('MJRLE','DJRLE') then '-'*/
+/*				else complication_status end as complication_status2*/
+/*			,case when perf_period_epi_flag=. then '-'*/
+/*				else mortality_CABG end as mortality_CABG2*/
+/*		%end;*/
 		from episode_detail_12 as a
 			left join all_cause_days as b
 			on a.epi_id_milliman = b.epi_id_milliman
@@ -4120,17 +3886,17 @@ create table episode_detail_12 as
 
 		create table episode_detail_14 as
 		select distinct a.*
-		%if &mode.=base %then %do;
+/*		%if &mode.=base %then %do;*/
 			,case when b.unplanned_readmit_flag>0 then "Yes"
 				when b.unplanned_readmit_flag=0 then "No"
 				else "N/A" end as unplanned_readmit_status
-		%end;
-		%else %do;
-			,case when perf_period_epi_flag=. then "-"
-				when b.unplanned_readmit_flag>0 then "Yes"
-				when b.unplanned_readmit_flag=0 then "No"
-				else "N/A" end as unplanned_readmit_status
-		%end;
+/*		%end;*/
+/*		%else %do;*/
+/*			,case when perf_period_epi_flag=. then "-"*/
+/*				when b.unplanned_readmit_flag>0 then "Yes"*/
+/*				when b.unplanned_readmit_flag=0 then "No"*/
+/*				else "N/A" end as unplanned_readmit_status*/
+/*		%end;*/
 		from episode_detail_13 as a
 			left join epi_level_readm_flag as b
 			on a.epi_id_milliman = b.epi_id_milliman
@@ -4142,23 +3908,23 @@ proc sql;
 	create table out.pat_detail_&label._&bpid1._&bpid2. as
 		select distinct a.*
 						,b.perf_period_epi_flag
-						%if &mode.=base %then %do;
+/*						%if &mode.=base %then %do;*/
 						,a.readm_cand as readm_cand2
 						,case when a.readm_cand=1 and b.unplanned_readmit_status='Yes' and
 							((caretype_long='Anchor Hospital Stay' and msdrg^='') or caretype_long='Readmit') then 1
 							else 0 end as elig_readm_cand_with_unplanned
 						,case when a.edac_flag='Yes' and excess_days_status2='Yes' then 1
 							else 0 end as elig_edac_cand_with_edac
-						%end;
-						%else %do;
-						,case when b.perf_period_epi_flag=. then 0
-							else a.readm_cand end as readm_cand2
-						,case when b.perf_period_epi_flag^=. and a.readm_cand=1 and b.unplanned_readmit_status='Yes' and
-							((caretype_long='Anchor Hospital Stay' and msdrg^='') or caretype_long='Readmit') then 1
-							else 0 end as elig_readm_cand_with_unplanned
-						,case when b.perf_period_epi_flag^=. and a.edac_flag='Yes' and excess_days_status2='Yes' then 1
-							else 0 end as elig_edac_cand_with_edac
-						%end;
+/*						%end;*/
+/*						%else %do;*/
+/*						,case when b.perf_period_epi_flag=. then 0*/
+/*							else a.readm_cand end as readm_cand2*/
+/*						,case when b.perf_period_epi_flag^=. and a.readm_cand=1 and b.unplanned_readmit_status='Yes' and*/
+/*							((caretype_long='Anchor Hospital Stay' and msdrg^='') or caretype_long='Readmit') then 1*/
+/*							else 0 end as elig_readm_cand_with_unplanned*/
+/*						,case when b.perf_period_epi_flag^=. and a.edac_flag='Yes' and excess_days_status2='Yes' then 1*/
+/*							else 0 end as elig_edac_cand_with_edac*/
+/*						%end;*/
 		from out.pat_detail_&label._&bpid1._&bpid2. as a
 		left join episode_detail_14 as b
 		on a.epi_id_milliman = b.epi_id_milliman
@@ -4175,12 +3941,12 @@ data episode_detail_15 (rename = (counter2=episode_index));
 	set episode_detail_14a;
 	format counter2 $20.; length counter2 $20;
 	counter + 1;
-	%if &label = ybase %then %do;
+/*	%if &label = ybase %then %do;*/
 	counter2 = strip(counter||"-B");
-	%end;
-	%else %do;
-	counter2 = strip(counter||"-P");
-	%end;
+/*	%end;*/
+/*	%else %do;*/
+/*	counter2 = strip(counter||"-P");*/
+/*	%end;*/
 run;
 
 data out.epi_idx_&label._&bpid1._&bpid2.;
@@ -4237,12 +4003,12 @@ data epi_list (keep= bpid epi_id_milliman counter episode_index recent_label anc
 	format recent_label $10.; length recent_label $10;
 	recent_label = "&label.";
 	if episode_index = "" then do;
-		%if &label = ybase %then %do;
+/*		%if &label = ybase %then %do;*/
 		episode_index = strip(counter||"-B");
-		%end;
-		%else %do;
-		episode_index = strip(counter||"-P");
-		%end;
+/*		%end;*/
+/*		%else %do;*/
+/*		episode_index = strip(counter||"-P");*/
+/*		%end;*/
 	end;
 run;
 
@@ -4279,71 +4045,6 @@ quit;
 
 /*********************************************************************************************/
 /*********************************************************************************************/
-*Add provider specialty for attending and operating physician;
-proc sql;
-create table at_npi1 as
-		select 	distinct 
-				a.*
-			,	b.Healthcare_Provider_Taxonomy_Co as AT_Taxonomy_Code	
-		from episode_detail_15 as a
-		left join ref.npi_taxonomy as b
-		on a.attending_npi=b.npi
-;
-quit ; 
-
-data at_npi2;
-	set at_npi1;
-	
-	format at_provider_special_code $2.;
-	at_provider_special_code=put(AT_Taxonomy_Code,$TAX_SPEC.);
-run;
-
-proc sql;
-create table episode_detail_16_pre as
-		select 	distinct 
-				a.*
-			,case when a.AT_Taxonomy_Code = "" then ""
-					when b.prov_type_description2 ^="" then b.prov_type_description2
-					else "OSP" end as AT_anchor_provider_specialty
-		from at_npi2 as a
-		left join ref.specialty_code_descriptions as b
-		on a.at_provider_special_code=b.medicare_specialty_code
-;
-quit ; 
-
-proc sql;
-create table op_npi1 as
-		select 	distinct 
-				a.*
-			,	b.Healthcare_Provider_Taxonomy_Co as OP_Taxonomy_Code	
-		from episode_detail_16_pre as a
-		left join ref.npi_taxonomy as b
-		on a.operating_npi=b.npi
-;
-quit ; 
-
-data op_npi2;
-	set op_npi1;
-	
-	format op_provider_special_code $2.;
-	op_provider_special_code=put(OP_Taxonomy_Code,$TAX_SPEC.);
-run;
-
-proc sql;
-create table episode_detail_16 as
-		select 	distinct 
-				a.*
-			,case when a.OP_Taxonomy_Code = "" then ""
-					when b.prov_type_description2 ^="" then b.prov_type_description2
-					else "OSP" end as OP_anchor_provider_specialty
-		from op_npi2 as a
-		left join ref.specialty_code_descriptions as b
-		on a.op_provider_special_code=b.medicare_specialty_code
-;
-quit ; 
-
-/*********************************************************************************************/
-/*********************************************************************************************/
 *20190422 SD: Adding Emergency claims from Provider and Facility Reports to get ER Utilization for the Episode Detail Report;
 
 * Isolating EPI_IDS within the provider table;
@@ -4364,14 +4065,6 @@ create table er_ccn as
 	from out.ccn_enc_&label._&bpid1._&bpid2. as a
 	where substr(caretype,1,2)= 'Em' and startdate ^= . 
 ;
-
-create table er_ccn_desc_name as
-	select distinct
-	     epi_id_milliman
-		 ,er_CCN_Name_Desc
-	from out.ccn_enc_&label._&bpid1._&bpid2. as a
-	where substr(caretype,1,2)= 'Em' and startdate ^= . 
-;
 quit;
 
 *Stacking and deduping Epi_ids;
@@ -4383,30 +4076,22 @@ proc sort data = Er_prov_ccn nodupkey;
 by epi_id_milliman ; 
 run ; 
 
-proc sort data = er_ccn_desc_name nodupkey;
-by epi_id_milliman ; 
-run ; 
-
 proc sql ;
-	create table out.epi_detail_&label._&bpid1._&bpid2. as
+	create table episode_detail_16 as
 	select distinct a.*
 					, case when b.Er_start_flag ^= '' then 'Yes'
 						else 'No'
 						end as Er_Flag4
-					,c.er_CCN_Name_Desc
-	from 	episode_detail_16 as a
+	from 	episode_detail_15 as a
 				left join Er_prov_ccn as b
 				on a.epi_id_milliman = b.epi_id_milliman
-				left join er_ccn_desc_name as c
-				on a.epi_id_milliman = c.epi_id_milliman
 ;
 
 quit;
 
 data out.epi_detail_&label._&bpid1._&bpid2.;
-	set out.epi_detail_&label._&bpid1._&bpid2.;
-	Milliman_CMS_Match='Yes';
-	if Milliman_CMS_Discrepancy='Yes' then Milliman_CMS_Match='No';
+	set episode_detail_16;
+	BPID_CCN_Key = BPID||"_"||ANCHOR_CCN;
 run;
 
 
@@ -4414,196 +4099,195 @@ run;
 /*********************************************************************************************/
 /*Code to create exclusions dataset********************************************/
 /*********************************************************************************************/
-%if &label ^= ybase %then %do;
-/*create descriptive columns*/;
-proc sql;
-create table exclusions1 as
-	select 
-		a.BPID
-		,"&reporting_period." as DataYearMo
-		,put(year(a.anchor_beg_dt),4.)||" Q"||put(qtr(a.anchor_beg_dt),1.) as Anchor_YearQtr
-		,case when month(a.anchor_beg_dt) < 10 then strip(put(year(a.anchor_beg_dt),4.)||" M0"||strip(put(month(a.anchor_beg_dt),2.)))
-		 else strip(put(year(a.anchor_beg_dt),4.)||" M"||strip(put(month(a.anchor_beg_dt),2.))) 
-		 end as Anchor_YearMo
-		,year(a.anchor_beg_dt) as Anchor_Year	
-		,a.anchor_ccn
-		,case when a.anchor_ccn ^= . and d.fac_name = "" then "Unknown ("||strip(put(a.anchor_ccn,z6.))||")"
-			else strip(propcase(d.fac_name))||" ("||strip(put(a.anchor_ccn,z6.))||")"
-			end as Anchor_Fac_Code_Name
-		,a.epi_id_milliman
-		,a.bene_sk
-		,a.bene_age
-		,a.bene_gender length=10
-		,a.bene_birth_dt
-		,a.bene_death_dt
-		,a.MBI_ID length=20
-		,case when a.DROPFLAG_PRELIM_CJR_OVERLAP = 1 then "Yes" else "No" end as DROPFLAG_PRELIM_CJR_OVERLAP length=10
-		,case when a.DROPFLAG_PRELIM_BPCI_A_OVERLAP = 1 then "Yes" else "No" end as DROPFLAG_PRELIM_BPCI_A_OVERLAP length=10
-		,case when a.mult_attr_provs = 1 then "Yes" else "No" end as mult_attr_provs length=10
-		,a.anchor_type
-		,a.anchor_code
-		,c.Clinical_Episode
-		,c.Short_name as clinical_episode_abbr
-		,c.Short_name_2 as clinical_episode_abbr2
-		,a.anchor_beg_dt
-		,a.anchor_end_dt
-		,"PERF" as period
-		,case when '01OCT2018'd le POST_DSCH_END_DT le '30JUN2019'd then "Performance Period 1"
-			  when '01JUL2019'd le POST_DSCH_END_DT le '31DEC2019'd then "Performance Period 2"
-			  when '01JAN2020'd le POST_DSCH_END_DT le '30JUN2020'd then "Performance Period 3"
-			  when '01JUL2020'd le POST_DSCH_END_DT le '31DEC2020'd then "Performance Period 4"
-			  when '01JAN2021'd le POST_DSCH_END_DT le '30JUN2021'd then "Performance Period 5"
-			  when '01JUL2021'd le POST_DSCH_END_DT le '31DEC2021'd then "Performance Period 6"
-			  when '01JAN2022'd le POST_DSCH_END_DT le '30JUN2022'd then "Performance Period 7"
-			  when '01JUL2022'd le POST_DSCH_END_DT le '31DEC2022'd then "Performance Period 8"
-			  when '01JAN2023'd le POST_DSCH_END_DT le '30JUN2023'd then "Performance Period 9"
-			  when '01JUL2023'd le POST_DSCH_END_DT le '31DEC2023'd then "Performance Period 10"
-		 end as timeframe_filter format = $100. length=100
-/*		,a.DROPFLAG_NON_ACH*/
-/*		,a.DROPFLAG_EXCLUDED_STATE*/
-/*		,a.DROPFLAG_NOT_CONT_ENR_AB_NO_C*/
-/*		,a.DROPFLAG_ESRD*/
-/*		,a.DROPFLAG_OTHER_PRIMARY_PAYER*/
-/*		,a.DROPFLAG_NO_BENE_ENR_INFO*/
-/*		,a.DROPFLAG_LOS_GT_59*/
-/*		,a.DROPFLAG_NON_HIGHEST_J1*/
-/*		,a.DROPFLAG_DEATH_DUR_ANCHOR*/
-/*		,a.DROPFLAG_TRANS_W_CAH_CANCER*/
-/*		,a.DROPFLAG_RCH_DEMO*/
-/*		,a.DROPFLAG_RURAL_PA*/
-/*		,a.DROPFLAG_CJR*/
-/*		,0 as DROPFLAG_READMIT_NEW_EP_MIL*/
-/*		,0 as DROPFLAG_READMIT_ANCHOR_DRG_MIL*/
-/*		,case when max(a.DROPFLAG_CJR,a.DROPFLAG_NOT_CONT_ENR_AB_NO_C,a.DROPFLAG_ESRD,a.DROPFLAG_OTHER_PRIMARY_PAYER,a.DROPFLAG_DEATH_DUR_ANCHOR)=0*/
-/*			and max(a.DROPFLAG_NON_ACH,a.DROPFLAG_EXCLUDED_STATE,a.DROPFLAG_TRANS_W_CAH_CANCER,a.DROPFLAG_RCH_DEMO*/
-/*			,a.DROPFLAG_RURAL_PA,a.DROPFLAG_LOS_GT_59,a.DROPFLAG_NON_HIGHEST_J1,a.DROPFLAG_NO_BENE_ENR_INFO)=1*/
-/*			then 1 else 0 end as DROPFLAG_OTHER*/
-		,case
-			when a.DROPFLAG_CJR = 1 then 1 /*facility level exclusion*/
-			when a.DROPFLAG_ACO_MSSP_OVERLAP = 1 then 2 /*facility level exclusion*/
-			when a.DROPFLAG_ACO_CEC_OVERLAP = 1 then 3 /*facility level exclusion*/
-			when a.DROPFLAG_ACO_NEXTGEN_OVERLAP = 1 then 4 /*facility level exclusion*/
-			when a.DROPFLAG_ACO_VERMONTAP_OVERLAP = 1 then 5 /*facility level exclusion*/
-			when a.DROPFLAG_NOT_CONT_ENR_AB_NO_C = 1 then 6 /*episode level exclusions*/
-			when a.DROPFLAG_ESRD = 1 then 7 /*episode level exclusions*/
-			when a.DROPFLAG_OTHER_PRIMARY_PAYER = 1 then 8 /*episode level exclusions*/
-			when a.DROPFLAG_DEATH_DUR_ANCHOR = 1 then 9 /*episode level exclusions*/
-			when a.DROPFLAG_NON_ACH = 1 then 10 /*facility level exclusion*/
-			when a.DROPFLAG_EXCLUDED_STATE = 1 then 11 /*facility level exclusion*/
-			when a.DROPFLAG_TRANS_W_CAH_CANCER = 1 then 12 /*facility level exclusion*/
-			when a.DROPFLAG_RCH_DEMO = 1 then 13 /*facility level exclusion*/
-			when a.DROPFLAG_RURAL_PA = 1 then 14 /*facility level exclusion*/
-			when a.DROPFLAG_LOS_GT_59 = 1 then 15 /*episode level exclusions*/
-			when a.DROPFLAG_NON_HIGHEST_J1 = 1 then 16 /*episode level exclusions*/
-			when a.DROPFLAG_NO_BENE_ENR_INFO = 1 then 17 /*data exclusion*/
-			when a.DROPFLAG_READMIT_EPI = 1 then 18 /*Milliman exclusion*/
-			when a.DROPFLAG_MJRLE_EPI = 1 then 19 /*Milliman exclusion*/
-			when a.DROPFLAG_NOT_PERF_EP_MIL = 1 then 20 /*Milliman exclusion*/
-			when a.DROPFLAG_TRANS_EPI = 1 then 21 /*Milliman exclusion*/
-            end as dropreason
-		,case
-			when a.DROPFLAG_CJR = 1 then "CJR hospital with MJRLE MS-DRG" /*facility level exclusion*/
-			when a.DROPFLAG_ACO_MSSP_OVERLAP = 1 then "Beneficiary aligned with Medicare Shared Savings Program Track 3 (ACO)" /*facility level exclusion*/
-			when a.DROPFLAG_ACO_CEC_OVERLAP = 1 then "Beneficiary aligned with Comprehensive ESRD Care (ACO)" /*facility level exclusion*/
-			when a.DROPFLAG_ACO_NEXTGEN_OVERLAP = 1 then "Beneficiary aligned with Next Generation (ACO)" /*facility level exclusion*/
-			when a.DROPFLAG_ACO_VERMONTAP_OVERLAP = 1 then "Beneficiary aligned with Vermont All Payer (ACO)" /*facility level exclusion*/
-			when a.DROPFLAG_NOT_CONT_ENR_AB_NO_C = 1 then "No Part A/B or in Part C" /*episode level exclusions*/
-			when a.DROPFLAG_ESRD = 1 then "ESRD" /*episode level exclusions*/
-			when a.DROPFLAG_OTHER_PRIMARY_PAYER = 1 then "Medicare not primary payer" /*episode level exclusions*/
-			when a.DROPFLAG_DEATH_DUR_ANCHOR = 1 then "Death during anchor" /*episode level exclusions*/
-			when a.DROPFLAG_NON_ACH = 1 then "Triggered by non-ACH" /*facility level exclusion*/
-			when a.DROPFLAG_EXCLUDED_STATE = 1 then "State not eligible for BPCIA" /*facility level exclusion*/
-			when a.DROPFLAG_TRANS_W_CAH_CANCER = 1 then "Transfer to CAH or cancer hospital" /*facility level exclusion*/
-			when a.DROPFLAG_RCH_DEMO = 1 then "Rural Community Hospital Demo" /*facility level exclusion*/
-			when a.DROPFLAG_RURAL_PA = 1 then "PA Rural Health Model"/*facility level exclusion*/
-			when a.DROPFLAG_LOS_GT_59 = 1 then "LOS greater than 59 days" /*episode level exclusions*/
-			when a.DROPFLAG_NON_HIGHEST_J1 = 1 then "Triggering OP line not highest ranking J1" /*episode level exclusions*/
-			when a.DROPFLAG_NO_BENE_ENR_INFO = 1 then "Missing beneficiary info" /*data exclusion*/
-			when a.DROPFLAG_READMIT_EPI = 1 then "Admission inclu. in prev. episode" /*Milliman exclusion*/
-			when a.DROPFLAG_MJRLE_EPI = 1 then "Readmit starts new episode" /*Milliman exclusion*/
-			when a.DROPFLAG_NOT_PERF_EP_MIL = 1 then "Not a performance period clinical episode" /*Milliman exclusion*/
-			when a.DROPFLAG_TRANS_EPI = 1 then "Transfer incorrectly assigned" /*Milliman exclusion*/
-			end as exclusion_description length=100
-		, case when a.DROPFLAG_READMIT_EPI=1 or a.DROPFLAG_MJRLE_EPI=1 or a.DROPFLAG_NOT_PERF_EP_MIL=1 or a.DROPFLAG_TRANS_EPI=1 then "MIL" else "CMS" end as source length=50
-		, case when a.BENE_SRNM_NAME in ("","~") then "Unknown"
-			else propcase(STRIP(a.BENE_SRNM_NAME)||", "||STRIP(a.BENE_GVN_NAME)) 
-			end as PATIENT_NAME format = $255. length=255
-	from out.epiexc_perf_&label._&bpid1._&bpid2.	as a
-	left join bpciaref.BPCIA_DRG_Mapping as b
-	on a.ANCHOR_CODE = b.code
-	left join bpciaref.BPCIA_Clinical_Episode_Names as c
-	on b.BPCI_Episode_Idx = c.BPCI_Episode_Index
-	left join ref.ccns_codemap as d
-	on put(a.anchor_ccn,z6.) = d.ccn;
-
-;
-quit;
-
-data out.exclusions_&label._&bpid1._&bpid2. ;
-	set exclusions1;
-	*CMS exclusions;
-	DROPFLAG_CJR = 0;
-	DROPFLAG_ACO_MSSP_OVERLAP = 0;
-	DROPFLAG_ACO_CEC_OVERLAP = 0;
-	DROPFLAG_ACO_NEXTGEN_OVERLAP = 0;
-	DROPFLAG_ACO_VERMONTAP_OVERLAP =0;
-	DROPFLAG_NOT_CONT_ENR_AB_NO_C = 0;
-	DROPFLAG_ESRD = 0;
-	DROPFLAG_OTHER_PRIMARY_PAYER = 0;
-	DROPFLAG_DEATH_DUR_ANCHOR = 0;
-	DROPFLAG_NON_ACH = 0;
-	DROPFLAG_EXCLUDED_STATE = 0;
-	DROPFLAG_TRANS_W_CAH_CANCER = 0;
-	DROPFLAG_RCH_DEMO = 0;
-	DROPFLAG_RURAL_PA = 0;
-	DROPFLAG_LOS_GT_59 = 0;
-	DROPFLAG_NON_HIGHEST_J1 = 0;
-	DROPFLAG_NO_BENE_ENR_INFO = 0;
-	DROPFLAG_ACO = 0; *flag for combined ACO overlap;
-	DROPFLAG_OTHER = 0; *flag for combined category;
-	*Milliman- calculated exclusions;
-	DROPFLAG_READMIT_ANCHOR_DRG_MIL = 0;
-	DROPFLAG_READMIT_NEW_EP_MIL = 0;
-	DROPFLAG_NOT_PERF_EP_MIL = 0;
-	DROPFLAG_TRANS_EPI_MIL = 0;
-	
-	*Flags with hierarchy applied (only one flag = 1 for each episode);
-	if dropreason = 1 then DROPFLAG_CJR = 1;
-	else if dropreason = 2 then DROPFLAG_ACO_MSSP_OVERLAP = 1;
-	else if dropreason = 3 then DROPFLAG_ACO_CEC_OVERLAP = 1;
-	else if dropreason = 4 then DROPFLAG_ACO_NEXTGEN_OVERLAP = 1;
-	else if dropreason = 5 then DROPFLAG_ACO_VERMONTAP_OVERLAP = 1;
-	else if dropreason = 6 then DROPFLAG_NOT_CONT_ENR_AB_NO_C = 1;
-	else if dropreason = 7 then DROPFLAG_ESRD = 1;
-	else if dropreason = 8 then DROPFLAG_OTHER_PRIMARY_PAYER = 1;
-	else if dropreason = 9 then DROPFLAG_DEATH_DUR_ANCHOR = 1;
-	else if dropreason = 10 then DROPFLAG_NON_ACH = 1;
-	else if dropreason = 11 then DROPFLAG_EXCLUDED_STATE = 1;
-	else if dropreason = 12 then DROPFLAG_TRANS_W_CAH_CANCER = 1;
-	else if dropreason = 13 then DROPFLAG_RCH_DEMO = 1;
-	else if dropreason = 14 then DROPFLAG_RURAL_PA = 1;
-	else if dropreason = 15 then DROPFLAG_LOS_GT_59 = 1;
-	else if dropreason = 16 then DROPFLAG_NON_HIGHEST_J1 = 1;
-	else if dropreason = 17 then DROPFLAG_NO_BENE_ENR_INFO = 1;
-	else if dropreason = 18 then DROPFLAG_READMIT_ANCHOR_DRG_MIL = 1;
-	else if dropreason = 19 then DROPFLAG_READMIT_NEW_EP_MIL = 1;
-	else if dropreason = 20 then DROPFLAG_NOT_PERF_EP_MIL = 1;
-	else if dropreason = 21 then DROPFLAG_TRANS_EPI_MIL = 1;
-
-	DROPFLAG_ACO = max(DROPFLAG_ACO_MSSP_OVERLAP, DROPFLAG_ACO_CEC_OVERLAP, DROPFLAG_ACO_NEXTGEN_OVERLAP, DROPFLAG_ACO_VERMONTAP_OVERLAP);
-	DROPFLAG_OTHER = max(DROPFLAG_NON_ACH,DROPFLAG_EXCLUDED_STATE,DROPFLAG_TRANS_W_CAH_CANCER,DROPFLAG_RCH_DEMO,
-			DROPFLAG_RURAL_PA,DROPFLAG_LOS_GT_59,DROPFLAG_NON_HIGHEST_J1,DROPFLAG_NO_BENE_ENR_INFO,DROPFLAG_NOT_PERF_EP_MIL,DROPFLAG_TRANS_EPI_MIL);
-
-	BPID_Member = BPID || "_" || BENE_SK;
-run;
-
-%end;
+/*%if &label ^= ybase %then %do;*/
+/*/*create descriptive columns*/;*/
+/*proc sql;*/
+/*create table exclusions1 as*/
+/*	select */
+/*		a.BPID*/
+/*		,"&reporting_period." as DataYearMo*/
+/*		,put(year(a.anchor_beg_dt),4.)||" Q"||put(qtr(a.anchor_beg_dt),1.) as Anchor_YearQtr*/
+/*		,case when month(a.anchor_beg_dt) < 10 then strip(put(year(a.anchor_beg_dt),4.)||" M0"||strip(put(month(a.anchor_beg_dt),2.)))*/
+/*		 else strip(put(year(a.anchor_beg_dt),4.)||" M"||strip(put(month(a.anchor_beg_dt),2.))) */
+/*		 end as Anchor_YearMo*/
+/*		,year(a.anchor_beg_dt) as Anchor_Year	*/
+/*		,a.anchor_ccn*/
+/*		,case when a.anchor_ccn ^= . and d.fac_name = "" then "Unknown ("||strip(put(a.anchor_ccn,z6.))||")"*/
+/*			else strip(propcase(d.fac_name))||" ("||strip(put(a.anchor_ccn,z6.))||")"*/
+/*			end as Anchor_Fac_Code_Name*/
+/*		,a.epi_id_milliman*/
+/*		,a.bene_sk*/
+/*		,a.bene_age*/
+/*		,a.bene_gender length=10*/
+/*		,a.bene_birth_dt*/
+/*		,a.bene_death_dt*/
+/*		,a.MBI_ID length=20*/
+/*		,case when a.flag_overlap = 1 then "Yes" else "No" end as flag_overlap length=10*/
+/*		,case when a.mult_attr_provs = 1 then "Yes" else "No" end as mult_attr_provs length=10*/
+/*		,a.anchor_type*/
+/*		,a.anchor_code*/
+/*		,c.Clinical_Episode*/
+/*		,c.Short_name as clinical_episode_abbr*/
+/*		,c.Short_name_2 as clinical_episode_abbr2*/
+/*		,a.anchor_beg_dt*/
+/*		,a.anchor_end_dt*/
+/*		,"PERF" as period*/
+/*		,case when '01OCT2018'd le POST_DSCH_END_DT le '30JUN2019'd then "Performance Period 1"*/
+/*			  when '01JUL2019'd le POST_DSCH_END_DT le '31DEC2019'd then "Performance Period 2"*/
+/*			  when '01JAN2020'd le POST_DSCH_END_DT le '30JUN2020'd then "Performance Period 3"*/
+/*			  when '01JUL2020'd le POST_DSCH_END_DT le '31DEC2020'd then "Performance Period 4"*/
+/*			  when '01JAN2021'd le POST_DSCH_END_DT le '30JUN2021'd then "Performance Period 5"*/
+/*			  when '01JUL2021'd le POST_DSCH_END_DT le '31DEC2021'd then "Performance Period 6"*/
+/*			  when '01JAN2022'd le POST_DSCH_END_DT le '30JUN2022'd then "Performance Period 7"*/
+/*			  when '01JUL2022'd le POST_DSCH_END_DT le '31DEC2022'd then "Performance Period 8"*/
+/*			  when '01JAN2023'd le POST_DSCH_END_DT le '30JUN2023'd then "Performance Period 9"*/
+/*			  when '01JUL2023'd le POST_DSCH_END_DT le '31DEC2023'd then "Performance Period 10"*/
+/*		 end as timeframe_filter format = $100. length=100*/
+/*/*		,a.DROPFLAG_NON_ACH*/*/
+/*/*		,a.DROPFLAG_EXCLUDED_STATE*/*/
+/*/*		,a.DROPFLAG_NOT_CONT_ENR_AB_NO_C*/*/
+/*/*		,a.DROPFLAG_ESRD*/*/
+/*/*		,a.DROPFLAG_OTHER_PRIMARY_PAYER*/*/
+/*/*		,a.DROPFLAG_NO_BENE_ENR_INFO*/*/
+/*/*		,a.DROPFLAG_LOS_GT_59*/*/
+/*/*		,a.DROPFLAG_NON_HIGHEST_J1*/*/
+/*/*		,a.DROPFLAG_DEATH_DUR_ANCHOR*/*/
+/*/*		,a.DROPFLAG_TRANS_W_CAH_CANCER*/*/
+/*/*		,a.DROPFLAG_RCH_DEMO*/*/
+/*/*		,a.DROPFLAG_RURAL_PA*/*/
+/*/*		,a.DROPFLAG_CJR*/*/
+/*/*		,0 as DROPFLAG_READMIT_NEW_EP_MIL*/*/
+/*/*		,0 as DROPFLAG_READMIT_ANCHOR_DRG_MIL*/*/
+/*/*		,case when max(a.DROPFLAG_CJR,a.DROPFLAG_NOT_CONT_ENR_AB_NO_C,a.DROPFLAG_ESRD,a.DROPFLAG_OTHER_PRIMARY_PAYER,a.DROPFLAG_DEATH_DUR_ANCHOR)=0*/*/
+/*/*			and max(a.DROPFLAG_NON_ACH,a.DROPFLAG_EXCLUDED_STATE,a.DROPFLAG_TRANS_W_CAH_CANCER,a.DROPFLAG_RCH_DEMO*/*/
+/*/*			,a.DROPFLAG_RURAL_PA,a.DROPFLAG_LOS_GT_59,a.DROPFLAG_NON_HIGHEST_J1,a.DROPFLAG_NO_BENE_ENR_INFO)=1*/*/
+/*/*			then 1 else 0 end as DROPFLAG_OTHER*/*/
+/*		,case*/
+/*			when a.DROPFLAG_CJR = 1 then 1 /*facility level exclusion*/*/
+/*			when a.DROPFLAG_ACO_MSSP_OVERLAP = 1 then 2 /*facility level exclusion*/*/
+/*			when a.DROPFLAG_ACO_CEC_OVERLAP = 1 then 3 /*facility level exclusion*/*/
+/*			when a.DROPFLAG_ACO_NEXTGEN_OVERLAP = 1 then 4 /*facility level exclusion*/*/
+/*			when a.DROPFLAG_ACO_VERMONTAP_OVERLAP = 1 then 5 /*facility level exclusion*/*/
+/*			when a.DROPFLAG_NOT_CONT_ENR_AB_NO_C = 1 then 6 /*episode level exclusions*/*/
+/*			when a.DROPFLAG_ESRD = 1 then 7 /*episode level exclusions*/*/
+/*			when a.DROPFLAG_OTHER_PRIMARY_PAYER = 1 then 8 /*episode level exclusions*/*/
+/*			when a.DROPFLAG_DEATH_DUR_ANCHOR = 1 then 9 /*episode level exclusions*/*/
+/*			when a.DROPFLAG_NON_ACH = 1 then 10 /*facility level exclusion*/*/
+/*			when a.DROPFLAG_EXCLUDED_STATE = 1 then 11 /*facility level exclusion*/*/
+/*			when a.DROPFLAG_TRANS_W_CAH_CANCER = 1 then 12 /*facility level exclusion*/*/
+/*			when a.DROPFLAG_RCH_DEMO = 1 then 13 /*facility level exclusion*/*/
+/*			when a.DROPFLAG_RURAL_PA = 1 then 14 /*facility level exclusion*/*/
+/*			when a.DROPFLAG_LOS_GT_59 = 1 then 15 /*episode level exclusions*/*/
+/*			when a.DROPFLAG_NON_HIGHEST_J1 = 1 then 16 /*episode level exclusions*/*/
+/*			when a.DROPFLAG_NO_BENE_ENR_INFO = 1 then 17 /*data exclusion*/*/
+/*			when a.DROPFLAG_READMIT_EPI = 1 then 18 /*Milliman exclusion*/*/
+/*			when a.DROPFLAG_MJRLE_EPI = 1 then 19 /*Milliman exclusion*/*/
+/*			when a.DROPFLAG_NOT_PERF_EP_MIL = 1 then 20 /*Milliman exclusion*/*/
+/*			when a.DROPFLAG_TRANS_EPI = 1 then 21 /*Milliman exclusion*/*/
+/*            end as dropreason*/
+/*		,case*/
+/*			when a.DROPFLAG_CJR = 1 then "CJR hospital with MJRLE MS-DRG" /*facility level exclusion*/*/
+/*			when a.DROPFLAG_ACO_MSSP_OVERLAP = 1 then "Beneficiary aligned with Medicare Shared Savings Program Track 3 (ACO)" /*facility level exclusion*/*/
+/*			when a.DROPFLAG_ACO_CEC_OVERLAP = 1 then "Beneficiary aligned with Comprehensive ESRD Care (ACO)" /*facility level exclusion*/*/
+/*			when a.DROPFLAG_ACO_NEXTGEN_OVERLAP = 1 then "Beneficiary aligned with Next Generation (ACO)" /*facility level exclusion*/*/
+/*			when a.DROPFLAG_ACO_VERMONTAP_OVERLAP = 1 then "Beneficiary aligned with Vermont All Payer (ACO)" /*facility level exclusion*/*/
+/*			when a.DROPFLAG_NOT_CONT_ENR_AB_NO_C = 1 then "No Part A/B or in Part C" /*episode level exclusions*/*/
+/*			when a.DROPFLAG_ESRD = 1 then "ESRD" /*episode level exclusions*/*/
+/*			when a.DROPFLAG_OTHER_PRIMARY_PAYER = 1 then "Medicare not primary payer" /*episode level exclusions*/*/
+/*			when a.DROPFLAG_DEATH_DUR_ANCHOR = 1 then "Death during anchor" /*episode level exclusions*/*/
+/*			when a.DROPFLAG_NON_ACH = 1 then "Triggered by non-ACH" /*facility level exclusion*/*/
+/*			when a.DROPFLAG_EXCLUDED_STATE = 1 then "State not eligible for BPCIA" /*facility level exclusion*/*/
+/*			when a.DROPFLAG_TRANS_W_CAH_CANCER = 1 then "Transfer to CAH or cancer hospital" /*facility level exclusion*/*/
+/*			when a.DROPFLAG_RCH_DEMO = 1 then "Rural Community Hospital Demo" /*facility level exclusion*/*/
+/*			when a.DROPFLAG_RURAL_PA = 1 then "PA Rural Health Model"/*facility level exclusion*/*/
+/*			when a.DROPFLAG_LOS_GT_59 = 1 then "LOS greater than 59 days" /*episode level exclusions*/*/
+/*			when a.DROPFLAG_NON_HIGHEST_J1 = 1 then "Triggering OP line not highest ranking J1" /*episode level exclusions*/*/
+/*			when a.DROPFLAG_NO_BENE_ENR_INFO = 1 then "Missing beneficiary info" /*data exclusion*/*/
+/*			when a.DROPFLAG_READMIT_EPI = 1 then "Admission inclu. in prev. episode" /*Milliman exclusion*/*/
+/*			when a.DROPFLAG_MJRLE_EPI = 1 then "Readmit starts new episode" /*Milliman exclusion*/*/
+/*			when a.DROPFLAG_NOT_PERF_EP_MIL = 1 then "Not a performance period clinical episode" /*Milliman exclusion*/*/
+/*			when a.DROPFLAG_TRANS_EPI = 1 then "Transfer incorrectly assigned" /*Milliman exclusion*/*/
+/*			end as exclusion_description length=100*/
+/*		, case when a.DROPFLAG_READMIT_EPI=1 or a.DROPFLAG_MJRLE_EPI=1 or a.DROPFLAG_NOT_PERF_EP_MIL=1 or a.DROPFLAG_TRANS_EPI=1 then "MIL" else "CMS" end as source length=50*/
+/*		, case when a.BENE_SRNM_NAME in ("","~") then "Unknown"*/
+/*			else propcase(STRIP(a.BENE_SRNM_NAME)||", "||STRIP(a.BENE_GVN_NAME)) */
+/*			end as PATIENT_NAME format = $255. length=255*/
+/*	from out.epiexc_perf_&label._&bpid1._&bpid2.	as a*/
+/*	left join bpciaref.BPCIA_DRG_Mapping_MY3 as b*/
+/*	on a.ANCHOR_CODE = b.code*/
+/*	left join bpciaref.BPCIA_Clinical_Episode_Names_MY3 as c*/
+/*	on b.BPCI_Episode_Idx = c.BPCI_Episode_Index*/
+/*	left join ref.ccns_codemap as d*/
+/*	on put(a.anchor_ccn,z6.) = d.ccn;*/
+/**/
+/*;*/
+/*quit;*/
+/**/
+/*data out.exclusions_&label._&bpid1._&bpid2. ;*/
+/*	set exclusions1;*/
+/*	*CMS exclusions;*/
+/*	DROPFLAG_CJR = 0;*/
+/*	DROPFLAG_ACO_MSSP_OVERLAP = 0;*/
+/*	DROPFLAG_ACO_CEC_OVERLAP = 0;*/
+/*	DROPFLAG_ACO_NEXTGEN_OVERLAP = 0;*/
+/*	DROPFLAG_ACO_VERMONTAP_OVERLAP =0;*/
+/*	DROPFLAG_NOT_CONT_ENR_AB_NO_C = 0;*/
+/*	DROPFLAG_ESRD = 0;*/
+/*	DROPFLAG_OTHER_PRIMARY_PAYER = 0;*/
+/*	DROPFLAG_DEATH_DUR_ANCHOR = 0;*/
+/*	DROPFLAG_NON_ACH = 0;*/
+/*	DROPFLAG_EXCLUDED_STATE = 0;*/
+/*	DROPFLAG_TRANS_W_CAH_CANCER = 0;*/
+/*	DROPFLAG_RCH_DEMO = 0;*/
+/*	DROPFLAG_RURAL_PA = 0;*/
+/*	DROPFLAG_LOS_GT_59 = 0;*/
+/*	DROPFLAG_NON_HIGHEST_J1 = 0;*/
+/*	DROPFLAG_NO_BENE_ENR_INFO = 0;*/
+/*	DROPFLAG_ACO = 0; *flag for combined ACO overlap;*/
+/*	DROPFLAG_OTHER = 0; *flag for combined category;*/
+/*	*Milliman- calculated exclusions;*/
+/*	DROPFLAG_READMIT_ANCHOR_DRG_MIL = 0;*/
+/*	DROPFLAG_READMIT_NEW_EP_MIL = 0;*/
+/*	DROPFLAG_NOT_PERF_EP_MIL = 0;*/
+/*	DROPFLAG_TRANS_EPI_MIL = 0;*/
+/*	*/
+/*	*Flags with hierarchy applied (only one flag = 1 for each episode);*/
+/*	if dropreason = 1 then DROPFLAG_CJR = 1;*/
+/*	else if dropreason = 2 then DROPFLAG_ACO_MSSP_OVERLAP = 1;*/
+/*	else if dropreason = 3 then DROPFLAG_ACO_CEC_OVERLAP = 1;*/
+/*	else if dropreason = 4 then DROPFLAG_ACO_NEXTGEN_OVERLAP = 1;*/
+/*	else if dropreason = 5 then DROPFLAG_ACO_VERMONTAP_OVERLAP = 1;*/
+/*	else if dropreason = 6 then DROPFLAG_NOT_CONT_ENR_AB_NO_C = 1;*/
+/*	else if dropreason = 7 then DROPFLAG_ESRD = 1;*/
+/*	else if dropreason = 8 then DROPFLAG_OTHER_PRIMARY_PAYER = 1;*/
+/*	else if dropreason = 9 then DROPFLAG_DEATH_DUR_ANCHOR = 1;*/
+/*	else if dropreason = 10 then DROPFLAG_NON_ACH = 1;*/
+/*	else if dropreason = 11 then DROPFLAG_EXCLUDED_STATE = 1;*/
+/*	else if dropreason = 12 then DROPFLAG_TRANS_W_CAH_CANCER = 1;*/
+/*	else if dropreason = 13 then DROPFLAG_RCH_DEMO = 1;*/
+/*	else if dropreason = 14 then DROPFLAG_RURAL_PA = 1;*/
+/*	else if dropreason = 15 then DROPFLAG_LOS_GT_59 = 1;*/
+/*	else if dropreason = 16 then DROPFLAG_NON_HIGHEST_J1 = 1;*/
+/*	else if dropreason = 17 then DROPFLAG_NO_BENE_ENR_INFO = 1;*/
+/*	else if dropreason = 18 then DROPFLAG_READMIT_ANCHOR_DRG_MIL = 1;*/
+/*	else if dropreason = 19 then DROPFLAG_READMIT_NEW_EP_MIL = 1;*/
+/*	else if dropreason = 20 then DROPFLAG_NOT_PERF_EP_MIL = 1;*/
+/*	else if dropreason = 21 then DROPFLAG_TRANS_EPI_MIL = 1;*/
+/**/
+/*	DROPFLAG_ACO = max(DROPFLAG_ACO_MSSP_OVERLAP, DROPFLAG_ACO_CEC_OVERLAP, DROPFLAG_ACO_NEXTGEN_OVERLAP, DROPFLAG_ACO_VERMONTAP_OVERLAP);*/
+/*	DROPFLAG_OTHER = max(DROPFLAG_NON_ACH,DROPFLAG_EXCLUDED_STATE,DROPFLAG_TRANS_W_CAH_CANCER,DROPFLAG_RCH_DEMO,*/
+/*			DROPFLAG_RURAL_PA,DROPFLAG_LOS_GT_59,DROPFLAG_NON_HIGHEST_J1,DROPFLAG_NO_BENE_ENR_INFO,DROPFLAG_NOT_PERF_EP_MIL,DROPFLAG_TRANS_EPI_MIL);*/
+/**/
+/*	BPID_Member = BPID || "_" || BENE_SK;*/
+/*run;*/
+/**/
+/*%end;*/
 
 ***********************************************************;
 *Create a unique table for Qlikview with BPID_Member, BPID, and BENE_SK;
 data out.BPID_Member_&label._&bpid1._&bpid2.;
 	set out.epi_detail_&label._&bpid1._&bpid2. (keep= BPID_Member BPID BENE_SK)
-		%if &label ^= ybase %then %do; out.exclusions_&label._&bpid1._&bpid2. (keep= BPID_Member BPID BENE_SK) %end;
+/*		%if &label ^= ybase %then %do; out.exclusions_&label._&bpid1._&bpid2. (keep= BPID_Member BPID BENE_SK) %end;*/
 		;
 	proc sort nodupkey; by BPID_Member BPID BENE_SK;
 run;
@@ -4630,130 +4314,229 @@ quit;
 
 *MACRO RUNS;
 
-/* 
-dev runs 
-*/
 /*
-%Dashboard(1148,0000,0);
-%Dashboard(1167,0000,0);
-%Dashboard(1343,0000,0);
-%Dashboard(1368,0000,0);
-%Dashboard(2379,0000,0);
-%Dashboard(2587,0000,0);
-%Dashboard(2607,0000,0);
-%Dashboard(5479,0002,0);
+%Dashboard(6054,0002,1);
+%Dashboard(6055,0002,1);
+%Dashboard(6056,0002,1);
+%Dashboard(6057,0002,1);
+%Dashboard(6058,0002,1);
+%Dashboard(6059,0002,1);
+
+%Dashboard(1191,0002,1);
+%Dashboard(7309,0002,1);
+%Dashboard(7310,0002,1);
+%Dashboard(7310,0003,1);
+%Dashboard(7310,0004,1);
+%Dashboard(7310,0005,1);
+%Dashboard(7310,0006,1);
+%Dashboard(7310,0007,1);
+%Dashboard(7311,0002,1);
+%Dashboard(7312,0002,1);
+
+%Dashboard(2974,0009,1);
+%Dashboard(2974,0006,1);
+%Dashboard(2974,0004,1);
+%Dashboard(2974,0002,1);
+%Dashboard(2974,0008,1);
+%Dashboard(2974,0003,1);
+%Dashboard(2974,0007,1);
 */
-*%Dashboard(1125,0000,0);
-%Dashboard(1148,0000,0);
-%Dashboard(1167,0000,0);
-%Dashboard(1209,0000,0);
-%Dashboard(1343,0000,0);
-%Dashboard(1368,0000,0);
-%Dashboard(1374,0004,0);
-%Dashboard(1374,0008,0);
-%Dashboard(1374,0009,0);
-%Dashboard(1686,0002,0);
-%Dashboard(1688,0002,0);
-%Dashboard(1696,0002,0);
-%Dashboard(1710,0002,0);
-%Dashboard(1958,0000,0);
-%Dashboard(2070,0000,0);
-%Dashboard(2374,0000,0);
-%Dashboard(2376,0000,0);
-%Dashboard(2378,0000,0);
-%Dashboard(2379,0000,0);
-%Dashboard(1075,0000,0);
-%Dashboard(2594,0000,0);
-%Dashboard(2048,0000,0);
-%Dashboard(2049,0000,0);
-%Dashboard(2607,0000,0);
-%Dashboard(5038,0000,0);
-%Dashboard(5050,0000,0);
-%Dashboard(2587,0000,0);
-%Dashboard(2589,0000,0);
-%Dashboard(5154,0000,0);
-%Dashboard(5282,0000,0);
-%Dashboard(5037,0000,0);
-%Dashboard(5478,0002,0);
-%Dashboard(5043,0000,0);
-%Dashboard(5479,0002,0);
-%Dashboard(5480,0002,0);
-%Dashboard(5215,0003,0);
-%Dashboard(5215,0002,0);
-%Dashboard(5229,0000,0);
-%Dashboard(5263,0000,0);
-%Dashboard(5264,0000,0);
-%Dashboard(5481,0002,0);
-%Dashboard(5394,0000,0);
-%Dashboard(5395,0000,0);
-%Dashboard(5397,0002,0);
-%Dashboard(5397,0005,0);
-%Dashboard(5397,0004,0);
-%Dashboard(5397,0008,0);
-%Dashboard(5397,0003,0);
-%Dashboard(5397,0006,0);
-%Dashboard(5397,0009,0);
-%Dashboard(5397,0010,0);
-%Dashboard(5916,0002,0);
-%Dashboard(6049,0002,0);
-%Dashboard(6050,0002,0);
-%Dashboard(6051,0002,0);
-%Dashboard(6052,0002,0);
-%Dashboard(6053,0002,0);
-%Dashboard(5397,0007,0);
-%Dashboard(1102,0000,0);
-%Dashboard(1105,0000,0);
-%Dashboard(1106,0000,0);
-%Dashboard(1103,0000,0);
-%Dashboard(1104,0000,0);
-%Dashboard(5392,0004,0);
-%Dashboard(6054,0002,0);
-%Dashboard(6055,0002,0);
-%Dashboard(6056,0002,0);
-%Dashboard(6057,0002,0);
-%Dashboard(6058,0002,0);
-%Dashboard(6059,0002,0);
-%Dashboard(5746,0002,0);
-%Dashboard(1191,0002,0);
-%Dashboard(2302,0000,0);
 
+%Dashboard(2586,0002,1);
+%Dashboard(2586,0005,1);
+%Dashboard(2586,0006,1);
+%Dashboard(2586,0007,1);
+%Dashboard(2586,0010,1);
+%Dashboard(2586,0013,1);
+%Dashboard(2586,0025,1);
+%Dashboard(2586,0026,1);
+%Dashboard(2586,0028,1);
+%Dashboard(2586,0029,1);
+%Dashboard(2586,0030,1);
+%Dashboard(2586,0031,1);
+%Dashboard(2586,0032,1);
+%Dashboard(2586,0033,1);
+%Dashboard(2586,0034,1);
+%Dashboard(2586,0035,1);
+%Dashboard(2586,0039,1);
+%Dashboard(2586,0044,1);
+%Dashboard(2586,0045,1);
+%Dashboard(2586,0046,1);
+%Dashboard(1374,0015,1);
+%Dashboard(1374,0017,1);
+%Dashboard(1374,0008,1);
+%Dashboard(1374,0013,1);
+%Dashboard(1374,0014,1);
+%Dashboard(1374,0012,1);
+%Dashboard(1374,0019,1);
+%Dashboard(1374,0004,1);
+%Dashboard(1374,0009,1);
+%Dashboard(1374,0016,1);
+%Dashboard(1374,0018,1);
+%Dashboard(1505,0000,1);
+%Dashboard(1832,0000,1);
+%Dashboard(1191,0002,1);
+%Dashboard(7309,0002,1);
+%Dashboard(7310,0002,1);
+%Dashboard(7310,0003,1);
+%Dashboard(7310,0004,1);
+%Dashboard(7310,0005,1);
+%Dashboard(7310,0006,1);
+%Dashboard(7310,0007,1);
+%Dashboard(7311,0002,1);
+%Dashboard(7312,0002,1);
+%Dashboard(6054,0002,1);
+%Dashboard(6055,0002,1);
+%Dashboard(6056,0002,1);
+%Dashboard(6057,0002,1);
+%Dashboard(6058,0002,1);
+%Dashboard(6059,0002,1);
+%Dashboard(1209,0000,1);
+%Dashboard(1209,0002,1);
+%Dashboard(1209,0003,1);
+%Dashboard(1209,0004,1);
+%Dashboard(1209,0005,1);
+%Dashboard(1686,0002,1);
+%Dashboard(1688,0002,1);
+%Dashboard(1696,0002,1);
+%Dashboard(1710,0002,1);
+%Dashboard(6049,0002,1);
+%Dashboard(6050,0002,1);
+%Dashboard(6051,0002,1);
+%Dashboard(6052,0002,1);
+%Dashboard(6053,0002,1);
+%Dashboard(2941,0002,1);
+%Dashboard(2942,0002,1);
+%Dashboard(2943,0002,1);
+%Dashboard(2944,0002,1);
+%Dashboard(2945,0002,1);
+%Dashboard(2946,0002,1);
+%Dashboard(2947,0002,1);
+%Dashboard(2948,0002,1);
+%Dashboard(2949,0002,1);
+%Dashboard(2950,0002,1);
+%Dashboard(2951,0002,1);
+%Dashboard(2952,0002,1);
+%Dashboard(2953,0002,1);
+%Dashboard(2954,0002,1);
+%Dashboard(2955,0002,1);
+%Dashboard(2956,0002,1);
+%Dashboard(2957,0002,1);
+%Dashboard(2958,0002,1);
+%Dashboard(2959,0002,1);
+%Dashboard(2974,0009,1);
+%Dashboard(2974,0006,1);
+%Dashboard(2974,0004,1);
+%Dashboard(2974,0002,1);
+%Dashboard(2974,0008,1);
+%Dashboard(2974,0003,1);
+%Dashboard(2974,0007,1);
 
-*CCF ONLY;
-/*%Dashboard(2586,0002,0);*/
-/*%Dashboard(2586,0003,0);*/
-/*%Dashboard(2586,0004,0);*/
-/*%Dashboard(2586,0005,0);*/
-/*%Dashboard(2586,0006,0);*/
-/*%Dashboard(2586,0007,0);*/
-/*%Dashboard(2586,0009,0);*/
-/*%Dashboard(2586,0010,0);*/
-/*%Dashboard(2586,0011,0);*/
-/*%Dashboard(2586,0012,0);*/
-/*%Dashboard(2586,0013,0);*/
-/*%Dashboard(2586,0014,0);*/
-/*%Dashboard(2586,0015,0);*/
-/*%Dashboard(2586,0016,0);*/
-/*%Dashboard(2586,0017,0);*/
-/*%Dashboard(2586,0020,0);*/
-/*%Dashboard(2586,0021,0);*/
-/*%Dashboard(2586,0023,0);*/
-
-
-
-*DEMO/DEV ONLY;
-/*%Dashboard(1148,0000,0);*/
-/*%Dashboard(1167,0000,0);*/
-/*%Dashboard(1343,0000,0);*/
-/*%Dashboard(1368,0000,0);*/
-/*%Dashboard(2379,0000,0);*/
-/*%Dashboard(2587,0000,0);*/
-/*%Dashboard(2607,0000,0);*/
-/*%Dashboard(5479,0002,0);*/
-
+%Dashboard(5746,0002,1);
+%Dashboard(5395,0000,1);
+%Dashboard(5394,0000,1);
+%Dashboard(5229,0000,1);
+%Dashboard(5480,0002,1);
+%Dashboard(5478,0002,1);
+%Dashboard(5481,0002,1);
+%Dashboard(5479,0002,1);
+%Dashboard(6592,0003,1);
+%Dashboard(6592,0002,1);
+%Dashboard(6592,0004,1);
+%Dashboard(6592,0013,1);
+%Dashboard(6592,0009,1);
+%Dashboard(6592,0010,1);
+%Dashboard(6592,0007,1);
+%Dashboard(6592,0012,1);
+%Dashboard(6592,0006,1);
+%Dashboard(5043,0000,1);
+%Dashboard(1029,0000,1);
+%Dashboard(2217,0000,1);
+%Dashboard(5038,0000,1);
+%Dashboard(1028,0000,1);
+%Dashboard(1025,0000,1);
+%Dashboard(1026,0000,1);
+%Dashboard(1461,0000,1);
+%Dashboard(1525,0000,1);
+%Dashboard(2216,0000,1);
+%Dashboard(2461,0000,1);
+%Dashboard(5215,0002,1);
+%Dashboard(5215,0003,1);
+%Dashboard(2070,0000,1);
+%Dashboard(2587,0000,1);
+%Dashboard(1470,0000,1);
+%Dashboard(1102,0000,1);
+%Dashboard(1105,0000,1);
+%Dashboard(1106,0000,1);
+%Dashboard(1103,0000,1);
+%Dashboard(1104,0000,1);
+%Dashboard(2594,0000,1);
+%Dashboard(1125,0000,1);
+%Dashboard(8031,0002,1);
+%Dashboard(8029,0002,1);
+%Dashboard(8028,0002,1);
+%Dashboard(8027,0002,1);
+%Dashboard(8030,0002,1);
+%Dashboard(8032,0002,1);
+%Dashboard(1507,0000,1);
+%Dashboard(1508,0000,1);
+%Dashboard(1510,0000,1);
+%Dashboard(1506,0000,1);
+%Dashboard(2449,0000,1);
+%Dashboard(1148,0000,1);
+%Dashboard(1167,0000,1);
+%Dashboard(5154,0000,1);
+%Dashboard(2589,0000,1);
+%Dashboard(1075,0000,1);
+%Dashboard(2048,0000,1);
+%Dashboard(5037,0000,1);
+%Dashboard(2049,0000,1);
+%Dashboard(5264,0000,1);
+%Dashboard(5263,0000,1);
+%Dashboard(2785,0000,1);
+%Dashboard(2788,0002,1);
+%Dashboard(2790,0002,1);
+%Dashboard(2302,0000,1);
+%Dashboard(1343,0000,1);
+%Dashboard(2607,0000,1);
+%Dashboard(2102,0000,1);
+%Dashboard(5282,0000,1);
+%Dashboard(2317,0000,1);
+%Dashboard(2374,0000,1);
+%Dashboard(1368,0000,1);
+%Dashboard(1958,0000,1);
+%Dashboard(5050,0000,1);
+%Dashboard(2376,0000,1);
+%Dashboard(2378,0000,1);
+%Dashboard(2379,0000,1);
+%Dashboard(1753,0000,1);
+%Dashboard(5397,0003,1);
+%Dashboard(5397,0002,1);
+%Dashboard(5397,0005,1);
+%Dashboard(5397,0006,1);
+%Dashboard(5397,0004,1);
+%Dashboard(5397,0008,1);
+%Dashboard(5397,0007,1);
+%Dashboard(5397,0009,1);
+%Dashboard(5397,0010,1);
+%Dashboard(1634,0000,1);
+%Dashboard(2451,0000,1);
+%Dashboard(2452,0000,1);
+%Dashboard(2966,0002,1);
+%Dashboard(2964,0002,1);
+%Dashboard(2965,0002,1);
+%Dashboard(2967,0002,1);
+%Dashboard(2968,0002,1);
+%Dashboard(2969,0002,1);
+%Dashboard(2971,0002,1);
+%Dashboard(2973,0002,1);
+%Dashboard(5392,0004,1);
+%Dashboard(2468,0000,1);
+%Dashboard(5481,0003,1);
 
 
 ******************************************************************************************************************;
-;
+
 
 
 proc printto;run;
