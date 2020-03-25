@@ -105,8 +105,8 @@ data dirlist;
 	input file_name $100.;
 run;
 
-data in.dirlist_master_&label.;
-	set in.dirlist_master_&label. dirlist;
+data dirlist_master_&label.;
+	set dirlist_master_&label. dirlist;
 run;
 
 *store the full file path of each file path in dir;
