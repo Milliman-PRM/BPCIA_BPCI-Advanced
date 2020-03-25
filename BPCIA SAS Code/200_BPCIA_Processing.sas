@@ -166,7 +166,7 @@ run;
 
 data epi0_pre;
 	format ConvenerID BPID $9. EPI_ID_MILLIMAN $32. ;
-	set %if substr(&label.,1,5)  = ybase %then %do; in.epi_&label._&id1. %end; %else %do; in.epi_&label._&id2. %end; ;	
+	set %if %substr(&label.,1,5)  = ybase %then %do; in.epi_&label._&id1. %end; %else %do; in.epi_&label._&id2. %end; ;	
 
 	BPID = "&BPID1." || "-" || "&BPID2.";
 	ConvenerID = tranwrd("&id2.","_","-");
@@ -197,7 +197,7 @@ data epi0 out.epiexc_&label._&bpid1._&bpid2. perf_epis0;
 
 	ref_year = year(ANCHOR_BEG_DT) ;
 
-	%if substr(&label.,1,5)  = ybase %then %do;
+	%if %substr(&label.,1,5)  = ybase %then %do;
 		DROP_EPISODE = 0;
 		DROPFLAG_NOT_CONT_ENR_AB_NO_C = 0;
 		DROPFLAG_ESRD = 0;
@@ -354,7 +354,7 @@ Inpatient Hospital Claims
 data ip1 ;
 	format ConvenerID BPID $9. EPI_ID_MILLIMAN $32. ;
 	format costgrp type $50.;
-	set %if substr(&label.,1,5)  = ybase %then %do; in.ip_&label._&id1.; %end; %else %do; in.ip_&label._&id2.; %end;
+	set %if %substr(&label.,1,5)  = ybase %then %do; in.ip_&label._&id1.; %end; %else %do; in.ip_&label._&id2.; %end;
 	allowed=STAY_ALLOWED;
 	std_allowed=STAY_STD_ALLOWED;
 
@@ -493,7 +493,7 @@ data ip_&label._&bpid1._&bpid2. out.FrChk_&label._&bpid1._&bpid2. readexc_&label
 	end;
 
 
-	%if substr(&label.,1,5)  = ybase %then %do;
+	%if %substr(&label.,1,5)  = ybase %then %do;
 		array tran(*) TRANS_IP_STAY_1 - TRANS_IP_STAY_13;
 	%end;
 	%else %do;
@@ -528,7 +528,7 @@ Skilled Nursing Facility Claims
 data snf ;
 	format ConvenerID BPID $9. EPI_ID_MILLIMAN $32. ;
 	format costgrp type $50.;
-	set %if substr(&label.,1,5)  = ybase %then %do; in.snf_&label._&id1.; %end; %else %do; in.snf_&label._&id2.; %end;
+	set %if %substr(&label.,1,5)  = ybase %then %do; in.snf_&label._&id1.; %end; %else %do; in.snf_&label._&id2.; %end;
 	type='SNF';	
 	allowed = CLM_ALLOWED;
 
@@ -640,7 +640,7 @@ Home Health Agency Claims
 ***Merge HHA Header and Detail File Logic***;
 data hha1  ;
 	format ConvenerID BPID $9. EPI_ID_MILLIMAN $32. ;
-	set %if substr(&label.,1,5)  = ybase %then %do; in.hha_&label._&id1. %end; %else %do; in.hha_&label._&id2. %end; (rename=(PROVIDER=PROVIDER_NUM));
+	set %if %substr(&label.,1,5)  = ybase %then %do; in.hha_&label._&id1. %end; %else %do; in.hha_&label._&id2. %end; (rename=(PROVIDER=PROVIDER_NUM));
 	format costgrp type $50. PROVIDER $20.;
 	type = 'HH'; * We do not have the information to determine HH_A, HH_B, and LUPA;
 	
@@ -738,7 +738,7 @@ Outpatient Hospital Claims
 data op ;
 	format ConvenerID BPID $9. EPI_ID_MILLIMAN $32. ;
 	format costgrp $50.;
-	set %if substr(&label.,1,5)  = ybase %then %do; in.op_&label._&id1. %end; %else %do; in.op_&label._&id2. %end; (rename=(PROVIDER=PROVIDER_NUM));
+	set %if %substr(&label.,1,5)  = ybase %then %do; in.op_&label._&id1. %end; %else %do; in.op_&label._&id2. %end; (rename=(PROVIDER=PROVIDER_NUM));
 	new_rev = put(REV_CNTR,3.);
 /*	type = compress('OP_' || put(new_rev,$revcode.));*/
 	allowed = LINE_ALLOWED;
@@ -883,7 +883,7 @@ data bcarrier1 ;
 	format ConvenerID BPID $9. EPI_ID_MILLIMAN $32. ;
 	format costgrp $50.;
 	format LINEITEM $9.;
-	set %if substr(&label.,1,5)  = ybase %then %do; in.pb_&label._&id1. %end; %else %do; in.pb_&label._&id2. %end; (rename=(LINEITEM=LINEITEM2));
+	set %if %substr(&label.,1,5)  = ybase %then %do; in.pb_&label._&id1. %end; %else %do; in.pb_&label._&id2. %end; (rename=(LINEITEM=LINEITEM2));
 /*	type = compress('Prof_' || put(HCPCS_CD,$hcpcs.));*/
 	util_day = max(1,thru_dt-FROM_DT);
 
@@ -994,7 +994,7 @@ Durable Medical Equipment Claims
 data dme ;
 	format ConvenerID BPID $9. EPI_ID_MILLIMAN $32. ;
 	format costgrp type $50.;
-	set %if substr(&label.,1,5)  = ybase %then %do; in.dme_&label._&id1. ; %end; %else %do; in.dme_&label._&id2. ; %end;
+	set %if %substr(&label.,1,5)  = ybase %then %do; in.dme_&label._&id1. ; %end; %else %do; in.dme_&label._&id2. ; %end;
 	allowed = LINE_ALLOWED;
 	std_allowed = LINE_STD_ALLOWED;
 	if put(hcpcs_cd,$Hemo_JCodes.) = 'X' then do; *Set hemophilia clotting factors claims to 0*;
@@ -1053,7 +1053,7 @@ Hospice Claims
 data hs ;
 	format ConvenerID BPID $9. EPI_ID_MILLIMAN $32. ;
 	format costgrp type $50.;
-	set %if substr(&label.,1,5)  = ybase %then %do; in.hs_&label._&id1.; %end; %else %do; in.hs_&label._&id2.; %end;
+	set %if %substr(&label.,1,5)  = ybase %then %do; in.hs_&label._&id1.; %end; %else %do; in.hs_&label._&id2.; %end;
 	type='HS';	
 	allowed = CLM_ALLOWED;
 	util_day = max(1,thru_dt-FROM_DT);
