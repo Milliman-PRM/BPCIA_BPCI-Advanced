@@ -32,7 +32,7 @@ options mprint mlogic spool;
 %let dataDir = R:\data\HIPAA\BPCIA_BPCI Advanced ; 
 libname in "&dataDir.\06 - Imported Raw Data";
 
-data in.dirlist_master_&label.;
+data dirlist_master_&label.;
 	set _null_;
 run;
 
