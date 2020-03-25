@@ -10,8 +10,8 @@ options mprint;
 proc printto;run;
 
 ***** USER INPUTS ******************************************************************************************;
-*%let mode = main; *main = main interface, base = baseline interface;
-%let mode = recon; *main = main interface, base = baseline interface;
+%let mode = main; *main = main interface, base = baseline interface;
+*%let mode = recon; *main = main interface, base = baseline interface;
 
 
 ****** REFERENCE PROGRAMS ***********************************************************************************;
@@ -74,9 +74,30 @@ run;
 Calculation of Adjusted Target Prices
 ********************
 ********************;
+data Peer_Group_all_V2;
+	set tp.Peer_Group_all;
+	drop CCN;
+	format MEASURE_YEAR $10.;
+MEASURE_YEAR = 'MY1 & MY2';
+CCN_V2 = input(CCN, $12.);
+run;
+
+data Peer_Group_MY3_V2;
+	set ref.Peer_Group_MY3;
+	drop CCN;
+	format MEASURE_YEAR $10.;
+MEASURE_YEAR = 'MY3';
+CCN_V2 = input(CCN, $12.);
+run;
+
+data Peer_Group_combined;
+set Peer_Group_all_V2 Peer_Group_MY3_V2;
+drop CCN_V2;
+CCN = CCN_V2;
+run;
 
 data Peer_Group_pre Peer_Group_pre_baseline;
-	set tp.Peer_Group_all;
+	set Peer_Group_combined;
 	format ccn_join $6.;
 	ccn_join = CCN;
 	if length(compress(ccn_join)) = 5 then ccn_join = '0' || ccn_join;
@@ -86,23 +107,39 @@ data Peer_Group_pre Peer_Group_pre_baseline;
 run; 
 
 proc sort data=Peer_Group_pre;
-	by ccn_join descending rel_dt descending epi_start descending epi_end;
+	by MEASURE_YEAR ccn_join descending rel_dt descending epi_start descending epi_end;
 run;
 
 proc sort nodupkey data=Peer_Group_pre out=Peer_Group;
-	by ccn_join rel_dt epi_start epi_end;
+	by MEASURE_YEAR ccn_join rel_dt epi_start epi_end;
 run;
 
 proc sort nodupkey data=Peer_Group_pre out=Peer_Group_forBase;
-	by ccn_join;
+	by MEASURE_YEAR ccn_join;
 run;
 
 proc sort nodupkey data=Peer_Group_pre_baseline out=Peer_Group_baseline;
-	by ccn_join rel_dt epi_start epi_end;
+	by MEASURE_YEAR ccn_join rel_dt epi_start epi_end;
+run;
+
+data PAT_Factors_V2;
+	set ref.PAT_Factors;
+	format MEASURE_YEAR $10.;
+MEASURE_YEAR = 'MY1 & MY2';
+run;
+
+data PAT_Factors_MY3_V2;
+	set ref.PAT_Factors_MY3;
+	format MEASURE_YEAR $10.;
+MEASURE_YEAR = 'MY3';
+run;
+
+data PAT_Factors_combined;
+set PAT_Factors_V2 PAT_Factors_MY3_V2;
 run;
 
 data PAT_Factors;
-	set ref.PAT_Factors;
+	set PAT_Factors_combined;
 	anchor_type='ip';
 	if substr(Clinical_Episode,1,2) = 'OP' then anchor_type='op';
 	if anchor_type='op' then do;
@@ -116,11 +153,27 @@ data PAT_Factors;
 run;
 
 proc sort nodupkey data=PAT_Factors out=PAT_Factors_forBase;
-	by Clinical_Episode anchor_type AMC Urban_Rural Safety_Net Bed_Size Census_Div Year Quarter;
+	by MEASURE_YEAR Clinical_Episode anchor_type AMC Urban_Rural Safety_Net Bed_Size Census_Div Year Quarter;
+run;
+
+data PAT_Factors_baseline_V2;
+	set ref.PAT_Factors_baseline;
+	format MEASURE_YEAR $10.;
+MEASURE_YEAR = 'MY1 & MY2';
+run;
+
+data PAT_Factors_baseline_MY3_V2;
+	set ref.PAT_Factors_baseline_MY3;
+	format MEASURE_YEAR $10.;
+MEASURE_YEAR = 'MY3';
+run;
+
+data PAT_Factors_baseline_combined;
+set PAT_Factors_baseline_V2 PAT_Factors_baseline_MY3_V2;
 run;
 
 data PAT_Factors_baseline;
-	set ref.PAT_Factors_baseline;
+	set PAT_Factors_baseline_combined;
 	anchor_type='ip';
 	if substr(Clinical_Episode,1,2) = 'OP' then anchor_type='op';
 	if anchor_type='op' then do;
@@ -133,8 +186,24 @@ data PAT_Factors_baseline;
 		Clinical_Episode = "Disorders of liver except malignancy, cirrhosis or alcoholic hepatitis" ;
 run;
 
-data TP_Components;
+data TP_Components_all_V2;
 	set tp.TP_Components_all;
+	format MEASURE_YEAR $10.;
+MEASURE_YEAR = 'MY1 & MY2';
+run;
+
+data TP_Components_my3_all_V2;
+	set tp.TP_Components_my3_all;
+	format MEASURE_YEAR $10.;
+MEASURE_YEAR = 'MY3';
+run;
+
+data TP_Components_all_combined;
+set TP_Components_my3_all_V2 TP_Components_all_V2;
+run;
+
+data TP_Components;
+	set TP_Components_all_combined;
 	format ccn_join $6.;
 	ccn_join = ASSOC_ACH_CCN;
 	if ccn_join = '' then ccn_join = CCN_TIN;
@@ -146,33 +215,105 @@ data TP_Components;
 run; 
 
 proc sort data=TP_Components;
-	by INITIATOR_BPID EPI_CAT EPI_TYPE ccn_join descending rel_dt descending epi_start descending epi_end;
+	by MEASURE_YEAR INITIATOR_BPID EPI_CAT EPI_TYPE ccn_join descending rel_dt descending epi_start descending epi_end;
 run;
 
 proc sort nodupkey data=TP_Components out=TP_Components_forBase;
-	by INITIATOR_BPID EPI_CAT EPI_TYPE ccn_join;
+	by MEASURE_YEAR INITIATOR_BPID EPI_CAT EPI_TYPE ccn_join;
 run;
 
 proc sort nodupkey data=TP_Components;
-	by INITIATOR_BPID EPI_CAT EPI_TYPE ccn_join rel_dt epi_start epi_end;
+	by MEASURE_YEAR INITIATOR_BPID EPI_CAT EPI_TYPE ccn_join rel_dt epi_start epi_end;
+run;
+
+data TP_Risk_Adj_Parameters_V2;
+	set ref.TP_Risk_Adj_Parameters;
+	format MEASURE_YEAR $10.;
+MEASURE_YEAR = 'MY1 & MY2';
+run;
+
+data TP_Risk_Adj_Parameters_MY3_V2;
+	set ref.TP_Risk_Parameters_MY3;
+	format MEASURE_YEAR $10.;
+MEASURE_YEAR = 'MY3';
+run;
+
+data TP_Risk_Adj_Parameters_combined;
+set TP_Risk_Adj_Parameters_V2 TP_Risk_Adj_Parameters_MY3_V2;
 run;
 
 data TP_Risk_Adj_Parameters;
-	set ref.TP_Risk_Adj_Parameters;
+	set TP_Risk_Adj_Parameters_combined;
 
 	if Clinical_Episode_Category = "Disorders Of Liver Except Malignancy, Cirrhosis Or Alcoholic Hepatitis" then
 		Clinical_Episode_Category = "Disorders of liver except malignancy, cirrhosis or alcoholic hepatitis" ;
 run;
 
 proc sort nodupkey data=TP_Risk_Adj_Parameters out=TP_Risk_Adj_Parameters_forBase;
-	by Clinical_Episode_Category Clinical_Episode_Type;
+	by MEASURE_YEAR Clinical_Episode_Category Clinical_Episode_Type;
+run;
+
+data TP_Parameters_baseline_V2;
+	set ref.TP_Risk_Adj_Parameters_baseline;
+	format MEASURE_YEAR $10.;
+MEASURE_YEAR = 'MY1 & MY2';
+run;
+
+data TP_Parameters_baseline_MY3_V2;
+	set ref.TP_Risk_Parameters_baseline_MY3;
+	format MEASURE_YEAR $10.;
+MEASURE_YEAR = 'MY3';
+run;
+
+data TP_Parameters_baseline_combined;
+set TP_Parameters_baseline_V2 TP_Parameters_baseline_MY3_V2;
 run;
 
 data TP_Risk_Adj_Parameters_baseline;
-	set ref.TP_Risk_Adj_Parameters_baseline;
+	set TP_Parameters_baseline_combined;
 
 	if Clinical_Episode_Category = "Disorders Of Liver Except Malignancy, Cirrhosis Or Alcoholic Hepatitis" then
 		Clinical_Episode_Category = "Disorders of liver except malignancy, cirrhosis or alcoholic hepatitis" ;
+run;
+
+data bpcia_drg_mapping_my3_V2;
+	set bpciaref.bpcia_drg_mapping;
+	format MEASURE_YEAR $10.;
+MEASURE_YEAR = 'MY1 & MY2';
+run;
+
+data bpcia_drg_mapping_my3_V2;
+	set bpciaref.bpcia_drg_mapping_my3;
+	format MEASURE_YEAR $10.;
+MEASURE_YEAR = 'MY3';
+run;
+
+data bpcia_drg_mapping_combined;
+set bpcia_drg_mapping_my3_V2 bpcia_drg_mapping_my3_V2;
+run;
+
+data bpcia_clin_epi_names_v2;
+	set bpciaref.bpcia_clinical_episode_names;
+	drop short_name short_name_2;
+	format MEASURE_YEAR $10.;
+	short_name_V2 = input(short_name, $30.);
+	short_name_2_V2 = input(short_name_2, $11.);
+MEASURE_YEAR = 'MY1 & MY2';
+run;
+
+data bpcia_clin_epi_names_mpy3_v2;
+	set bpciaref.bpcia_clinical_episode_names_my3;
+	drop short_name short_name_2;
+	format MEASURE_YEAR $10.;
+	short_name_V2 = input(short_name, $30.);
+	short_name_2_V2 = input(short_name_2, $11.);
+MEASURE_YEAR = 'MY3';
+run;
+
+data bpcia_clin_epi_names_combined;
+set bpcia_clin_epi_names_v2 bpcia_clin_epi_names_mpy3_v2;
+short_name = short_name_v2;
+short_name_2 = short_name_2_v2;
 run;
 
 %MACRO TP(label);
@@ -206,7 +347,8 @@ proc sql;
 			on a.BPID = b.INITIATOR_BPID
 			and a.EPISODE_GROUP_NAME = b.EPI_CAT
 			and a.anchor_type_upper = b.EPI_TYPE
-			and a.anc_ccn = b.ccn_join;
+			and a.anc_ccn = b.ccn_join
+			and A.MEASURE_YEAR = B.MEASURE_YEAR;
 quit;
 
 data temp1_prea temp1_preb;
@@ -221,7 +363,8 @@ run;
 		select a.*, b.ACADEMIC, b.URBAN_RURAL, b.SAFETY_NET, b.BED_SIZE, b.CENSUS as CENSUS_Pre
 		from temp1_prea as a left join Peer_Group as b
 		on a.anc_ccn = b.ccn_join
-			and b.epi_start <= a.ANCHOR_END_DT <= b.epi_end;
+			and b.epi_start <= a.ANCHOR_END_DT <= b.epi_end
+		and A.MEASURE_YEAR = B.MEASURE_YEAR;
 	quit;
 %end;
 %else %do;
@@ -229,7 +372,8 @@ run;
 		create table temp1a_pre as
 		select a.*, b.ACADEMIC, b.URBAN_RURAL, b.SAFETY_NET, b.BED_SIZE, b.CENSUS as CENSUS_Pre
 		from temp1_prea as a left join Peer_Group_forBase as b
-		on a.anc_ccn = b.ccn_join;
+		on a.anc_ccn = b.ccn_join
+		and A.MEASURE_YEAR = B.MEASURE_YEAR;
 	quit;
 %end;
 
@@ -245,7 +389,8 @@ run;
 		from temp1a as a left join TP_Risk_Adj_Parameters as b
 		on a.EPISODE_GROUP_NAME = b.Clinical_Episode_Category
 			and a.anchor_type_upper = b.Clinical_Episode_Type
-			and b.epi_start <= a.ANCHOR_END_DT <= b.epi_end;
+			and b.epi_start <= a.ANCHOR_END_DT <= b.epi_end
+			and A.MEASURE_YEAR = B.MEASURE_YEAR;
 	quit;
 %end;
 %else %do;
@@ -254,7 +399,8 @@ proc sql;
 		select a.*, b.*
 		from temp1a as a left join TP_Risk_Adj_Parameters_forBase as b
 		on a.EPISODE_GROUP_NAME = b.Clinical_Episode_Category
-			and a.anchor_type_upper = b.Clinical_Episode_Type;
+			and a.anchor_type_upper = b.Clinical_Episode_Type
+			and A.MEASURE_YEAR = B.MEASURE_YEAR;
 	quit;
 %end;
 
@@ -272,7 +418,8 @@ proc sql;
 			and a.CENSUS=b.Census_Div
 			and year(a.POST_DSCH_END_DT)=b.Year
 			and qtr(a.POST_DSCH_END_DT)=b.Quarter
-			and b.epi_start <= a.ANCHOR_END_DT <= b.epi_end;
+			and b.epi_start <= a.ANCHOR_END_DT <= b.epi_end
+			and A.MEASURE_YEAR = B.MEASURE_YEAR;
 	quit;
 
 	proc sql;
@@ -288,7 +435,8 @@ proc sql;
 			and a.CENSUS=b.Census_Div
 			and b.Year=2019
 			and b.Quarter=3
-			and b.epi_start <= a.ANCHOR_END_DT <= b.epi_end;
+			and b.epi_start <= a.ANCHOR_END_DT <= b.epi_end
+			and A.MEASURE_YEAR = B.MEASURE_YEAR;
 	quit;
 %end;
 %else %do;
@@ -304,7 +452,8 @@ proc sql;
 			and a.BED_SIZE=b.Bed_Size
 			and a.CENSUS=b.Census_Div
 			and year(a.POST_DSCH_END_DT)=b.Year
-			and qtr(a.POST_DSCH_END_DT)=b.Quarter;
+			and qtr(a.POST_DSCH_END_DT)=b.Quarter
+			and A.MEASURE_YEAR = B.MEASURE_YEAR;
 	quit;
 
 	proc sql;
@@ -319,7 +468,8 @@ proc sql;
 			and a.BED_SIZE=b.Bed_Size
 			and a.CENSUS=b.Census_Div
 			and b.Year=2019
-			and b.Quarter=3;
+			and b.Quarter=3
+			and A.MEASURE_YEAR = B.MEASURE_YEAR;
 	quit;
 %end;
 
@@ -364,7 +514,8 @@ proc sql;
 				and a.EPISODE_GROUP_NAME = b.EPI_CAT
 				and a.anchor_type_upper = b.EPI_TYPE
 				and a.anc_ccn = b.ccn_join
-				and b.epi_start <= a.ANCHOR_END_DT <= b.epi_end;
+				and b.epi_start <= a.ANCHOR_END_DT <= b.epi_end
+				and A.MEASURE_YEAR = B.MEASURE_YEAR;
 	quit;
 %end;
 %else %do;
@@ -407,7 +558,8 @@ proc sql;
 				on a.BPID = b.INITIATOR_BPID
 				and a.EPISODE_GROUP_NAME = b.EPI_CAT
 				and a.anchor_type_upper = b.EPI_TYPE
-				and a.anc_ccn = b.ccn_join;
+				and a.anc_ccn = b.ccn_join
+				and A.MEASURE_YEAR = B.MEASURE_YEAR;
 	quit;
 %end;
 
@@ -984,7 +1136,8 @@ proc sql;
 	create table temp1b_pre as
 	select a.*, b.ACADEMIC, b.URBAN_RURAL, b.SAFETY_NET, b.BED_SIZE, b.CENSUS as CENSUS_Pre
 	from temp1_preb as a left join Peer_Group_baseline as b
-	on a.anc_ccn = b.ccn_join;
+	on a.anc_ccn = b.ccn_join
+and A.MEASURE_YEAR = B.MEASURE_YEAR;
 		/*and b.epi_start <= a.ANCHOR_END_DT <= b.epi_end;*/
 quit;
 
@@ -998,7 +1151,8 @@ proc sql;
 	select a.*, b.*
 	from temp1b as a left join TP_Risk_Adj_Parameters_baseline as b
 	on a.EPISODE_GROUP_NAME = b.Clinical_Episode_Category
-		and a.anchor_type_upper = b.Clinical_Episode_Type;
+		and a.anchor_type_upper = b.Clinical_Episode_Type
+		and A.MEASURE_YEAR = B.MEASURE_YEAR;
 		/*and b.epi_start <= a.ANCHOR_END_DT <= b.epi_end;*/
 quit;
 
@@ -1014,7 +1168,8 @@ proc sql;
 		and a.BED_SIZE=b.Bed_Size
 		and a.CENSUS=b.Census_Div
 		and year(a.POST_DSCH_END_DT)=b.Year
-		and qtr(a.POST_DSCH_END_DT)=b.Quarter;
+		and qtr(a.POST_DSCH_END_DT)=b.Quarter
+		and A.MEASURE_YEAR = B.MEASURE_YEAR;
 		/*and b.epi_start <= a.ANCHOR_END_DT <= b.epi_end;*/
 quit;
 
@@ -1030,7 +1185,8 @@ proc sql;
 		and a.BED_SIZE=b.Bed_Size
 		and a.CENSUS=b.Census_Div
 		and b.Year=2019
-		and b.Quarter=3;
+		and b.Quarter=3
+		and A.MEASURE_YEAR = B.MEASURE_YEAR;
 		/*and b.epi_start <= a.ANCHOR_END_DT <= b.epi_end;*/
 quit;
 
@@ -1073,7 +1229,8 @@ proc sql;
 			on a.BPID = b.INITIATOR_BPID
 			and a.EPISODE_GROUP_NAME = b.EPI_CAT
 			and a.anchor_type_upper = b.EPI_TYPE
-			and a.anc_ccn = b.ccn_join;
+			and a.anc_ccn = b.ccn_join
+			and A.MEASURE_YEAR = B.MEASURE_YEAR;
 			/*and b.epi_start <= a.ANCHOR_END_DT <= b.epi_end;*/
 quit;
 
@@ -1650,6 +1807,7 @@ data temp6;
 	set temp5a temp5b;
 run;
 
+/***** is this redudant with TP_Components up above - lines 205???
 data tp_components_original;
 	set tp.TP_Components_all;
 	where time_period = 'Baseline';
@@ -1661,16 +1819,17 @@ data tp_components_original;
 	if EPI_CAT = "Disorders Of Liver Except Malignancy, Cirrhosis Or Alcoholic Hepatitis" then
 		EPI_CAT = "Disorders of liver except malignancy, cirrhosis or alcoholic hepatitis" ;
 run;
-
+*/
 proc sql;
 	create table temp7 as
 	select a.*, b.EPI_SPEND as EPI_SPEND_original
 	from temp6 as a 
-		left join tp_components_original as b
+		left join TP_Components as b
 			on a.BPID = b.INITIATOR_BPID
 			and a.EPISODE_GROUP_NAME = b.EPI_CAT
 			and a.anchor_type_upper = b.EPI_TYPE
-			and a.anc_ccn = b.ccn_join;
+			and a.anc_ccn = b.ccn_join
+			and A.MEASURE_YEAR = B.MEASURE_YEAR;
 quit;
 
 data t1;
@@ -1745,10 +1904,12 @@ create table t5 as
 		  ,b.BPCI_Episode_Idx
  /* from out2.tp_pp1Initial_1148_0000 AS A */
  from t4 AS A 
-	left join bpciaref.BPCIA_DRG_Mapping as b
+	left join bpcia_drg_mapping_combined as b
 	on a.ANCHOR_CODE = b.code
+		and A.MEASURE_YEAR = B.MEASURE_YEAR
 ;
 quit;
+
 
 proc sql;
 create table t6 as
@@ -1758,8 +1919,9 @@ create table t6 as
 		  ,b.Short_name_2 as clinical_episode_abbr2
 		  ,strip(BPID)||" - "||strip(b.Short_name) as BPID_ClinicalEp
 	from t5 as a
-	left join bpciaref.BPCIA_Clinical_Episode_Names as b
+	left join bpcia_clin_epi_names_combined as b
 	on a.BPCI_Episode_Idx = b.BPCI_Episode_Index
+	and A.MEASURE_YEAR = B.MEASURE_YEAR
 ;
 quit;
 
@@ -1866,8 +2028,10 @@ run;
 %runhosp(2607_0000,2607_0000,2607,0000,223700669);
 %runhosp(1931_0001,5479_0001,5479,0002,310051);
 */
+%runhosp(1167_0000,1167_0000,1167,0000,390173);
 
 *%runhosp(1125_0000,1125_0000,1125,0000,070025); /* Removed 2/24/2020 by Shashi Parmar */
+/*
 %runhosp(1148_0000,1148_0000,1148,0000,310008);
 %runhosp(1167_0000,1167_0000,1167,0000,390173);
 %runhosp(1209_0000,1209_0000,1209,0000,420004);
@@ -1958,12 +2122,12 @@ run;
 %runhosp(6059_0001,6059_0001,6059,0002,330397);
 %runhosp(1191_0001,1191_0001,1191,0002,61440790);
 %runhosp(2302_0000,2302_0000,2302,0000,110074);
-
+*/
 %MEND TP;
 
-*%TP(ybase);
-*%TP(y202002);
-%TP(pp1Initial);
+%TP(ybase);
+%TP(y202002);
+*%TP(pp1Initial);
 
 data All_Target_Prices;
 	format BPID EPI_ID_MILLIMAN EPISODE_ID EPISODE_INITIATOR EPISODE_GROUP_NAME ANCHOR_TYPE ANCHOR_CODE ANCHOR_CCN
