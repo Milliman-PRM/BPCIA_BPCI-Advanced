@@ -244,7 +244,7 @@ data epi0 out.epiexc_&label._&bpid1._&bpid2. perf_epis0;
 		CNT_ATTR_PGP = .;
 		*/
 	%end;
-	%if &label. ^= ybase %then %do;
+	%if %substr(&label.,1,5) ^= ybase %then %do;
 		format memberid $20.;
 		memberid = MBI_ID;
 	%end;
@@ -271,7 +271,7 @@ data epi0 out.epiexc_&label._&bpid1._&bpid2. perf_epis0;
 	if length(compress(ANCHOR_CCN))=5 then anc_ccn = put('0' || compress(ANCHOR_CCN),$6.);
 
 	DROPFLAG_NON_PERF_EPI=0;
-	%if &label. ^= ybase %then %do;
+	%if %substr(&label.,1,5) ^= ybase %then %do;
 		if PERFORMANCE_PERIOD = 'No' then do;
 			DROPFLAG_NON_PERF_EPI=1;
 		end;
@@ -301,7 +301,7 @@ data tempepi_prea tempepi_preb;
 	else output tempepi_preb;
 run;
 
-%if &label. ^= ybase %then %do;
+%if %substr(&label.,1,5) ^= ybase %then %do;
 	proc sql;
 		create table tempepi_prea2 as
 		select a.*, b.TARGET_PRICE_REAL, b.TARGET_PRICE 
@@ -358,7 +358,7 @@ data ip1 ;
 	allowed=STAY_ALLOWED;
 	std_allowed=STAY_STD_ALLOWED;
 
-	%if &label. ^= ybase %then %do;
+	%if %substr(&label.,1,5) ^= ybase %then %do;
 		format memberid $20.;
 		memberid = MBI_ID;
 	%end;
@@ -507,7 +507,7 @@ data ip_&label._&bpid1._&bpid2. out.FrChk_&label._&bpid1._&bpid2. readexc_&label
 	end;
 
 	std_allowed_calc = std_allowed;
-	*%if &label. ^= ybase %then %do;
+	*%if %substr(&label.,1,5) ^= ybase %then %do;
 		std_allowed = std_cost_epi_total;
 	*%end;
 	if std_allowed <= 0 then delete;
@@ -576,7 +576,7 @@ data snf3 ;
 	if dschrgdt=. then dschrgdt = thru_dt;
 
 	std_allowed_calc = std_allowed;
-	*%if &label. ^= ybase %then %do;
+	*%if %substr(&label.,1,5) ^= ybase %then %do;
 		std_allowed = std_cost_epi_total;
 	*%end;
 	if std_allowed <= 0 then delete;
@@ -593,7 +593,7 @@ proc means data=snf3 noprint;
 		wage_index Any_Dual 
 		CLAIMNO DGNSCD01-DGNSCD25
 		bene_gender bene_birth_dt bene_death_dt 
-	%if &label. ^= ybase %then %do; mbi_id %end;
+	%if %substr(&label.,1,5) ^= ybase %then %do; mbi_id %end;
 	;
 	output out = snf4
 	min(FROM_DT)=FROM_DT
@@ -720,7 +720,7 @@ data out.hha_&label._&bpid1._&bpid2. nohhaccn;
 	end;
 
 	std_allowed_calc = std_allowed;
-	*%if &label. ^= ybase %then %do;
+	*%if %substr(&label.,1,5) ^= ybase %then %do;
 		std_allowed = std_cost_epi_total;
 	*%end;
 	if std_allowed <= 0 then delete;
@@ -813,7 +813,7 @@ data 	op_pre_&label._&bpid1._&bpid2.
 	end;
 
 	std_allowed_calc = std_allowed;
-	*%if &label. ^= ybase %then %do;
+	*%if %substr(&label.,1,5) ^= ybase %then %do;
 		std_allowed = std_cost_epi_total;
 	*%end;
 	if std_allowed <= 0 then delete;
@@ -970,7 +970,7 @@ data out.pb_&label._&bpid1._&bpid2.
 	else if dos - ANCHOR_END_DT le 90 then timeframe = 3 ;
 	
 	std_allowed_calc = std_allowed;
-	*%if &label. ^= ybase %then %do;
+	*%if %substr(&label.,1,5) ^= ybase %then %do;
 		std_allowed = std_cost_epi_total;
 	*%end;
 	if std_allowed <= 0 then delete;
@@ -1034,7 +1034,7 @@ data out.dme_&label._&bpid1._&bpid2.
 	else if dos - ANCHOR_END_DT le 90 then timeframe = 3 ;
 
 	std_allowed_calc = std_allowed;
-	*%if &label. ^= ybase %then %do;
+	*%if %substr(&label.,1,5) ^= ybase %then %do;
 		std_allowed = std_cost_epi_total;
 	*%end;
 	if std_allowed <= 0 then delete;
@@ -1105,7 +1105,7 @@ data out.hs_&label._&bpid1._&bpid2. hsexcl_&label._&bpid1._&bpid2. ;
 	end ;
 
 	std_allowed_calc = std_allowed;
-	*%if &label. ^= ybase %then %do;
+	*%if %substr(&label.,1,5) ^= ybase %then %do;
 		std_allowed = std_cost_epi_total;
 	*%end;
 	if std_allowed <= 0 then delete;
@@ -1837,7 +1837,7 @@ quit;
 */
 
 %MACRO CLINOUT;
-%if &label. ^= ybase and &mode. ^= recon %then %do;
+%if %substr(&label.,1,5) ^= ybase and &mode. ^= recon %then %do;
 	%if &mode. ^= dev %then %do;
 		data out.clinepi_&label.;
 			set out.clinepi_&label._:;
