@@ -58,6 +58,8 @@ data DME_&sub2._&BPID._&i. ;
  set temp_DME; 
 BENE_SK = compress(BENE_SK,",");
 CLAIMNO = compress(CLAIMNO,",");
+format MEASURE_YEAR $10.;
+MEASURE_YEAR = 'MY1 & MY2';
 run ;
 
 
@@ -393,6 +395,8 @@ data HHA_&sub2._&BPID._&i. ;
  set temp_HHA; 
 BENE_SK = compress(BENE_SK,",");
 CLAIMNO = compress(CLAIMNO,",");
+format MEASURE_YEAR $10.;
+MEASURE_YEAR = 'MY1 & MY2';
 run ;
 %mend HHA;
 
@@ -460,6 +464,8 @@ data HS_&sub2._&BPID._&i. ;
  set temp_HS; 
 BENE_SK = compress(BENE_SK,",");
 CLAIMNO = compress(CLAIMNO,",");
+format MEASURE_YEAR $10.;
+MEASURE_YEAR = 'MY1 & MY2';
 run ;
 %mend HS;
 
@@ -479,7 +485,7 @@ BENE_SK :$20.
 PROVIDER : $20.
 PTNTCNTL : $20.
 STAY_ADMSN_DT :date9.
-STAY_DRG_CD : best12.
+STAY_DRG_CD : $3.
 STAY_DSCHRGDT :date9.
 STAY_FROM_DT :date9.
 STAY_THRU_DT :date9.
@@ -552,6 +558,8 @@ run;
 data IP_&sub2._&BPID._&i. ;
  set temp_IP; 
 BENE_SK = compress(BENE_SK,",");
+format MEASURE_YEAR $10.;
+MEASURE_YEAR = 'MY1 & MY2';
 run ;
 %mend IP;
 
@@ -620,6 +628,8 @@ data OP_&sub2._&BPID._&i. ;
  set temp_OP; 
 BENE_SK = compress(BENE_SK,",");
 CLAIMNO = compress(CLAIMNO,",");
+format MEASURE_YEAR $10.;
+MEASURE_YEAR = 'MY1 & MY2';
 run ;
 %mend OP;
 
@@ -679,6 +689,8 @@ data PB_&sub2._&BPID._&i. ;
  set temp_PB; 
 BENE_SK = compress(BENE_SK,",");
 CLAIMNO = compress(CLAIMNO,",");
+format MEASURE_YEAR $10.;
+MEASURE_YEAR = 'MY1 & MY2';
 run ;
 %mend PB;
 
@@ -747,6 +759,8 @@ data SNF_&sub2._&BPID._&i. ;
  set temp_SNF; 
 BENE_SK = compress(BENE_SK,",");
 CLAIMNO = compress(CLAIMNO,",");
+format MEASURE_YEAR $10.;
+MEASURE_YEAR = 'MY1 & MY2';
 run ;
 %mend SNF;
 
@@ -762,6 +776,7 @@ PARENT_BPID : $9.
 EI_BPID : $9. 
 ATTRIBUTED_PVDR_GROUP_ID :
 EPISODE_ID :
+PRELIM_SINGLE_ATTR_FLAG :
 EPISODE_GROUP_NAME :  $225.
 BENE_SK :$20.
 MBI_ID :$20.
@@ -810,7 +825,8 @@ DROPFLAG_TRANS_W_CAH_CANCER :
 DROPFLAG_CJR :
 DROPFLAG_RCH_DEMO :
 DROPFLAG_RURAL_PA : 
-FLAG_OVERLAP :
+DROPFLAG_PRELIM_CJR_OVERLAP :
+DROPFLAG_PRELIM_BPCI_A_OVERLAP :
 DROPFLAG_ACO_MSSP_OVERLAP :
 DROPFLAG_ACO_CEC_OVERLAP :
 DROPFLAG_ACO_NEXTGEN_OVERLAP :
@@ -942,7 +958,10 @@ data EPI_&sub2._&BPID._&i. ;
  set temp_EPI; 
 BENE_SK = compress(BENE_SK,",");
 ANCHOR_CLAIMNO = compress(ANCHOR_CLAIMNO,",");
+format MEASURE_YEAR $10.;
+MEASURE_YEAR = 'MY1 & MY2';
 run ;
 %mend EPI;
+
 
 
