@@ -12,7 +12,7 @@ options mprint;
 /****
 Durable Medical Equipment - Detail
  *****/
-%macro DME_MY3(file, i);
+%macro DME(file, i);
 data temp_DME;
 infile "&file." dlm="," missover dsd lrecl=1000 firstobs = 2 ;
 input
@@ -54,21 +54,19 @@ LINEDGNS : $20.
 
 run;
 
-data DME_&sub2._&BPID._&i._MY3 ;
+data DME_&sub2._&BPID._&i. ;
  set temp_DME; 
 BENE_SK = compress(BENE_SK,",");
 CLAIMNO = compress(CLAIMNO,",");
-format MEASURE_YEAR $10.;
-MEASURE_YEAR = 'MY3';
 run ;
 
 
-%mend DME_MY3;
+%mend DME;
 
 /****
 Home Health Agency - Detail
  *****/
-%macro HHA_MY3(file, i);
+%macro HHA(file, i);
 
 data temp_HHA;
 infile "&file." dlm="," missover dsd lrecl=1000 firstobs = 2 ;
@@ -391,19 +389,17 @@ format FROM_DT  THRU_DT mmddyy10.;
 
 run;
 
-data HHA_&sub2._&BPID._&i._MY3;
+data HHA_&sub2._&BPID._&i. ;
  set temp_HHA; 
 BENE_SK = compress(BENE_SK,",");
 CLAIMNO = compress(CLAIMNO,",");
-format MEASURE_YEAR $10.;
-MEASURE_YEAR = 'MY3';
 run ;
-%mend HHA_MY3;
+%mend HHA;
 
 /****
 Hospice
  *****/
-%macro HS_MY3(file, i);
+%macro HS(file, i);
 data temp_HS;
 infile "&file." dlm="," missover dsd lrecl=1000 firstobs = 2 ;
 input
@@ -460,19 +456,17 @@ format FROM_DT  THRU_DT mmddyy10.;
 
 run;
 
-data HS_&sub2._&BPID._&i._MY3 ;
+data HS_&sub2._&BPID._&i. ;
  set temp_HS; 
 BENE_SK = compress(BENE_SK,",");
 CLAIMNO = compress(CLAIMNO,",");
-format MEASURE_YEAR $10.;
-MEASURE_YEAR = 'MY3';
 run ;
-%mend HS_MY3;
+%mend HS;
 
 /****
 Inpatient -Detail 
  *****/
-%macro IP_MY3(file, i);
+%macro IP(file, i);
 data temp_IP;
 infile "&file." dlm="," missover dsd lrecl=1000 firstobs = 2 ;
 input
@@ -555,18 +549,16 @@ format STAY_ADMSN_DT STAY_DSCHRGDT STAY_FROM_DT STAY_THRU_DT mmddyy10.;
 
 run;
 
-data IP_&sub2._&BPID._&i._MY3 ;
+data IP_&sub2._&BPID._&i. ;
  set temp_IP; 
 BENE_SK = compress(BENE_SK,",");
-format MEASURE_YEAR $10.;
-MEASURE_YEAR = 'MY3';
 run ;
-%mend IP_MY3;
+%mend IP;
 
 /****
 Outpatient - Detail 
  *****/
-%macro OP_MY3(file, i);
+%macro OP(file, i);
 
 data temp_OP;
 infile "&file." dlm="," missover dsd lrecl=1000 firstobs = 2 ;
@@ -624,19 +616,17 @@ format FROM_DT  THRU_DT REV_DT mmddyy10.;
 
 run;
 
-data OP_&sub2._&BPID._&i._MY3 ;
+data OP_&sub2._&BPID._&i. ;
  set temp_OP; 
 BENE_SK = compress(BENE_SK,",");
 CLAIMNO = compress(CLAIMNO,",");
-format MEASURE_YEAR $10.;
-MEASURE_YEAR = 'MY3';
 run ;
-%mend OP_MY3;
+%mend OP;
 
 /****
 Carrier (Physician/Supplier Part B) - Detail
  *****/
-%macro PB_MY3(file, i);
+%macro PB(file, i);
 
 data temp_PB;
 infile "&file." dlm="," missover dsd lrecl=1000 firstobs = 2 ;
@@ -684,19 +674,17 @@ LINEDGNS : $20.
 
 run;
 
-data PB_&sub2._&BPID._&i._MY3 ;
+data PB_&sub2._&BPID._&i. ;
  set temp_PB; 
 BENE_SK = compress(BENE_SK,",");
 CLAIMNO = compress(CLAIMNO,",");
-format MEASURE_YEAR $10.;
-MEASURE_YEAR = 'MY3';
 run ;
-%mend PB_MY3;
+%mend PB;
 
 /****
 Skilled Nursing Facility - Detail 
  *****/
-%macro SNF_MY3(file, i);
+%macro SNF(file, i);
 
 data temp_SNF;
 infile "&file." dlm="," missover dsd lrecl=1000 firstobs = 2 ;
@@ -754,19 +742,17 @@ DGNSCD25 : $20.
 
 run;
 
-data SNF_&sub2._&BPID._&i._MY3 ;
+data SNF_&sub2._&BPID._&i. ;
  set temp_SNF; 
 BENE_SK = compress(BENE_SK,",");
 CLAIMNO = compress(CLAIMNO,",");
-format MEASURE_YEAR $10.;
-MEASURE_YEAR = 'MY3';
 run ;
-%mend SNF_MY3;
+%mend SNF;
 
 /****
 Clinical Episode-Level File - Applicable for Baseline Period Only
  *****/
-%macro EPI_MY3(file, i);
+%macro EPI(file, i);
 
 data temp_EPI;
 infile "&file." dlm="," missover dsd lrecl=1000 firstobs = 2 ;
@@ -946,13 +932,11 @@ format BENE_BIRTH_DT BENE_DEATH_DT mmddyy10.;
 
 run;
 
-data EPI_&sub2._&BPID._&i._MY3 ;
+data EPI_&sub2._&BPID._&i. ;
  set temp_EPI; 
 BENE_SK = compress(BENE_SK,",");
 ANCHOR_CLAIMNO = compress(ANCHOR_CLAIMNO,",");
-format MEASURE_YEAR $10.;
-MEASURE_YEAR = 'MY3';
 run ;
-%mend EPI_MY3;
+%mend EPI;
 
 
