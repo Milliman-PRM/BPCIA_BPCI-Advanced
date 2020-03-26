@@ -20,14 +20,14 @@ options mprint;
 *%let vers = B; *B for baseline, P for Performance;
 
 /*turn on for performance */
-%let mode = main; *main = main interface, base = baseline interface, recon = reconciliation;
-%let label = y202002; *Turn off for baseline data, turn on for quarterly data;
-%let vers = P; *B for baseline, P for Performance;
+*%let mode = main; *main = main interface, base = baseline interface, recon = reconciliation;
+*%let label = y202002; *Turn off for baseline data, turn on for quarterly data;
+*%let vers = P; *B for baseline, P for Performance;
 
 /*turn on for recon */
-*%let mode = recon; *main = main interface, base = baseline interface, recon = reconciliation;
-*%let label = pp1Initial; *Turn off for baseline data, turn on for quarterly data;
-*%let vers = P; *B for baseline, P for Performance;
+%let mode = recon; *main = main interface, base = baseline interface, recon = reconciliation;
+%let label = pp1Initial; *Turn off for baseline data, turn on for quarterly data;
+%let vers = P; *B for baseline, P for Performance;
 
 
 
@@ -119,24 +119,8 @@ quit;
 
 %MACRO RunHosp(id1,id2,bpid1,bpid2,prov);
 
-data TP_Components_all_V2;
-	set tp.TP_Components_all;
-	format MEASURE_YEAR $10.;
-MEASURE_YEAR = 'MY1 & MY2';
-run;
-
-data TP_Components_my3_all_V2;
-	set tp.TP_Components_my3_all;
-	format MEASURE_YEAR $10.;
-MEASURE_YEAR = 'MY3';
-run;
-
-data TP_Components_all_combined;
-set TP_Components_my3_all_V2 TP_Components_all_V2;
-run;
-
 data TP_Components;
-	set TP_Components_all_combined;
+	set tp.TP_Components_all;
 	format ccn_join $6.;
 	ccn_join = ASSOC_ACH_CCN;
 	if ccn_join = '' then ccn_join = CCN_TIN;
@@ -148,15 +132,15 @@ data TP_Components;
 run; 
 
 proc sort data=TP_Components;
-	by MEASURE_YEAR INITIATOR_BPID EPI_CAT EPI_TYPE ccn_join descending rel_dt descending epi_start descending epi_end;
+	by INITIATOR_BPID EPI_CAT EPI_TYPE ccn_join descending rel_dt descending epi_start descending epi_end;
 run;
 
 proc sort nodupkey data=TP_Components out=TP_Components_forBase;
-	by MEASURE_YEAR INITIATOR_BPID EPI_CAT EPI_TYPE ccn_join;
+	by INITIATOR_BPID EPI_CAT EPI_TYPE ccn_join;
 run;
 
 proc sort nodupkey data=TP_Components;
-	by MEASURE_YEAR INITIATOR_BPID EPI_CAT EPI_TYPE ccn_join rel_dt epi_start epi_end;
+	by INITIATOR_BPID EPI_CAT EPI_TYPE ccn_join rel_dt epi_start epi_end;
 run;
 
 data bpcia_performance_episodes;
@@ -166,7 +150,7 @@ run;
 
 data epi0_pre;
 	format ConvenerID BPID $9. EPI_ID_MILLIMAN $32. ;
-	set %if %substr(&label.,1,5)  = ybase %then %do; in.epi_&label._&id1. %end; %else %do; in.epi_&label._&id2. %end; ;	
+	set %if &label. = ybase %then %do; in.epi_&label._&id1. %end; %else %do; in.epi_&label._&id2. %end; ;	
 
 	BPID = "&BPID1." || "-" || "&BPID2.";
 	ConvenerID = tranwrd("&id2.","_","-");
@@ -197,7 +181,7 @@ data epi0 out.epiexc_&label._&bpid1._&bpid2. perf_epis0;
 
 	ref_year = year(ANCHOR_BEG_DT) ;
 
-	%if %substr(&label.,1,5)  = ybase %then %do;
+	%if &label. = ybase %then %do;
 		DROP_EPISODE = 0;
 		DROPFLAG_NOT_CONT_ENR_AB_NO_C = 0;
 		DROPFLAG_ESRD = 0;
@@ -210,18 +194,17 @@ data epi0 out.epiexc_&label._&bpid1._&bpid2. perf_epis0;
 	%end;
 
 	
-	DROP_EPISODE=0;
-	Epi_Pre_Data=0;
-	Epi_Post_Data=0;
-	if ANCHOR_BEG_DT < mdy(10,1,2015) then Epi_Pre_Data=1;
-	if POST_DSCH_END_DT >= mdy(10,1,2018) then Epi_Post_Data=1;
-	DROPFLAG_Predata=0;
-	if Epi_Pre_Data=1 then do;
-		DROPFLAG_Predata=1;
+	Epi_2013=0;
+	Epi_2017=0;
+	if year(ANCHOR_BEG_DT) <= 2013 then Epi_2013=1;
+	if year(POST_DSCH_END_DT) >= 2017 then Epi_2017=1;
+	DROPFLAG_2013=0;
+	if Epi_2013=1 then do;
+		DROPFLAG_2013=1;
 		DROP_EPISODE=1;
 	end;
 
-	%if substr(&label.,1,5  = ybase %then %do;
+	%if &label. = ybase %then %do;
 		if length(ANCHOR_CODE)=3 then do;
 			if length(compress(DRG_2019))=3 then ANCHOR_CODE = compress(DRG_2019);
 			else ANCHOR_CODE = '0' || compress(DRG_2019);
@@ -244,7 +227,7 @@ data epi0 out.epiexc_&label._&bpid1._&bpid2. perf_epis0;
 		CNT_ATTR_PGP = .;
 		*/
 	%end;
-	%if %substr(&label.,1,5) ^= ybase %then %do;
+	%if &label. ^= ybase %then %do;
 		format memberid $20.;
 		memberid = MBI_ID;
 	%end;
@@ -271,7 +254,7 @@ data epi0 out.epiexc_&label._&bpid1._&bpid2. perf_epis0;
 	if length(compress(ANCHOR_CCN))=5 then anc_ccn = put('0' || compress(ANCHOR_CCN),$6.);
 
 	DROPFLAG_NON_PERF_EPI=0;
-	%if %substr(&label.,1,5) ^= ybase %then %do;
+	%if &label. ^= ybase %then %do;
 		if PERFORMANCE_PERIOD = 'No' then do;
 			DROPFLAG_NON_PERF_EPI=1;
 		end;
@@ -291,8 +274,7 @@ proc sql;
 		on a.BPID = b.INITIATOR_BPID
 		and a.EPISODE_GROUP_NAME = b.EPI_CAT
 		and a.anchor_type_upper = b.EPI_TYPE
-		and a.anc_ccn = b.ccn_join
-		and A.MEASURE_YEAR = B.MEASURE_YEAR;
+		and a.anc_ccn = b.ccn_join;
 quit;
 
 data tempepi_prea tempepi_preb;
@@ -301,7 +283,7 @@ data tempepi_prea tempepi_preb;
 	else output tempepi_preb;
 run;
 
-%if %substr(&label.,1,5) ^= ybase %then %do;
+%if &label. ^= ybase %then %do;
 	proc sql;
 		create table tempepi_prea2 as
 		select a.*, b.TARGET_PRICE_REAL, b.TARGET_PRICE 
@@ -310,8 +292,7 @@ run;
 			and a.EPISODE_GROUP_NAME = b.EPI_CAT
 			and a.anchor_type_upper = b.EPI_TYPE
 			and a.anc_ccn = b.ccn_join
-			and b.epi_start <= a.ANCHOR_END_DT <= b.epi_end
-			and A.MEASURE_YEAR = B.MEASURE_YEAR;
+			and b.epi_start <= a.ANCHOR_END_DT <= b.epi_end;
 	quit;
 %end;
 %else %do;
@@ -322,8 +303,7 @@ run;
 			on a.BPID = b.INITIATOR_BPID
 			and a.EPISODE_GROUP_NAME = b.EPI_CAT
 			and a.anchor_type_upper = b.EPI_TYPE
-			and a.anc_ccn = b.ccn_join
-			and A.MEASURE_YEAR = B.MEASURE_YEAR;
+			and a.anc_ccn = b.ccn_join;
 	quit;
 %end;
 
@@ -334,8 +314,7 @@ proc sql;
 		on a.BPID = b.INITIATOR_BPID
 		and a.EPISODE_GROUP_NAME = b.EPI_CAT
 		and a.anchor_type_upper = b.EPI_TYPE
-		and a.anc_ccn = b.ccn_join
-		and A.MEASURE_YEAR = B.MEASURE_YEAR;
+		and a.anc_ccn = b.ccn_join;
 quit;
 
 data epi_pre;
@@ -354,11 +333,11 @@ Inpatient Hospital Claims
 data ip1 ;
 	format ConvenerID BPID $9. EPI_ID_MILLIMAN $32. ;
 	format costgrp type $50.;
-	set %if %substr(&label.,1,5)  = ybase %then %do; in.ip_&label._&id1.; %end; %else %do; in.ip_&label._&id2.; %end;
+	set %if &label. = ybase %then %do; in.ip_&label._&id1.; %end; %else %do; in.ip_&label._&id2.; %end;
 	allowed=STAY_ALLOWED;
 	std_allowed=STAY_STD_ALLOWED;
 
-	%if %substr(&label.,1,5) ^= ybase %then %do;
+	%if &label. ^= ybase %then %do;
 		format memberid $20.;
 		memberid = MBI_ID;
 	%end;
@@ -493,7 +472,7 @@ data ip_&label._&bpid1._&bpid2. out.FrChk_&label._&bpid1._&bpid2. readexc_&label
 	end;
 
 
-	%if %substr(&label.,1,5)  = ybase %then %do;
+	%if &label. = ybase %then %do;
 		array tran(*) TRANS_IP_STAY_1 - TRANS_IP_STAY_13;
 	%end;
 	%else %do;
@@ -507,7 +486,7 @@ data ip_&label._&bpid1._&bpid2. out.FrChk_&label._&bpid1._&bpid2. readexc_&label
 	end;
 
 	std_allowed_calc = std_allowed;
-	*%if %substr(&label.,1,5) ^= ybase %then %do;
+	*%if &label. ^= ybase %then %do;
 		std_allowed = std_cost_epi_total;
 	*%end;
 	if std_allowed <= 0 then delete;
@@ -528,7 +507,7 @@ Skilled Nursing Facility Claims
 data snf ;
 	format ConvenerID BPID $9. EPI_ID_MILLIMAN $32. ;
 	format costgrp type $50.;
-	set %if %substr(&label.,1,5)  = ybase %then %do; in.snf_&label._&id1.; %end; %else %do; in.snf_&label._&id2.; %end;
+	set %if &label. = ybase %then %do; in.snf_&label._&id1.; %end; %else %do; in.snf_&label._&id2.; %end;
 	type='SNF';	
 	allowed = CLM_ALLOWED;
 
@@ -576,7 +555,7 @@ data snf3 ;
 	if dschrgdt=. then dschrgdt = thru_dt;
 
 	std_allowed_calc = std_allowed;
-	*%if %substr(&label.,1,5) ^= ybase %then %do;
+	*%if &label. ^= ybase %then %do;
 		std_allowed = std_cost_epi_total;
 	*%end;
 	if std_allowed <= 0 then delete;
@@ -593,7 +572,7 @@ proc means data=snf3 noprint;
 		wage_index Any_Dual 
 		CLAIMNO DGNSCD01-DGNSCD25
 		bene_gender bene_birth_dt bene_death_dt 
-	%if %substr(&label.,1,5) ^= ybase %then %do; mbi_id %end;
+	%if &label. ^= ybase %then %do; mbi_id %end;
 	;
 	output out = snf4
 	min(FROM_DT)=FROM_DT
@@ -640,7 +619,7 @@ Home Health Agency Claims
 ***Merge HHA Header and Detail File Logic***;
 data hha1  ;
 	format ConvenerID BPID $9. EPI_ID_MILLIMAN $32. ;
-	set %if %substr(&label.,1,5)  = ybase %then %do; in.hha_&label._&id1. %end; %else %do; in.hha_&label._&id2. %end; (rename=(PROVIDER=PROVIDER_NUM));
+	set %if &label. = ybase %then %do; in.hha_&label._&id1. %end; %else %do; in.hha_&label._&id2. %end; (rename=(PROVIDER=PROVIDER_NUM));
 	format costgrp type $50. PROVIDER $20.;
 	type = 'HH'; * We do not have the information to determine HH_A, HH_B, and LUPA;
 	
@@ -720,7 +699,7 @@ data out.hha_&label._&bpid1._&bpid2. nohhaccn;
 	end;
 
 	std_allowed_calc = std_allowed;
-	*%if %substr(&label.,1,5) ^= ybase %then %do;
+	*%if &label. ^= ybase %then %do;
 		std_allowed = std_cost_epi_total;
 	*%end;
 	if std_allowed <= 0 then delete;
@@ -738,7 +717,7 @@ Outpatient Hospital Claims
 data op ;
 	format ConvenerID BPID $9. EPI_ID_MILLIMAN $32. ;
 	format costgrp $50.;
-	set %if %substr(&label.,1,5)  = ybase %then %do; in.op_&label._&id1. %end; %else %do; in.op_&label._&id2. %end; (rename=(PROVIDER=PROVIDER_NUM));
+	set %if &label. = ybase %then %do; in.op_&label._&id1. %end; %else %do; in.op_&label._&id2. %end; (rename=(PROVIDER=PROVIDER_NUM));
 	new_rev = put(REV_CNTR,3.);
 /*	type = compress('OP_' || put(new_rev,$revcode.));*/
 	allowed = LINE_ALLOWED;
@@ -813,7 +792,7 @@ data 	op_pre_&label._&bpid1._&bpid2.
 	end;
 
 	std_allowed_calc = std_allowed;
-	*%if %substr(&label.,1,5) ^= ybase %then %do;
+	*%if &label. ^= ybase %then %do;
 		std_allowed = std_cost_epi_total;
 	*%end;
 	if std_allowed <= 0 then delete;
@@ -883,7 +862,7 @@ data bcarrier1 ;
 	format ConvenerID BPID $9. EPI_ID_MILLIMAN $32. ;
 	format costgrp $50.;
 	format LINEITEM $9.;
-	set %if %substr(&label.,1,5)  = ybase %then %do; in.pb_&label._&id1. %end; %else %do; in.pb_&label._&id2. %end; (rename=(LINEITEM=LINEITEM2));
+	set %if &label. = ybase %then %do; in.pb_&label._&id1. %end; %else %do; in.pb_&label._&id2. %end; (rename=(LINEITEM=LINEITEM2));
 /*	type = compress('Prof_' || put(HCPCS_CD,$hcpcs.));*/
 	util_day = max(1,thru_dt-FROM_DT);
 
@@ -970,7 +949,7 @@ data out.pb_&label._&bpid1._&bpid2.
 	else if dos - ANCHOR_END_DT le 90 then timeframe = 3 ;
 	
 	std_allowed_calc = std_allowed;
-	*%if %substr(&label.,1,5) ^= ybase %then %do;
+	*%if &label. ^= ybase %then %do;
 		std_allowed = std_cost_epi_total;
 	*%end;
 	if std_allowed <= 0 then delete;
@@ -994,7 +973,7 @@ Durable Medical Equipment Claims
 data dme ;
 	format ConvenerID BPID $9. EPI_ID_MILLIMAN $32. ;
 	format costgrp type $50.;
-	set %if %substr(&label.,1,5)  = ybase %then %do; in.dme_&label._&id1. ; %end; %else %do; in.dme_&label._&id2. ; %end;
+	set %if &label. = ybase %then %do; in.dme_&label._&id1. ; %end; %else %do; in.dme_&label._&id2. ; %end;
 	allowed = LINE_ALLOWED;
 	std_allowed = LINE_STD_ALLOWED;
 	if put(hcpcs_cd,$Hemo_JCodes.) = 'X' then do; *Set hemophilia clotting factors claims to 0*;
@@ -1034,7 +1013,7 @@ data out.dme_&label._&bpid1._&bpid2.
 	else if dos - ANCHOR_END_DT le 90 then timeframe = 3 ;
 
 	std_allowed_calc = std_allowed;
-	*%if %substr(&label.,1,5) ^= ybase %then %do;
+	*%if &label. ^= ybase %then %do;
 		std_allowed = std_cost_epi_total;
 	*%end;
 	if std_allowed <= 0 then delete;
@@ -1053,7 +1032,7 @@ Hospice Claims
 data hs ;
 	format ConvenerID BPID $9. EPI_ID_MILLIMAN $32. ;
 	format costgrp type $50.;
-	set %if %substr(&label.,1,5)  = ybase %then %do; in.hs_&label._&id1.; %end; %else %do; in.hs_&label._&id2.; %end;
+	set %if &label. = ybase %then %do; in.hs_&label._&id1.; %end; %else %do; in.hs_&label._&id2.; %end;
 	type='HS';	
 	allowed = CLM_ALLOWED;
 	util_day = max(1,thru_dt-FROM_DT);
@@ -1105,7 +1084,7 @@ data out.hs_&label._&bpid1._&bpid2. hsexcl_&label._&bpid1._&bpid2. ;
 	end ;
 
 	std_allowed_calc = std_allowed;
-	*%if %substr(&label.,1,5) ^= ybase %then %do;
+	*%if &label. ^= ybase %then %do;
 		std_allowed = std_cost_epi_total;
 	*%end;
 	if std_allowed <= 0 then delete;
@@ -1721,9 +1700,9 @@ quit;
 
 
 *delete work datasets;
-*proc datasets lib=work memtype=data kill;
-*run;
-*quit;
+proc datasets lib=work memtype=data kill;
+run;
+quit;
 
 %mend;
 
@@ -1740,10 +1719,8 @@ quit;
 %runhosp(1931_0001,5479_0001,5479,0002,310051);
 
 */
-
-%runhosp(1167_0000,1167_0000,1167,0000,390173);
 *%runhosp(1125_0000,1125_0000,1125,0000,070025);  /* removed 2/24/2020 by Shashi Parmar */
-/*
+
 %runhosp(1148_0000,1148_0000,1148,0000,310008);
 %runhosp(1167_0000,1167_0000,1167,0000,390173);
 %runhosp(1209_0000,1209_0000,1209,0000,420004);
@@ -1834,10 +1811,10 @@ quit;
 %runhosp(6059_0001,6059_0001,6059,0002,330397);
 %runhosp(1191_0001,1191_0001,1191,0002,61440790);
 %runhosp(2302_0000,2302_0000,2302,0000,110074);
-*/
+
 
 %MACRO CLINOUT;
-%if %substr(&label.,1,5) ^= ybase and &mode. ^= recon %then %do;
+%if &label. ^= ybase and &mode. ^= recon %then %do;
 	%if &mode. ^= dev %then %do;
 		data out.clinepi_&label.;
 			set out.clinepi_&label._:;
