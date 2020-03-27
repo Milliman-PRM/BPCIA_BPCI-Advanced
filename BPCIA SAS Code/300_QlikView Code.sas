@@ -1267,8 +1267,10 @@ create table Episode_Detail_6 as
 	on a.epi_id_milliman = b.key
 	left join bpcia_drg_mapping_combined as c
 	on a.ANCHOR_CODE = c.code
-	and A.measure_year = B.measure_year;
+	and A.measure_year = C.measure_year;
 ;
+quit;
+
 /*Added the Clinical Episode Names to Episode_Detail */
 proc sql;
 create table Episode_Detail_7 as
@@ -1299,7 +1301,9 @@ create table Episode_Detail_7 as
 					then 1 else 0 end as client_type
 			%if &label = ybase %then %do;
 			,"BASE" as period
-			,"Baseline (2014 - 2016)" as timeframe_filter format = $100. length=100 
+			, case when a.measure_year = "MY1 & MY2" then "Baseline (2014 - 2016)" 
+				  when a.measure_year = "MY3" then "Baseline (2015Q4 - 2018Q3)"
+				end as timeframe_filter format = $100. length=100 
 			%end;
 			%else %do;
 			,"PERF" as period
@@ -1313,7 +1317,7 @@ create table Episode_Detail_7 as
 				   when '01JUL2022'd le POST_DSCH_END_DT le '31DEC2022'd then "Performance Period 8"
 				   when '01JAN2023'd le POST_DSCH_END_DT le '30JUN2023'd then "Performance Period 9"
 				   when '01JUL2023'd le POST_DSCH_END_DT le '31DEC2023'd then "Performance Period 10"
-			end as timeframe_filter format = $100. length=100
+				end as timeframe_filter format = $100. length=100
 			%end;
 			,case when (&transmit_date. - b.POST_DSCH_END_DT) >= 60 then "Yes" else "No" end as COMP_EP_FLAG
 			,b.POST_DSCH_END_DT as epi_end_date
@@ -3505,6 +3509,7 @@ proc sql;
 	,anchor_code 
 	,Anchor_Fac_Code_Name 
 	,Episode_Initiator
+	,Measure_Year
 	,case when (b.timeframe = 0 and b.end_date <= a.anchor_end_dt and b.begin_date <= a.anchor_beg_dt and b.end_date^=. ) then -3 else b.timeframe end as timeframe
 	,b.*
 	,case when timeframe ^= 0 and substr(Caretype,1,10) = 'Outpatient'  then 0/*Create a Rank variable to rank Outpatient before  and Prof emergency Claims before Readmit claims if they occur on the same day*/
@@ -3657,7 +3662,9 @@ data bpcia_episode_initiator_perf;
 	if episode_group_name = 'Major joint replacement of the lower extremity' THEN mjrle = 1;
 	if episode_group_name = 'Major joint replacement of the lower extremity' THEN CABG_Flag_num = 1;	
 	if episode_group_name = 'Major joint replacement of the lower extremity' THEN AMI_Flag_num = 1;
-	if inpatient_outpatient = 'INPATIENT' THEN PSI_Flag_num = 1;
+
+	if Inpatient___Outpatient='' then Inpatient___Outpatient = SETTING;
+	if Inpatient___Outpatient = 'INPATIENT' THEN PSI_Flag_num = 1;
 comp_flag_num = max(djrle,mjrle);
 	if comp_flag_num = 1 then Comp_Flag='1';
 	else Comp_Flag = '';
@@ -3685,7 +3692,7 @@ proc sql;
 			,(CASE WHEN b.Comp_Flag_num = 1 then '1' ELSE '0' END) AS Comp_Flag
 		from patient_detail4 as a left join 
 			bpcia_episode_initiator_max as b
-			on a.BPID = b.BPCI_Advanced_ID_Number_2
+			on a.BPID = b.BPID
 			and A.measure_year = B.measure_year
 ;
 quit;
@@ -4586,7 +4593,7 @@ create table exclusions1 as
 /*			then 1 else 0 end as DROPFLAG_OTHER*/
 		,case
 			when a.DROPFLAG_CJR = 1 then 1 /*facility level exclusion*/
-			when a.DROPFLAG_ACO_MSSP_OVERLAP = 1 then 2 /*facility level exclusion*/
+			/*when a.DROPFLAG_ACO_MSSP_OVERLAP = 1 then 2 *//*facility level exclusion*/
 			when a.DROPFLAG_ACO_CEC_OVERLAP = 1 then 3 /*facility level exclusion*/
 			when a.DROPFLAG_ACO_NEXTGEN_OVERLAP = 1 then 4 /*facility level exclusion*/
 			when a.DROPFLAG_ACO_VERMONTAP_OVERLAP = 1 then 5 /*facility level exclusion*/
@@ -4609,7 +4616,7 @@ create table exclusions1 as
             end as dropreason
 		,case
 			when a.DROPFLAG_CJR = 1 then "CJR hospital with MJRLE MS-DRG" /*facility level exclusion*/
-			when a.DROPFLAG_ACO_MSSP_OVERLAP = 1 then "Beneficiary aligned with Medicare Shared Savings Program Track 3 (ACO)" /*facility level exclusion*/
+			/*when a.DROPFLAG_ACO_MSSP_OVERLAP = 1 then "Beneficiary aligned with Medicare Shared Savings Program Track 3 (ACO)"*/ /*facility level exclusion*/
 			when a.DROPFLAG_ACO_CEC_OVERLAP = 1 then "Beneficiary aligned with Comprehensive ESRD Care (ACO)" /*facility level exclusion*/
 			when a.DROPFLAG_ACO_NEXTGEN_OVERLAP = 1 then "Beneficiary aligned with Next Generation (ACO)" /*facility level exclusion*/
 			when a.DROPFLAG_ACO_VERMONTAP_OVERLAP = 1 then "Beneficiary aligned with Vermont All Payer (ACO)" /*facility level exclusion*/
@@ -4728,12 +4735,12 @@ run;
 /*		timeframe_filter = "Baseline - Years 1 and 2 (2012 - 2014)"; */
 /*	*/
 /*run ; */
-
+/*
 *delete work datasets;
 proc datasets lib=work memtype=data kill;
 run;
 quit;
-
+*/
 %mend dashboard;
 
 *MACRO RUNS;
@@ -4752,7 +4759,7 @@ dev runs
 %Dashboard(5479,0002,0);
 */
 *%Dashboard(1167,0000,0);
-
+*%Dashboard(1374,0012,1);
 
 %Dashboard(2586,0002,1);
 %Dashboard(2586,0005,1);
