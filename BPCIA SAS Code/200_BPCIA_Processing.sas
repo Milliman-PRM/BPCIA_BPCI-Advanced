@@ -109,7 +109,12 @@ run;
 	
 	DRG_temp = put(&DRG.,$3.);
 
-	Exclude = put(DRG_temp,$DRG_excl.);
+	if MEASURE_YEAR = 'MY1 & MY2' then do;
+		Exclude = put(DRG_temp,$DRG_excl.);
+	end;
+	else if MEASURE_YEAR = 'MY3' then do;
+		Exclude = put(DRG_temp,$DRG_excl_MY3.);
+	end;
 
 %mend;
 
@@ -562,6 +567,18 @@ data ip_&label._&bpid1._&bpid2. out.FrChk_&label._&bpid1._&bpid2. readexc_&label
 		std_allowed = std_allowed * .98;
 	end;
 
+	TAVR=0;
+	if MEASURE_YEAR = 'MY3' and ANCHOR_CODE in ('246','247','248','249','250','251') then do;
+		array px(*) PRCDRCD01 - PRCDRCD25;
+		do i = 1 to dim(px);
+			if put(px[i],$TAVR_10ICD.)='Y' then do;
+				TAVR=1;
+				allowed=0;
+				std_allowed=0;
+			end;
+		end;
+	end; 
+
 	if FRACTURE_FLAG = 1 then output out.FrChk_&label._&bpid1._&bpid2.;
 
 	format anc_ccn $6.;
@@ -855,10 +872,6 @@ data op ;
 	allowed = LINE_ALLOWED;
 	std_allowed = LINE_STD_ALLOWED;
 	util_day = max(1,thru_dt-FROM_DT);
-	if put(hcpcs_cd,$Hemo_JCodes.) = 'X' then do; *Set hemophilia clotting factors claims to 0*;
-		allowed = 0; 
-		std_allowed = 0;
-	end;
 
 	format PROVIDER $20.;
 	PROVIDER = put(PROVIDER_NUM,$20.);
@@ -900,7 +913,11 @@ data 	op_pre_&label._&bpid1._&bpid2.
 	dos = rev_dt;
 	if missing(rev_dt) then dos = from_dt ;
 
-		if put(hcpcs_cd,$Hemo_JCodes.) = 'X' and Measure_Year = 'MY3' then do; *Set hemophilia clotting factors claims to 0*;
+	if put(hcpcs_cd,$Hemo_JCodes.) = 'X' and Measure_Year = 'MY1 & MY2' then do; *Set hemophilia clotting factors claims to 0*;
+		allowed = 0; 
+		std_allowed = 0;
+	end;
+	if put(hcpcs_cd,$Hemo_JCodes_MY3.) = 'X' and Measure_Year = 'MY3' then do; *Set hemophilia clotting factors claims to 0*;
 		allowed = 0; 
 		std_allowed = 0;
 	end;
@@ -1023,10 +1040,6 @@ data bcarrier1 ;
 
 	allowed = LINE_ALLOWED;
 	std_allowed = LINE_STD_ALLOWED;
-	if put(hcpcs_cd,$Hemo_JCodes.) = 'X' then do; *Set hemophilia clotting factors claims to 0*;
-		allowed = 0; 
-		std_allowed = 0;
-	end;
 
 	* cost group *;
 	costgrp = 'OTHER';
@@ -1089,7 +1102,11 @@ data out.pb_&label._&bpid1._&bpid2.
 	format dos DATE9.;
 	dos = EXPNSDT1;
 
-		if put(hcpcs_cd,$Hemo_JCodes.) = 'X' and Measure_Year = 'MY3' then do; *Set hemophilia clotting factors claims to 0*;
+	if put(hcpcs_cd,$Hemo_JCodes.) = 'X' and Measure_Year = 'MY1 & MY2' then do; *Set hemophilia clotting factors claims to 0*;
+		allowed = 0; 
+		std_allowed = 0;
+	end;
+	if put(hcpcs_cd,$Hemo_JCodes_MY3.) = 'X' and Measure_Year = 'MY3' then do; *Set hemophilia clotting factors claims to 0*;
 		allowed = 0; 
 		std_allowed = 0;
 	end;
@@ -1142,10 +1159,7 @@ data dme ;
 	set %if %substr(&label.,1,5)  = ybase %then %do; in.dme_&label._&id1. ; %end; %else %do; in.dme_&label._&id2. ; %end;
 	allowed = LINE_ALLOWED;
 	std_allowed = LINE_STD_ALLOWED;
-	if put(hcpcs_cd,$Hemo_JCodes.) = 'X' then do; *Set hemophilia clotting factors claims to 0*;
-		allowed = 0; 
-		std_allowed = 0;
-	end;
+
 	type = 'DME';
 	util_day = max(1,thru_dt-FROM_DT);
 
@@ -1166,7 +1180,11 @@ data out.dme_&label._&bpid1._&bpid2.
 	if a and b=0 then output nodmeccn ;
 	if a and b;
 		
-		if put(hcpcs_cd,$Hemo_JCodes.) = 'X' and Measure_Year = 'MY3' then do; *Set hemophilia clotting factors claims to 0*;
+	if put(hcpcs_cd,$Hemo_JCodes.) = 'X' and Measure_Year = 'MY1 & MY2' then do; *Set hemophilia clotting factors claims to 0*;
+		allowed = 0; 
+		std_allowed = 0;
+	end;
+	if put(hcpcs_cd,$Hemo_JCodes_MY3.) = 'X' and Measure_Year = 'MY3' then do; *Set hemophilia clotting factors claims to 0*;
 		allowed = 0; 
 		std_allowed = 0;
 	end;
