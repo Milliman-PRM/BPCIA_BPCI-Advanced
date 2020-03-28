@@ -534,14 +534,13 @@ Step 3 - out tables, limit TP_Components to BPIDs in the Data Tracker, and expor
 			title "&table."; select count(distinct initiator_bpid) as distinct_bpid from out.&table._all; 
 		quit;
 		/* partition to decrease interface size */
-		data out.&table._pmr out.&table._oth out.&table._ccf out.&table._1 out.&table._dev;
+		data out.&table._pmr out.&table._oth out.&table._ccf out.&table._dev;
 			set out.&table._all;
 			if initiator_bpid in (&PMR_EI_lst.) then output out.&table._pmr;
 			else if initiator_bpid in (&NON_PMR_EI_lst.) then output out.&table._oth;
 			else if initiator_bpid in (&CCF_lst.) then output out.&table._ccf;
 			
 			if initiator_bpid in (&DEV_EI_lst.) then output out.&table._dev;
-			if initiator_bpid in (&PMR_EI_lst.) or initiator_bpid in (&NON_PMR_EI_lst.) then output out.&table._1;
 		run;
 		/* Export partitions */
 		proc export
@@ -568,12 +567,12 @@ Step 3 - out tables, limit TP_Components to BPIDs in the Data Tracker, and expor
 			dbms=CSV 
 			replace;
 		run;
-		proc export
-			data=out.&table._1
-			outfile="R:\data\HIPAA\BPCIA_BPCI Advanced\08 - Target Price Data\&table._1.csv"
-			dbms=CSV 
-			replace;
-		run;
+/*		proc export*/
+/*			data=out.&table._1*/
+/*			outfile="R:\data\HIPAA\BPCIA_BPCI Advanced\08 - Target Price Data\&table._1.csv"*/
+/*			dbms=CSV */
+/*			replace;*/
+/*		run;*/
 	%end;
 	%else %if &table.=Peer_Group %then %do;
 		data out.Peer_Group_All;
@@ -677,17 +676,17 @@ proc export
 	replace;
 run;
 
-data Demo.TP_Components_Base_demo;
-	set Demo.TP_Components_demo;
-	if time_period='Baseline';
-run; 
-
-proc export
-	data=Demo.TP_Components_Base_demo
-	outfile="R:\data\HIPAA\BPCIA_BPCI Advanced\08 - Target Price Data\Demo\TP_Components_Base_DEMO.csv"
-	dbms=CSV 
-	replace;
-run;
+/*data Demo.TP_Components_Base_demo;*/
+/*	set Demo.TP_Components_demo;*/
+/*	if time_period='Baseline';*/
+/*run; */
+/**/
+/*proc export*/
+/*	data=Demo.TP_Components_Base_demo*/
+/*	outfile="R:\data\HIPAA\BPCIA_BPCI Advanced\08 - Target Price Data\Demo\TP_Components_Base_DEMO.csv"*/
+/*	dbms=CSV */
+/*	replace;*/
+/*run;*/
 
 %mend create_demo;
 
