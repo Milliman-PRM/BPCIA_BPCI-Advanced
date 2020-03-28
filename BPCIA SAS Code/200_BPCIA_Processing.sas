@@ -15,9 +15,9 @@ options mprint;
 
 ***** USER INPUTS ******************************************************************************************;
 /* turn on for baseline */
-*%let mode = main; *main = main interface, base = baseline interface, recon = reconciliation;
-*%let label = ybase; *Turn on for baseline data, turn off for quarterly data;
-*%let vers = B; *B for baseline, P for Performance;
+/*%let mode = main; *main = main interface, base = baseline interface, recon = reconciliation;*/
+/*%let label = ybase; *Turn on for baseline data, turn off for quarterly data;*/
+/*%let vers = B; *B for baseline, P for Performance;*/
 
 /*turn on for performance */
 %let mode = main; *main = main interface, base = baseline interface, recon = reconciliation;
@@ -37,7 +37,7 @@ options mprint;
 
 %let main = H:\Nonclient\Medicare Bundled Payment Reference\Program - BPCIA\SAS Code;
 %include "&main.\000 - Formats - BPCIA.sas";
-*%include "&main.\000 - Formats - BPCIA_MY3.sas";
+%include "&main.\000 - Formats - BPCIA_MY3.sas";
 %include "&main.\000 - Formats_PartB_ICD9_Excl.sas";
 %include "&main.\000 - Formats_PartB_ICD10_Excl.sas";
 %include "&main.\000 - Formats - Hemophilia Clotting Factors.sas";
@@ -113,7 +113,7 @@ run;
 		Exclude = put(DRG_temp,$DRG_excl.);
 	end;
 	else if MEASURE_YEAR = 'MY3' then do;
-		Exclude = put(DRG_temp,$DRG_excl_MY3.);
+		Exclude = put(DRG_temp,$DRG_excl_MY3_.);
 	end;
 
 %mend;
@@ -231,7 +231,7 @@ data bpcia_clin_epi_names_v2;
 MEASURE_YEAR = 'MY1 & MY2';
 run;
 
-data bpcia_clin_epi_names_mpy3_v2;
+data bpcia_clin_epi_names_my3_v2;
 	set bpciaref.bpcia_clinical_episode_names_my3;
 	drop short_name short_name_2;
 	format MEASURE_YEAR $10.;
@@ -241,14 +241,14 @@ MEASURE_YEAR = 'MY3';
 run;
 
 data bpcia_clin_epi_names_combined;
-set bpcia_clin_epi_names_v2 bpcia_clin_epi_names_mpy3_v2;
+set bpcia_clin_epi_names_v2 bpcia_clin_epi_names_my3_v2;
 short_name = short_name_v2;
 short_name_2 = short_name_2_v2;
 run;
 
 /*******
 *******/
-data bpcia_drg_mapping_my3_V2;
+data bpcia_drg_mapping_V2;
 	set bpciaref.bpcia_drg_mapping;
 	format MEASURE_YEAR $10.;
 MEASURE_YEAR = 'MY1 & MY2';
@@ -261,7 +261,7 @@ MEASURE_YEAR = 'MY3';
 run;
 
 data bpcia_drg_mapping_combined;
-set bpcia_drg_mapping_my3_V2 bpcia_drg_mapping_my3_V2;
+set bpcia_drg_mapping_V2 bpcia_drg_mapping_my3_V2;
 run;
 
 data epi0_pre;
@@ -569,9 +569,9 @@ data ip_&label._&bpid1._&bpid2. out.FrChk_&label._&bpid1._&bpid2. readexc_&label
 
 	TAVR=0;
 	if MEASURE_YEAR = 'MY3' and ANCHOR_CODE in ('246','247','248','249','250','251') then do;
-		array px(*) PRCDRCD01 - PRCDRCD25;
-		do i = 1 to dim(px);
-			if put(px[i],$TAVR_10ICD.)='Y' then do;
+		array prx(*) PRCDRCD01 - PRCDRCD25;
+		do i = 1 to dim(prx);
+			if put(prx[i],$TAVR_10ICD.)='Y' then do;
 				TAVR=1;
 				allowed=0;
 				std_allowed=0;
@@ -917,7 +917,7 @@ data 	op_pre_&label._&bpid1._&bpid2.
 		allowed = 0; 
 		std_allowed = 0;
 	end;
-	if put(hcpcs_cd,$Hemo_JCodes_MY3.) = 'X' and Measure_Year = 'MY3' then do; *Set hemophilia clotting factors claims to 0*;
+	if put(hcpcs_cd,$Hemo_JCodes_MY3_.) = 'X' and Measure_Year = 'MY3' then do; *Set hemophilia clotting factors claims to 0*;
 		allowed = 0; 
 		std_allowed = 0;
 	end;
@@ -1106,7 +1106,7 @@ data out.pb_&label._&bpid1._&bpid2.
 		allowed = 0; 
 		std_allowed = 0;
 	end;
-	if put(hcpcs_cd,$Hemo_JCodes_MY3.) = 'X' and Measure_Year = 'MY3' then do; *Set hemophilia clotting factors claims to 0*;
+	if put(hcpcs_cd,$Hemo_JCodes_MY3_.) = 'X' and Measure_Year = 'MY3' then do; *Set hemophilia clotting factors claims to 0*;
 		allowed = 0; 
 		std_allowed = 0;
 	end;
@@ -1184,7 +1184,7 @@ data out.dme_&label._&bpid1._&bpid2.
 		allowed = 0; 
 		std_allowed = 0;
 	end;
-	if put(hcpcs_cd,$Hemo_JCodes_MY3.) = 'X' and Measure_Year = 'MY3' then do; *Set hemophilia clotting factors claims to 0*;
+	if put(hcpcs_cd,$Hemo_JCodes_MY3_.) = 'X' and Measure_Year = 'MY3' then do; *Set hemophilia clotting factors claims to 0*;
 		allowed = 0; 
 		std_allowed = 0;
 	end;
@@ -1755,6 +1755,8 @@ data data3pre1;
 	proc sort; by ConvenerID BPID EPI_ID_MILLIMAN;
 run;
 
+proc sort data=data3pre1 ; by ConvenerID BPID EPI_ID_MILLIMAN ANCHOR_TYPE timeframe sumcat; run;
+
 data data3pre2;
 	merge data3pre1 (in=a) snf_summary2(drop=allowed std_allowed std_allowed_wage std_allowed_calc util_day in=b);
 	by ConvenerID BPID EPI_ID_MILLIMAN ANCHOR_TYPE timeframe sumcat;
@@ -1917,7 +1919,6 @@ quit;
 %runhosp(2607_0000,2607_0000,2607,0000,223700669);
 %runhosp(1931_0001,5479_0001,5479,0002,310051);
 */
-*%runhosp(1167_0000,1167_0000,1167,0000,390173);
 
 
 %runhosp(2586_0001,2586_0001,2586,0002,360027);
