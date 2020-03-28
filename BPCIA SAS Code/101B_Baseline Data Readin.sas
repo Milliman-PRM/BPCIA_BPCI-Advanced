@@ -1,5 +1,5 @@
 proc printto;run;
-proc printto log="H:\BPCIA_BPCI Advanced\50 - BPCI Advanced Ongoing Reporting - 2019\Work Papers\SAS\logs\101B_Baseline Data Readin_&sysdate..log";
+proc printto log="H:\BPCIA_BPCI Advanced\50 - BPCI Advanced Ongoing Reporting - 2020\Work Papers\SAS\logs\101B_Baseline Data Readin_&sysdate..log";
 run;
 
 *********************************************************
@@ -32,7 +32,7 @@ options mprint mlogic spool;
 %let dataDir = R:\data\HIPAA\BPCIA_BPCI Advanced ; 
 libname in "&dataDir.\06 - Imported Raw Data";
 
-data dirlist_master_&label.;
+data in.dirlist_master_&label.;
 	set _null_;
 run;
 
@@ -61,8 +61,8 @@ data dirlist;
 	input file_name $100.;
 run;
 
-data dirlist_master_&label.;
-	set dirlist_master_&label. dirlist;
+data in.dirlist_master_&label.;
+	set in.dirlist_master_&label. dirlist;
 run;
 
 *store the full file path of each file path in dir;
@@ -105,8 +105,8 @@ data dirlist;
 	input file_name $100.;
 run;
 
-data dirlist_master_&label.;
-	set dirlist_master_&label. dirlist;
+data in.dirlist_master_&label.;
+	set in.dirlist_master_&label. dirlist;
 run;
 
 *store the full file path of each file path in dir;
@@ -163,44 +163,56 @@ data in.EPI_&sub2._&BPID.;
 run;
 
 *delete work datasets - Comment out to retain work files in session;
-*proc datasets lib=work memtype=data kill;
-
-*run;
-*quit;
+proc datasets lib=work memtype=data kill;
+run;
+quit;
 
 %mend call;
 
 ********************************************************* ;
 ********************************************************* ;
 
-%call(Other,2586-0001,2586_0001,&label.,3);
-%call(Other,1374-0001,1374_0001,&label.,123);
 %call(Other,1191-0001,1191_0001,&label.,12);
-%call(Other,7310-0001,7310_0001,&label.,3);
-%call(Other,7312-0001,7312_0001,&label.,3);
+%call(Other,1209-0000,1209_0000,&label.,123);
+%call(Other,1374-0001,1374_0001,&label.,123);
+%call(Other,1374-0001,1374_0001,&label.,3);
+%call(Other,1686-0001,1686_0001,&label.,12);
+%call(Other,1688-0001,1688_0001,&label.,123);
+%call(Other,1696-0001,1696_0001,&label.,12);
+%call(Other,1710-0001,1710_0001,&label.,123);
+%call(Other,2586-0001,2586_0001,&label.,3);
+%call(Other,2941-0001,2941_0001,&label.,3);
+%call(Other,2956-0001,2956_0001,&label.,3);
+%call(Other,2974-0001,2974_0001,&label.,3);
+%call(Other,5387-0001,5387_0001,&label.,12);
+%call(Other,6049-0001,6049_0001,&label.,123);
+%call(Other,6051-0001,6051_0001,&label.,123);
+%call(Other,6052-0001,6052_0001,&label.,123);
+%call(Other,6053-0001,6053_0001,&label.,123);
 %call(Other,6054-0001,6054_0001,&label.,123);
 %call(Other,6055-0001,6055_0001,&label.,123);
 %call(Other,6056-0001,6056_0001,&label.,123);
 %call(Other,6057-0001,6057_0001,&label.,123);
 %call(Other,6058-0001,6058_0001,&label.,123);
 %call(Other,6059-0001,6059_0001,&label.,123);
-%call(Other,1209-0000,1209_0000,&label.,123);
+%call(Other,7310-0001,7310_0001,&label.,3);
+%call(Other,7312-0001,7312_0001,&label.,3);
 %call(Premier,1028-0000,1028_0000,&label.,3);
-%call(Premier,1075-0000,1075_0000,&label.,123);
-%call(Premier,1102-0000,1102_0000,&label.,123);
+%call(Premier,1075-0000,1075_0000,&label.,12);
+%call(Premier,1102-0000,1102_0000,&label.,12);
 %call(Premier,1103-0000,1103_0000,&label.,123);
-%call(Premier,1104-0000,1104_0000,&label.,123);
-%call(Premier,1105-0000,1105_0000,&label.,123);
-%call(Premier,1106-0000,1106_0000,&label.,123);
-%call(Premier,1148-0000,1148_0000,&label.,123);
+%call(Premier,1104-0000,1104_0000,&label.,12);
+%call(Premier,1105-0000,1105_0000,&label.,12);
+%call(Premier,1106-0000,1106_0000,&label.,12);
+%call(Premier,1148-0000,1148_0000,&label.,12);
 %call(Premier,1167-0000,1167_0000,&label.,123);
 %call(Premier,1368-0000,1368_0000,&label.,123);
 %call(Premier,1461-0000,1461_0000,&label.,3);
 %call(Premier,1634-0000,1634_0000,&label.,123);
-%call(Premier,1803-0000,1803_0000,&label.,3);
+*%call(Premier,1803-0000,1803_0000,&label.,3);
 %call(Premier,1958-0000,1958_0000,&label.,123);
-%call(Premier,2048-0000,2048_0000,&label.,123);
-%call(Premier,2049-0000,2049_0000,&label.,123);
+%call(Premier,2048-0000,2048_0000,&label.,12);
+%call(Premier,2049-0000,2049_0000,&label.,12);
 %call(Premier,2070-0000,2070_0000,&label.,123);
 %call(Premier,2214-0000,2214_0000,&label.,3);
 %call(Premier,2215-0000,2215_0000,&label.,3);
@@ -216,10 +228,10 @@ run;
 %call(Premier,2461-0000,2461_0000,&label.,3);
 %call(Premier,2468-0000,2468_0000,&label.,3);
 %call(Premier,2587-0000,2587_0000,&label.,123);
-%call(Premier,2589-0000,2589_0000,&label.,123);
+%call(Premier,2589-0000,2589_0000,&label.,12);
 %call(Premier,2594-0000,2594_0000,&label.,123);
-%call(Premier,2607-0000,2607_0000,&label.,123);
-%call(Premier,5037-0000,5037_0000,&label.,123);
+%call(Premier,2607-0000,2607_0000,&label.,12);
+%call(Premier,5037-0000,5037_0000,&label.,12);
 %call(Premier,5038-0000,5038_0000,&label.,123);
 %call(Premier,5043-0000,5043_0000,&label.,123);
 %call(Premier,5050-0000,5050_0000,&label.,123);
@@ -228,7 +240,7 @@ run;
 %call(Premier,5263-0000,5263_0000,&label.,123);
 %call(Premier,5264-0000,5264_0000,&label.,123);
 %call(Premier,5282-0000,5282_0000,&label.,123);
-%call(Premier,5392-0001,5392_0001,&label.,123);
+%call(Premier,5392-0001,5392_0001,&label.,12);
 %call(Premier,5394-0000,5394_0000,&label.,123);
 %call(Premier,5397-0001,5397_0001,&label.,123);
 %call(Premier,5478-0001,5478_0001,&label.,123);
@@ -236,15 +248,6 @@ run;
 %call(Premier,5480-0001,5480_0001,&label.,123);
 %call(Premier,5481-0001,5481_0001,&label.,123);
 %call(Premier,5746-0001,5746_0001,&label.,123);
-%call(Other,1688-0001,1688_0001,&label.,123);
-%call(Other,1710-0001,1710_0001,&label.,123);
-%call(Other,2941-0001,2941_0001,&label.,3);
-%call(Other,2956-0001,2956_0001,&label.,3);
-%call(Other,6049-0001,6049_0001,&label.,123);
-%call(Other,6051-0001,6051_0001,&label.,123);
-%call(Other,6052-0001,6052_0001,&label.,123);
-%call(Other,6053-0001,6053_0001,&label.,123);
-%call(Other,2974-0001,2974_0001,&label.,3);
 
 
 %let _edtm=%sysfunc(datetime());
