@@ -46,13 +46,16 @@ Step 1 - Map updated BPIDs onto archived versions of the TP_Component and Peer G
 		create table arch_TP_Components_&client. as
 		select a.*
 		from arch_pre_&client._tp_comp as a
-		inner join ref.bpcia_episode_initiator_info_MY3 as b
+		inner join ref.bpcia_episode_initiator_info as b
 		on a.initiator_bpid = b.BPCI_Advanced_ID_number_2
 		;
 		title "arch_bpids_&client."; select count(distinct initiator_bpid) as distinct_bpid from arch_TP_Components_&client.; 
 		;
 	quit;
 
+	data arch_TP_Components_&client.;
+		set arch_pre_&client._tp_comp;
+	run;
 	/* Peer Group */
 /*	data arch_Peer_Group_&client.;*/
 /*		set arch.Peer_Group(rename=(CONVENER_ID=CONVENER_ID_OLD INITIATOR_BPID=INITIATOR_BPID_OLD));*/
@@ -102,7 +105,7 @@ Step 2 - Stack current and archived versions of of the TP_Component and Peer Gro
 ****************************************************************************************************************/
 %macro PERFORMANCE(client, rel_date, timeper, epi_start, epi_end);
 
-	libname perf "R:\data\HIPAA\BPCIA_BPCI Advanced\04 - Target Price Reports\Distributed &rel_date. MY3\&client.\Stacked Files";
+	libname perf "R:\data\HIPAA\BPCIA_BPCI Advanced\04 - Target Price Reports\Distributed &rel_date.\&client.\Stacked Files";
 
 	/* TP Components */
 	* create _old versions of BPID and Convener ID so new data set will stack onto old;
@@ -156,12 +159,16 @@ Step 2 - Stack current and archived versions of of the TP_Component and Peer Gro
 		create table tp_com_&client._pre_lim_&rel_date. as
 		select a.*
 		from tpcomp_comb_&client._pre as a
-		inner join ref.bpcia_episode_initiator_info_MY3 as b
+		inner join ref.bpcia_episode_initiator_info as b
 		on a.initiator_bpid = b.BPCI_Advanced_ID_number_2
 		;
 		title "current_bpids_&client."; select count(distinct initiator_bpid) as distinct_bpid from tp_com_&client._pre_lim_&rel_date.; 
 		;
 	quit;
+
+	data tp_com_&client._pre_lim_&rel_date.;
+		set tpcomp_comb_&client._pre;
+	run;
 
 	proc sql;
 		create table active_epi_&client._&rel_date. as
@@ -169,7 +176,7 @@ Step 2 - Stack current and archived versions of of the TP_Component and Peer Gro
 		from tp_com_&client._pre_lim_&rel_date.;
 	quit;
 
-	/* Peer Group */
+	/* Peer Group *//*
 	* create _old versions of BPID and Convener ID so new data set will stack onto old;
 	data pg_comb_&client._pre_&rel_date.;
 		set perf.Peer_Group(rename=(CONVENER_ID=CONVENER_ID_OLD INITIATOR_BPID=INITIATOR_BPID_OLD));
@@ -213,11 +220,11 @@ Step 2 - Stack current and archived versions of of the TP_Component and Peer Gro
 		ccn_join = CCN;
 		if length(compress(ccn_join)) = 5 then ccn_join = '0' || ccn_join;
 
-	run;
+	run;*/
 %mend PERFORMANCE;
 
-/*%PERFORMANCE(Premier, 20181231, '01/01/2019 - 09/30/2019', mdy(1,1,2019), mdy(9,30,2019));*/
-/*%PERFORMANCE(Other, 20181231, '01/01/2019 - 09/30/2019', mdy(1,1,2019), mdy(9,30,2019));*/
+%PERFORMANCE(Premier, 20200114, '01/01/2020 - 09/30/2020', mdy(1,1,2020), mdy(9,30,2020));
+%PERFORMANCE(Other, 20200114, '01/01/2020 - 09/30/2020', mdy(1,1,2020), mdy(9,30,2020));
 /*%PERFORMANCE(Premier, 20181001, '10/01/2018 - 12/31/2018', mdy(10,1,2018), mdy(12,31,2018));*/
 /*%PERFORMANCE(Other, 20181001, '10/01/2018 - 12/31/2018', mdy(10,1,2018), mdy(12,31,2018));*/
 
@@ -231,18 +238,18 @@ Step 2 - Stack current and archived versions of of the TP_Component and Peer Gro
 	data TP_Components_Combine;
 		* stack new over old so new episodes are captured when duplicates exist in the archive file;
 		* stack premier over other to capture switchers;
-		set /*tp_com_Premier_pre_lim:	(in=a)		 new premier */
+		set tp_com_Premier_pre_lim:	(in=a)		/* new premier */
 			arch_TP_Components_Premier		(in=b)		/* archive premier */
-			/*tp_com_Other_pre_lim:		(in=a)		 new other */
+			tp_com_Other_pre_lim:		(in=a)		/* new other */
 			arch_TP_Components_Other		(in=b)		/* archive other */
 		;
 
 		format epi_dropped_flag 1. ;
 		epi_dropped_flag=1;
 
-/*		if a then do;*/
-/*			epi_dropped_flag=0;*/
-/*		end;*/
+		if a then do;
+			epi_dropped_flag=0;
+		end;
 
 		proc sort; by INITIATOR_BPID EPI_CAT EPI_TYPE ccn_join descending rel_dt;
 	run;
@@ -301,7 +308,7 @@ Step 3 - out tables, limit TP_Components to BPIDs in the Data Tracker, and expor
 			;
 			title "&table."; select count(distinct initiator_bpid) as distinct_bpid from out.&table._MY3_all; 
 		quit;
-
+/*
 		data out.&table._MY3_1 out.&table._MY3_pmr_exist out.&table._MY3_pmr_new
 				out.&table._MY3_pmr out.&table._MY3_ccb out.&table._MY3_ccf out.&table._MY3_ghs out.&table._MY3_hal
 				out.&table._MY3_hss out.&table._MY3_ics out.&table._MY3_musc out.&table._MY3_uspi out.&table._MY3_wsp ;
@@ -324,6 +331,17 @@ Step 3 - out tables, limit TP_Components to BPIDs in the Data Tracker, and expor
 			else if initiator_bpid in (&WSP_3_EI_lst.) then output out.&table._MY3_wsp;
 			
 		run;
+		*/
+		data out.&table._MY3_Premier out.&table._MY3_NonPremier out.&table._MY3_CCF out.&table._MY3_Dev;
+			set out.&table._MY3_all;
+
+			if initiator_bpid in (&DEV_EI_lst.) then output out.&table._MY3_Dev;
+			if initiator_bpid in (&PMR_EI_lst.) then output out.&table._MY3_Premier;
+			else if initiator_bpid in (&NON_PMR_EI_lst.) then output out.&table._MY3_NonPremier;
+			else if initiator_bpid in (&CCF_lst.) then output out.&table._MY3_CCF;
+
+		run;
+
 		/* Export partitions */
 		%MACRO EXPRT(name);
 			proc export
@@ -333,6 +351,7 @@ Step 3 - out tables, limit TP_Components to BPIDs in the Data Tracker, and expor
 				replace;
 			run;
 		%MEND;
+		/*
 		%EXPRT(1);
 		%EXPRT(pmr_exist);
 		%EXPRT(pmr_new);
@@ -346,6 +365,11 @@ Step 3 - out tables, limit TP_Components to BPIDs in the Data Tracker, and expor
 		%EXPRT(musc);
 		%EXPRT(uspi);
 		%EXPRT(wsp);
+		*/
+		%EXPRT(Premier);
+		%EXPRT(NonPremier);
+		%EXPRT(CCF);
+		%EXPRT(Dev);
 	%end;
 	%else %if &table.=Peer_Group %then %do;
 		data out.Peer_Group_All;
@@ -448,19 +472,53 @@ proc export
 	replace;
 run;
 
-data Demo.TP_Components_Base_demo;
-	set Demo.TP_Components_demo;
-	if time_period='Baseline';
-run; 
-
-proc export
-	data=Demo.TP_Components_Base_demo
-	outfile="R:\data\HIPAA\BPCIA_BPCI Advanced\08 - Target Price Data\Demo\TP_Components_Base_DEMO.csv"
-	dbms=CSV 
-	replace;
-run;
+/*data Demo.TP_Components_Base_demo;*/
+/*	set Demo.TP_Components_demo;*/
+/*	if time_period='Baseline';*/
+/*run; */
+/**/
+/*proc export*/
+/*	data=Demo.TP_Components_Base_demo*/
+/*	outfile="R:\data\HIPAA\BPCIA_BPCI Advanced\08 - Target Price Data\Demo\TP_Components_Base_DEMO.csv"*/
+/*	dbms=CSV */
+/*	replace;*/
+/*run;*/
 
 %mend create_demo;
 
 *%create_demo(1148-0000,1167-0000,1343-0000,1368-0000,2379-0000,2587-0000,2607-0000,5479-0002);  
 
+
+		data out.TP_Components_pmr_comb out.TP_Components_oth_comb out.TP_Components_ccf_comb out.TP_Components_dev_comb;
+			set out.TP_Components_all out.TP_Components_all_my3;
+			if initiator_bpid in (&PMR_EI_lst.) then output out.TP_Components_pmr_comb;
+			else if initiator_bpid in (&NON_PMR_EI_lst.) then output out.TP_Components_oth_comb;
+			else if initiator_bpid in (&CCF_lst.) then output out.TP_Components_ccf_comb;
+			
+			if initiator_bpid in (&DEV_EI_lst.) then output out.TP_Components_dev_comb;
+		run;
+		/* Export partitions */
+		proc export
+			data=out.TP_Components_pmr_comb
+			outfile="R:\data\HIPAA\BPCIA_BPCI Advanced\08 - Target Price Data\TP_Components_pmr_comb.csv"
+			dbms=CSV 
+			replace;
+		run;
+		proc export
+			data=out.TP_Components_oth_comb
+			outfile="R:\data\HIPAA\BPCIA_BPCI Advanced\08 - Target Price Data\TP_Components_oth_comb.csv"
+			dbms=CSV 
+			replace;
+		run;
+		proc export
+			data=out.TP_Components_dev_comb
+			outfile="R:\data\HIPAA\BPCIA_BPCI Advanced\08 - Target Price Data\TP_Components_dev_comb.csv"
+			dbms=CSV 
+			replace;
+		run;
+		proc export
+			data=out.TP_Components_ccf_comb
+			outfile="R:\data\HIPAA\BPCIA_BPCI Advanced\08 - Target Price Data\TP_Components_ccf_comb.csv"
+			dbms=CSV 
+			replace;
+		run;
