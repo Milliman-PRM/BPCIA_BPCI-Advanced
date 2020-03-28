@@ -178,11 +178,11 @@ Step 1 - Read in Target Price CSV files and adjust variables as needed
 
 %mend read_in;
 
-%read_in(R:\data\HIPAA\BPCIA_BPCI Advanced\04 - Target Price Reports\Distributed Baseline MY3\Other\Stacked Files);
-%read_in(R:\data\HIPAA\BPCIA_BPCI Advanced\04 - Target Price Reports\Distributed Baseline MY3\Premier\Stacked Files);
+*%read_in(R:\data\HIPAA\BPCIA_BPCI Advanced\04 - Target Price Reports\Distributed Baseline MY3\Other\Stacked Files);
+*%read_in(R:\data\HIPAA\BPCIA_BPCI Advanced\04 - Target Price Reports\Distributed Baseline MY3\Premier\Stacked Files);
 
-*%read_in(R:\data\HIPAA\BPCIA_BPCI Advanced\04 - Target Price Reports\Distributed 20181001\Other\Stacked Files);
-*%read_in(R:\data\HIPAA\BPCIA_BPCI Advanced\04 - Target Price Reports\Distributed 20181001\Premier\Stacked Files);
+%read_in(R:\data\HIPAA\BPCIA_BPCI Advanced\04 - Target Price Reports\Distributed 20200114\Other\Stacked Files);
+%read_in(R:\data\HIPAA\BPCIA_BPCI Advanced\04 - Target Price Reports\Distributed 20200114\Premier\Stacked Files);
 
 *%read_in(R:\data\HIPAA\BPCIA_BPCI Advanced\04 - Target Price Reports\Distributed 20181231\Other\Stacked Files);
 *%read_in(R:\data\HIPAA\BPCIA_BPCI Advanced\04 - Target Price Reports\Distributed 20181231\Premier\Stacked Files);
