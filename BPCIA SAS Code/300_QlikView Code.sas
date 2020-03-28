@@ -88,86 +88,6 @@ libname bpcia 'H:\Nonclient\Medicare Bundled Payment Reference\Program - BPCIA\S
 %let exportDir = R:\data\HIPAA\BPCIA_BPCI Advanced\90 - Sasout;
 
 
-
-/****
-combines
-bpciaref.bpcia_episode_initiator_info
-& bpciaref.bpcia_episode_initiator_info_my3 ***/
-data bpcia_epi_initiator_info_V1;
-	set bpciaref.bpcia_episode_initiator_info;
-	drop User_Access_Termination_Date Data_Deletion_Date Health_system_interface_abbrevia;
-	*format MEASURE_YEAR $10.;
-	*User_Access_Termination_Date_v2 = input(User_Access_Termination_Date, Date9.);
-	*Data_Deletion_Date_v2 = input(Data_Deletion_Date, Date9.);
-	Health_system_interface_abbr_v2 = input(Health_system_interface_abbrevia, $27.);
-*MEASURE_YEAR = 'MY1 & MY2';
-run;
-
-/*
-data bpcia_epi_initiator_info_mp3_V1;
-	set bpciaref.bpcia_episode_initiator_info_my3;
-	drop User_Access_Termination_Date Data_Deletion_Date Health_system_interface_abbrevia;
-	format MEASURE_YEAR $10.;
-	*User_Access_Termination_Date_v2 = input(User_Access_Termination_Date, Date9.);
-	*Data_Deletion_Date_v2 = input(Data_Deletion_Date, Date9.);
-	Health_system_interface_abbr_v2 = input(Health_system_interface_abbrevia, $27.);
-MEASURE_YEAR = 'MY3';
-run;
-*/
-
-data bpcia_epi_initiator_combined;
-set bpcia_epi_initiator_info_V1;
-*User_Access_Termination_Date = User_Access_Termination_Date_v2;
-*Data_Deletion_Date = Data_Deletion_Date_v2;
-Health_system_interface_abbrevia = Health_system_interface_abbr_V2;
-run;
-
-/*****
-bpcia_clinical_episode_names
-bpcia_clinical_episode_names_my3
-*******/
-data bpcia_clin_epi_names_v2;
-	set bpciaref.bpcia_clinical_episode_names;
-	drop short_name short_name_2;
-	format MEASURE_YEAR $10.;
-	short_name_V2 = input(short_name, $30.);
-	short_name_2_V2 = input(short_name_2, $11.);
-MEASURE_YEAR = 'MY1 & MY2';
-run;
-
-data bpcia_clin_epi_names_mpy3_v2;
-	set bpciaref.bpcia_clinical_episode_names_my3;
-	drop short_name short_name_2;
-	format MEASURE_YEAR $10.;
-	short_name_V2 = input(short_name, $30.);
-	short_name_2_V2 = input(short_name_2, $11.);
-MEASURE_YEAR = 'MY3';
-run;
-
-data bpcia_clin_epi_names_combined;
-set bpcia_clin_epi_names_v2 bpcia_clin_epi_names_mpy3_v2;
-short_name = short_name_v2;
-short_name_2 = short_name_2_v2;
-run;
-
-/*******
-*******/
-data bpcia_drg_mapping_my3_V2;
-	set bpciaref.bpcia_drg_mapping;
-	format MEASURE_YEAR $10.;
-MEASURE_YEAR = 'MY1 & MY2';
-run;
-
-data bpcia_drg_mapping_my3_V2;
-	set bpciaref.bpcia_drg_mapping_my3;
-	format MEASURE_YEAR $10.;
-MEASURE_YEAR = 'MY3';
-run;
-
-data bpcia_drg_mapping_combined;
-set bpcia_drg_mapping_my3_V2 bpcia_drg_mapping_my3_V2;
-run;
-
 ********************
 ********************
 Calculation of Monthly Reports Datasets
@@ -542,6 +462,86 @@ quit;
 /*MAIN MACRO FOR DASHBOARD DATASETS*/
 
 %macro dashboard(bpid1,bpid2,epi_idx);
+
+
+/****
+combines
+bpciaref.bpcia_episode_initiator_info
+& bpciaref.bpcia_episode_initiator_info_my3 ***/
+data bpcia_epi_initiator_info_V1;
+	set bpciaref.bpcia_episode_initiator_info;
+	drop User_Access_Termination_Date Data_Deletion_Date Health_system_interface_abbrevia;
+	*format MEASURE_YEAR $10.;
+	*User_Access_Termination_Date_v2 = input(User_Access_Termination_Date, Date9.);
+	*Data_Deletion_Date_v2 = input(Data_Deletion_Date, Date9.);
+	Health_system_interface_abbr_v2 = input(Health_system_interface_abbrevia, $27.);
+*MEASURE_YEAR = 'MY1 & MY2';
+run;
+
+/*
+data bpcia_epi_initiator_info_mp3_V1;
+	set bpciaref.bpcia_episode_initiator_info_my3;
+	drop User_Access_Termination_Date Data_Deletion_Date Health_system_interface_abbrevia;
+	format MEASURE_YEAR $10.;
+	*User_Access_Termination_Date_v2 = input(User_Access_Termination_Date, Date9.);
+	*Data_Deletion_Date_v2 = input(Data_Deletion_Date, Date9.);
+	Health_system_interface_abbr_v2 = input(Health_system_interface_abbrevia, $27.);
+MEASURE_YEAR = 'MY3';
+run;
+*/
+
+data bpcia_epi_initiator_combined;
+set bpcia_epi_initiator_info_V1;
+*User_Access_Termination_Date = User_Access_Termination_Date_v2;
+*Data_Deletion_Date = Data_Deletion_Date_v2;
+Health_system_interface_abbrevia = Health_system_interface_abbr_V2;
+run;
+
+/*****
+bpcia_clinical_episode_names
+bpcia_clinical_episode_names_my3
+*******/
+data bpcia_clin_epi_names_v2;
+	set bpciaref.bpcia_clinical_episode_names;
+	drop short_name short_name_2;
+	format MEASURE_YEAR $10.;
+	short_name_V2 = input(short_name, $30.);
+	short_name_2_V2 = input(short_name_2, $11.);
+MEASURE_YEAR = 'MY1 & MY2';
+run;
+
+data bpcia_clin_epi_names_my3_v2;
+	set bpciaref.bpcia_clinical_episode_names_my3;
+	drop short_name short_name_2;
+	format MEASURE_YEAR $10.;
+	short_name_V2 = input(short_name, $30.);
+	short_name_2_V2 = input(short_name_2, $11.);
+MEASURE_YEAR = 'MY3';
+run;
+
+data bpcia_clin_epi_names_combined;
+set bpcia_clin_epi_names_v2 bpcia_clin_epi_names_my3_v2;
+short_name = short_name_v2;
+short_name_2 = short_name_2_v2;
+run;
+
+/*******
+*******/
+data bpcia_drg_mapping_V2;
+	set bpciaref.bpcia_drg_mapping;
+	format MEASURE_YEAR $10.;
+MEASURE_YEAR = 'MY1 & MY2';
+run;
+
+data bpcia_drg_mapping_my3_V2;
+	set bpciaref.bpcia_drg_mapping_my3;
+	format MEASURE_YEAR $10.;
+MEASURE_YEAR = 'MY3';
+run;
+
+data bpcia_drg_mapping_combined;
+set bpcia_drg_mapping_V2 bpcia_drg_mapping_my3_V2;
+run;
 
 /*********************************************************************************************/
 /* Code to Create Episode-level Detailed Dataset**********************************************/
@@ -3657,25 +3657,25 @@ run;
 data bpcia_episode_initiator_perf;
 	set bpcia.bpcia_performance_episodes (in=a) bpcia.bpcia_performance_episodes_MY3 (in=b);
 	if a then MEASURE_YEAR = 'MY1 & MY2';
-	else MEASURE_YEAR = 'MY3'; 
-	if episode_group_name = 'Major joint replacement of the lower extremity' THEN djrle = 1;
+	else MEASURE_YEAR = 'MY3';
+ 
+	if episode_group_name = 'Double joint replacement of the lower extremity' THEN djrle = 1;
 	if episode_group_name = 'Major joint replacement of the lower extremity' THEN mjrle = 1;
-	if episode_group_name = 'Major joint replacement of the lower extremity' THEN CABG_Flag_num = 1;	
-	if episode_group_name = 'Major joint replacement of the lower extremity' THEN AMI_Flag_num = 1;
+	if episode_group_name = 'Coronary artery bypass graft' THEN CABG_Flag_num = 1;	
+	if episode_group_name = 'Acute myocardial infarction' THEN AMI_Flag_num = 1;
+	comp_flag_num = max(djrle,mjrle);
 
 	if Inpatient___Outpatient='' then Inpatient___Outpatient = SETTING;
 	if Inpatient___Outpatient = 'INPATIENT' THEN PSI_Flag_num = 1;
-comp_flag_num = max(djrle,mjrle);
-	if comp_flag_num = 1 then Comp_Flag='1';
-	else Comp_Flag = '';
 run;
 
 proc sql;
 create table bpcia_episode_initiator_max as
-select BPID, MEASURE_YEAR, max(comp_flag_num) AS Comp_Flag_num, 
-max(CABG_Flag_num) AS CABG_Flag_num, 
-max(AMI_Flag_num) AS AMI_Flag_num, 
-max(PSI_Flag_num) AS PSI_Flag_num
+select BPID, MEASURE_YEAR, 
+	max(comp_flag_num) AS Comp_Flag_num, 
+	max(CABG_Flag_num) AS CABG_Flag_num, 
+	max(AMI_Flag_num) AS AMI_Flag_num, 
+	max(PSI_Flag_num) AS PSI_Flag_num
 from bpcia_episode_initiator_perf
 group by BPID, MEASURE_YEAR;
 quit;
@@ -4735,12 +4735,12 @@ run;
 /*		timeframe_filter = "Baseline - Years 1 and 2 (2012 - 2014)"; */
 /*	*/
 /*run ; */
-/*
+
 *delete work datasets;
 proc datasets lib=work memtype=data kill;
 run;
 quit;
-*/
+
 %mend dashboard;
 
 *MACRO RUNS;
@@ -4758,8 +4758,6 @@ dev runs
 %Dashboard(2607,0000,0);
 %Dashboard(5479,0002,0);
 */
-*%Dashboard(1167,0000,0);
-*%Dashboard(1374,0012,1);
 
 %Dashboard(2586,0002,1);
 %Dashboard(2586,0005,1);
@@ -4777,13 +4775,13 @@ dev runs
 %Dashboard(2586,0033,1);
 %Dashboard(2586,0034,1);
 %Dashboard(2586,0035,1);
-*%Dashboard(2586,0036,1);
-*%Dashboard(2586,0038,1);
+%Dashboard(2586,0036,1);
+%Dashboard(2586,0038,1);
 %Dashboard(2586,0039,1);
-*%Dashboard(2586,0040,1);
-*%Dashboard(2586,0041,1);
-*%Dashboard(2586,0042,1);
-*%Dashboard(2586,0043,1);
+%Dashboard(2586,0040,1);
+%Dashboard(2586,0041,1);
+%Dashboard(2586,0042,1);
+%Dashboard(2586,0043,1);
 %Dashboard(2586,0044,1);
 %Dashboard(2586,0045,1);
 %Dashboard(2586,0046,1);
@@ -4822,7 +4820,7 @@ dev runs
 %Dashboard(1167,0000,0);
 %Dashboard(1368,0000,0);
 %Dashboard(1461,0000,1);
-%Dashboard(1634,0000,0);
+%Dashboard(1634,0000,1);
 %Dashboard(1803,0000,1);
 %Dashboard(1958,0000,0);
 %Dashboard(2048,0000,0);
