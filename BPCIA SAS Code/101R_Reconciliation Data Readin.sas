@@ -1,5 +1,5 @@
 proc printto;run;
-proc printto log="H:\BPCIA_BPCI Advanced\50 - BPCI Advanced Ongoing Reporting - 2019\Work Papers\SAS\logs\101R - Reconciliation Data Readin_&sysdate..log" print=print new;
+proc printto log="H:\BPCIA_BPCI Advanced\50 - BPCI Advanced Ongoing Reporting - 2020\Work Papers\SAS\logs\101R - Reconciliation Data Readin_&sysdate..log" print=print new;
 run;
 
 *********************************************************
@@ -23,7 +23,7 @@ options mprint mlogic spool;
 
 
 ****** REFERENCE PROGRAMS **********************************************************************************;
-%let path = H:\BPCIA_BPCI Advanced\50 - BPCI Advanced Ongoing Reporting - 2019\Work Papers\SAS;
+%let path = H:\BPCIA_BPCI Advanced\50 - BPCI Advanced Ongoing Reporting - 2020\Work Papers\SAS;
 
 %include "&path.\100R_Read Reconciliation Data.sas";
 %include 'H:\_HealthLibrary\SAS\dirmemlist.sas' ;
@@ -149,6 +149,7 @@ quit;
 %call(Premier,1167-0000,1167_0000,&label.);
 %call(Premier,1343-0000,1343_0000,&label.);
 %call(Premier,1368-0000,1368_0000,&label.);
+%call(Premier,1634-0000,1634_0000,&label.);
 %call(Premier,1958-0000,1958_0000,&label.);
 %call(Premier,2048-0000,2048_0000,&label.);
 %call(Premier,2049-0000,2049_0000,&label.);
