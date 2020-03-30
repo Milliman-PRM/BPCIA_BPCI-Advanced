@@ -1242,13 +1242,12 @@ proc sql;
 	from episode_ccns3 as a
 	left join ref.ccns_codemap as b
 	on a.provider_ccn_use = b.ccn
-	order by key;
+	order by key measure_year;
 quit;
-
 
 /*transpose data from long to wide*/
 proc transpose data=episode_ccns4 out=episode_ccns5 (drop=_NAME_);
-	by key;
+	by key measure_year;
 	ID type;
 	var CCN_NAME;
 	run;
@@ -2670,20 +2669,20 @@ create table patientjourney_3 as
 	;
 	quit ; 
 
-	proc sort data = patientjourney_3 out = pjourney_2;by epi_id_milliman;run;
+	proc sort data = patientjourney_3 out = pjourney_2;by measure_year epi_id_milliman;run;
 
 proc transpose data = pjourney_2 out = pjourney_agg_1
 	name= d_number
 	prefix=d_type;
 	var d_first d_second d_third;
-	by epi_id_milliman;
+	by measure_year epi_id_milliman;
 run;
 
 proc transpose data = pjourney_2 (drop= d_first d_second d_third rename=(d_first_name=d_first d_second_name=d_second d_third_name=d_third)) out = pjourney_agg_2
 	name= d_number
 	prefix=d_name;
 	var d_first d_second d_third;
-	by epi_id_milliman;
+	by measure_year epi_id_milliman;
 run;
 
 data pjourney_agg_1 (drop=d_type1 rename=d_type2=d_type1); 
@@ -2985,22 +2984,22 @@ data hh_hdr1;
 run;
 
 *20180720 - transpose dates, rev center, and hcpcs to set up long list of dates;
-proc sort data = out.hha_&label._&bpid1._&bpid2. out=hh_hdr2aa; by epi_id_milliman claimno;run;
-proc sort data = out.hha_&label._&bpid1._&bpid2. out=hh_hdr2bb; by epi_id_milliman claimno;run;
-proc sort data = out.hha_&label._&bpid1._&bpid2. out=hh_hdr2cc; by epi_id_milliman claimno;run;
+proc sort data = out.hha_&label._&bpid1._&bpid2. out=hh_hdr2aa; by measure_year epi_id_milliman claimno;run;
+proc sort data = out.hha_&label._&bpid1._&bpid2. out=hh_hdr2bb; by measure_year epi_id_milliman claimno;run;
+proc sort data = out.hha_&label._&bpid1._&bpid2. out=hh_hdr2cc; by measure_year epi_id_milliman claimno;run;
 
 proc transpose data = hh_hdr2aa out=hh_hdr2a;
-	by epi_id_milliman claimno;
+	by measure_year epi_id_milliman claimno;
 	var rvcntr01-rvcntr45;
 run;
 
 proc transpose data = hh_hdr2bb out=hh_hdr2b;
-	by epi_id_milliman claimno;
+	by measure_year epi_id_milliman claimno;
 	var rev_dt01-rev_dt45;
 run;
 
 proc transpose data = hh_hdr2cc out=hh_hdr2c;
-	by epi_id_milliman claimno;
+	by measure_year epi_id_milliman claimno;
 	var hcpscd01-hcpscd45;
 run;
 
