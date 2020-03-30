@@ -26,14 +26,14 @@ SET UP
 
 ****** USER INPUTS ******************************************************************************************;
 * TURN ON FOR BASELINE / TURN OFF FOR PERFORMANCE *****;
-/*%let label = ybase; *Update with change in period;*/
-/*%let prevlabel = ybase;*/
-/*%let reporting_period=201806;*Change for every Update*; */
+%let label = ybase; *Update with change in period;
+%let prevlabel = ybase;
+%let reporting_period=201806;*Change for every Update*; 
 
 * TURN ON FOR PERFORMANCE / TURN OFF FOR BASELINE *****;
-%let label = y202002; *Update with change in period;
-%let prevlabel = y202001; *Update with the prior period;
-%let reporting_period=202003;*Change for every Update*; 
+/*%let label = y202002; *Update with change in period;*/
+/*%let prevlabel = y202001; *Update with the prior period;*/
+/*%let reporting_period=202003;*Change for every Update*; */
 
 * UPDATE WITH EVERY PERF UPDATE *****;
 %let transmit_date = '07FEB2020'd;*Change for every Update*; 
@@ -82,6 +82,7 @@ libname ref "H:\Nonclient\Medicare Bundled Payment Reference\General\SAS Dataset
 libname bpciaref "H:\Nonclient\Medicare Bundled Payment Reference\Program - BPCIA\SAS Datasets"; 
 libname cjrref "H:\Nonclient\Medicare Bundled Payment Reference\Program - CJR\SAS Datasets";
 libname bench "R:\client work\CMS_PAC_Bundle_Processing\Benchmark Releases\v.201912\sasout";
+libname bpcia 'H:\Nonclient\Medicare Bundled Payment Reference\Program - BPCIA\SAS Datasets';
 
 ****** EXPORT INFO *****************************************************************************************;
 %let exportDir = R:\data\HIPAA\BPCIA_BPCI Advanced\90 - Sasout;
@@ -101,11 +102,12 @@ Calculation of Monthly Reports Datasets
 /*Code to create anchor and post-acute values (T0-T3)*/
 %macro expand_timeframes; 
 
+
 proc sql;
 
 *!! BPCIA JL Update - had to recode for OP index costs*;
 create table report6 as
-	select distinct EPI_ID_MILLIMAN
+	select distinct measure_year, EPI_ID_MILLIMAN
 		  /*TIMEFRAME 0: ANCHOR INFORMATION*/
 /*		  , 0 as Other_Anchor_Facility *Dummy Variables for BPCIA *;*/
 		  ,case when timeframe in (0) and sumcat in ('IP_idx') then std_allowed_wage 
@@ -237,11 +239,11 @@ create table report6 as
 		  ,sum(case when type in ('HS') and timeframe ^=0 then std_allowed_wage else . end) as T4_HOSPICE_ALLOWED
 
 	from out.data3_&label._&bpid1._&bpid2. /*Might change based off the new 200 code */
-	group by EPI_ID_MILLIMAN,sumcat
+	group by measure_year, EPI_ID_MILLIMAN,sumcat
 ;
 
 create table report6_1 as
-	select distinct EPI_ID_MILLIMAN
+	select distinct measure_year, EPI_ID_MILLIMAN
 		  /*TIMEFRAME 0: ANCHOR INFORMATION*/
 		  ,sum(T0_IP_IDX_ALLOWED) as T0_IP_IDX_ALLOWED
 		  ,sum(T0_IP_IDX_UTIL_DAYS) as T0_IP_IDX_UTIL_DAYS
@@ -393,7 +395,7 @@ create table report6_1 as
 			  ,max(T0_PROF_SURG_ALLOWED),max(T0_RADIOLOGY_ALLOWED),max(T0_EMERGENCY_ALLOWED)) as T4_TOTAL_ALLOWED
 
 	from report6
-	group by EPI_ID_MILLIMAN
+	group by measure_year, EPI_ID_MILLIMAN
 ;
 quit;
 
@@ -461,17 +463,97 @@ quit;
 
 %macro dashboard(bpid1,bpid2,epi_idx);
 
+
+/****
+combines
+bpciaref.bpcia_episode_initiator_info
+& bpciaref.bpcia_episode_initiator_info_my3 ***/
+data bpcia_epi_initiator_info_V1;
+	set bpciaref.bpcia_episode_initiator_info;
+	drop User_Access_Termination_Date Data_Deletion_Date Health_system_interface_abbrevia;
+	*format MEASURE_YEAR $10.;
+	*User_Access_Termination_Date_v2 = input(User_Access_Termination_Date, Date9.);
+	*Data_Deletion_Date_v2 = input(Data_Deletion_Date, Date9.);
+	Health_system_interface_abbr_v2 = input(Health_system_interface_abbrevia, $27.);
+*MEASURE_YEAR = 'MY1 & MY2';
+run;
+
+/*
+data bpcia_epi_initiator_info_mp3_V1;
+	set bpciaref.bpcia_episode_initiator_info_my3;
+	drop User_Access_Termination_Date Data_Deletion_Date Health_system_interface_abbrevia;
+	format MEASURE_YEAR $10.;
+	*User_Access_Termination_Date_v2 = input(User_Access_Termination_Date, Date9.);
+	*Data_Deletion_Date_v2 = input(Data_Deletion_Date, Date9.);
+	Health_system_interface_abbr_v2 = input(Health_system_interface_abbrevia, $27.);
+MEASURE_YEAR = 'MY3';
+run;
+*/
+
+data bpcia_epi_initiator_combined;
+set bpcia_epi_initiator_info_V1;
+*User_Access_Termination_Date = User_Access_Termination_Date_v2;
+*Data_Deletion_Date = Data_Deletion_Date_v2;
+Health_system_interface_abbrevia = Health_system_interface_abbr_V2;
+run;
+
+/*****
+bpcia_clinical_episode_names
+bpcia_clinical_episode_names_my3
+*******/
+data bpcia_clin_epi_names_v2;
+	set bpciaref.bpcia_clinical_episode_names;
+	drop short_name short_name_2;
+	format MEASURE_YEAR $10.;
+	short_name_V2 = input(short_name, $30.);
+	short_name_2_V2 = input(short_name_2, $11.);
+MEASURE_YEAR = 'MY1 & MY2';
+run;
+
+data bpcia_clin_epi_names_my3_v2;
+	set bpciaref.bpcia_clinical_episode_names_my3;
+	drop short_name short_name_2;
+	format MEASURE_YEAR $10.;
+	short_name_V2 = input(short_name, $30.);
+	short_name_2_V2 = input(short_name_2, $11.);
+MEASURE_YEAR = 'MY3';
+run;
+
+data bpcia_clin_epi_names_combined;
+set bpcia_clin_epi_names_v2 bpcia_clin_epi_names_my3_v2;
+short_name = short_name_v2;
+short_name_2 = short_name_2_v2;
+run;
+
+/*******
+*******/
+data bpcia_drg_mapping_V2;
+	set bpciaref.bpcia_drg_mapping;
+	format MEASURE_YEAR $10.;
+MEASURE_YEAR = 'MY1 & MY2';
+run;
+
+data bpcia_drg_mapping_my3_V2;
+	set bpciaref.bpcia_drg_mapping_my3;
+	format MEASURE_YEAR $10.;
+MEASURE_YEAR = 'MY3';
+run;
+
+data bpcia_drg_mapping_combined;
+set bpcia_drg_mapping_V2 bpcia_drg_mapping_my3_V2;
+run;
+
 /*********************************************************************************************/
 /* Code to Create Episode-level Detailed Dataset**********************************************/
 /*********************************************************************************************/
 
 proc sort data=out.data3_&label._&bpid1._&bpid2. out=report6_total_details;
-	by EPI_ID_MILLIMAN  dos;
+	by measure_year EPI_ID_MILLIMAN  dos;
 	where (timeframe not in (0)) or sumcat in ('HH');
 run;
 
 /*Code to create "total episode values" (T4)*/
-data report6_total_details2 (keep = BPID 				epi_id_milliman T4_IP_A_FAC_CCN 		T4_IP_A_FAC_STARTDATE 		T4_IP_A_FAC_ENDDATE
+data report6_total_details2 (keep = MEASURE_YEAR BPID 				epi_id_milliman T4_IP_A_FAC_CCN 		T4_IP_A_FAC_STARTDATE 		T4_IP_A_FAC_ENDDATE
 		   							T4_IP_O_FAC_CCN 	T4_IP_O_FAC_STARTDATE 		T4_IP_O_FAC_ENDDATE
 								   	T4_LTAC_CCN 		T4_LTAC_STARTDATE 			T4_LTAC_ENDDATE
 								   	T4_IRF_CCN 			T4_IRF_STARTDATE 			T4_IRF_ENDDATE
@@ -481,7 +563,7 @@ data report6_total_details2 (keep = BPID 				epi_id_milliman T4_IP_A_FAC_CCN 		T
                                     T4_ER_R_CCN         T4_ER_R_STARTDATE           T4_ER_R_ENDDATE
 									T4_HOSPICE_CCN      T4_HOSPICE_STARTDATE        T4_HOSPICE_ENDDATE);
 	set report6_total_details;
-	by epi_id_milliman;
+	by measure_year epi_id_milliman;
 
 	length T4_IP_A_FAC_CCN 		T4_IP_O_FAC_CCN 	T4_LTAC_CCN 	T4_IRF_CCN 		T4_HH_CCN 	T4_SNF_CCN T4_ER_S_CCN T4_ER_R_CCN $12;
 	
@@ -582,14 +664,14 @@ data report6_total_details1a;
 	where timeframe in (1,2);
 run;
 
-data report6_total_details2a (keep = epi_id_milliman bpid T12_IP_A_FAC_CCN T12_IP_A_FAC_STARTDATE 		T12_IP_A_FAC_ENDDATE
+data report6_total_details2a (keep = measure_year epi_id_milliman bpid T12_IP_A_FAC_CCN T12_IP_A_FAC_STARTDATE 		T12_IP_A_FAC_ENDDATE
 		   							T12_IP_O_FAC_CCN 		T12_IP_O_FAC_STARTDATE 		T12_IP_O_FAC_ENDDATE
 								   	T12_LTAC_CCN 			T12_LTAC_STARTDATE 			T12_LTAC_ENDDATE
 								   	T12_IRF_CCN 			T12_IRF_STARTDATE 			T12_IRF_ENDDATE
 						 		   	T12_HH_CCN 				T12_HH_STARTDATE 			T12_HH_ENDDATE 
 								   	T12_SNF_CCN 			T12_SNF_STARTDATE 			T12_SNF_ENDDATE);
 	set report6_total_details1a;
-	by epi_id_milliman;
+	by measure_year epi_id_milliman;
 
 	length T12_IP_A_FAC_CCN 	T12_IP_O_FAC_CCN	T12_LTAC_CCN
 		   T12_IRF_CCN 			T12_HH_CCN 			T12_SNF_CCN $12;
@@ -668,7 +750,8 @@ proc sql;
 		from report6_2 as a
 			full join report6_total_details2 as b
 			on a.epi_id_milliman = b.epi_id_milliman
-	order by a.epi_id_milliman
+			and a.measure_year=b.measure_year
+	order by a.measure_year, a.epi_id_milliman
 		;
 quit;
 
@@ -683,7 +766,8 @@ proc sql;
 				full join
 				report6_total_details2a as b
 				on a.epi_id_milliman = b.epi_id_milliman
-		order by a.epi_id_milliman
+				and a.measure_year=b.measure_year
+		order by a.measure_year, a.epi_id_milliman
 ;
 quit;
 
@@ -693,7 +777,7 @@ run ;
 
 *BPCIA Update: Identify transfers - anchor facility DRGs and costs;
 *identify and keep cost and DRG of very first facility;
-proc sort data = out.ip_&label._&bpid1._&bpid2. out = ip_test; by epi_id_milliman transfer_stay stay_admsn_dt;
+proc sort data = out.ip_&label._&bpid1._&bpid2. out = ip_test; by measure_year epi_id_milliman transfer_stay stay_admsn_dt;
 where type = 'IP_Idx';
 run;
 
@@ -701,9 +785,9 @@ data dgcd1 (rename=(DGNSCD01 = primary_diag_code PRCDRCD01 = primary_proc_code A
 	set ip_test;
 	format anchor_facility_code $20.; length anchor_facility_code $20; 
 	retain anchor_facility_code anchor_facility_cost;
-	by epi_id_milliman;
+	by measure_year epi_id_milliman;
 	if first.epi_id_milliman then do;
-		anchor_facility_code = strip(put(stay_drg_cd,$z3.));
+		anchor_facility_code = strip(put(stay_drg_cd,$3.));
 		anchor_facility_cost = std_allowed_wage;
 		transfer_flag = 0;
 	end;
@@ -780,6 +864,7 @@ create table report6_comb_drgs as
 	from report6_combined as a
 		left join dgcd3 as b
 	on a.epi_id_milliman = b.epi_id_milliman 
+	and a.measure_year=b.measure_year
 	;
 quit;
 
@@ -796,7 +881,12 @@ run ;
 
 /*Identify performance period episodes*/ 
 data bpcia_performance_episodes;
-	set bpciaref.bpcia_performance_episodes;
+	set bpciaref.bpcia_performance_episodes (in=a)
+		bpciaref.bpcia_performance_episodes_my3 (in=b);
+
+	format measure_year $10.;
+	if a then measure_year = 'MY1 & MY2';
+	else if b then measure_year = 'MY3';
 
 	perf_period_epi_flag=1;
 
@@ -810,6 +900,7 @@ create table Episode_Detail_1 as
 		 a.BPID
 		,a.EPI_ID_MILLIMAN
 		,a.EPISODE_ID
+		,A.Measure_Year
 		,put(a.EPISODE_INITIATOR,best6.) as EPISODE_INITIATOR
 		,EPISODE_INITIATOR1
 		,a.Milliman_CMS_Discrepancy
@@ -956,6 +1047,7 @@ create table Episode_Detail_1 as
 from data1_&label._&bpid1._&bpid2. as a
 	left join report6_comb_drgs as b
 	on a.epi_id_milliman = b.epi_id_milliman
+	and a.measure_year=b.measure_year
 	;
 quit ; 
 
@@ -982,6 +1074,7 @@ create table Episode_Detail_1a as
 		left join
 		out.epi_&label._&bpid1._&bpid2. as b
 		on a.epi_id_milliman = b.epi_id_milliman
+		and a.measure_year=b.measure_year
 ;
 proc sql;
 create table Episode_Detail_3 as
@@ -1008,7 +1101,7 @@ create table Episode_Detail_4 as
 		  ,b.Health_system_interface_abbrevia as EI_system_abbr
 		  ,propcase(c.fac_name) as Anchor_Facility_Name 
 	from Episode_Detail_3 as a
-	left join bpciaref.bpcia_episode_initiator_info as b
+	left join bpcia_epi_initiator_combined as b
 	on a.bpid = b.BPCI_Advanced_ID_Number_2
 	left join ref.ccns_codemap as c
 	on a.anchor_ccn = c.ccn;
@@ -1041,18 +1134,18 @@ create table Episode_Detail_5 as
 quit;
 
 *Get first CCN for each post-acute care type for total;
-data episode_ccns (keep = epi_id_milliman timeframe sumcat sumcat1 clm_provider ccn2 dos );
+data episode_ccns (keep = MEASURE_YEAR epi_id_milliman timeframe sumcat sumcat1 clm_provider ccn2 dos );
 	set report6_total_details;
 	where sumcat in ('IP_s_F','IP_d_F','IP_LTAC_F','IP_Rehab_F','HH','SNF_F') or substr(sumcat1,1,1) = 'E';
 	clm_provider = strip(Provider_CCN);
 	run;
 proc sort data = episode_ccns;
-	by epi_id_milliman sumcat sumcat1 dos;
+	by measure_year epi_id_milliman sumcat sumcat1 dos;
 run;
 
 data episode_ccns_a (drop=CCN2 timeframe sumcat sumcat1 dos);
 set episode_ccns;
-by epi_id_milliman sumcat sumcat1 dos;
+by measure_year epi_id_milliman sumcat sumcat1 dos;
 	if sumcat1 = '' then do ;
 		if first.sumcat then do;
 			if sumcat = 'IP_s_F' then do;
@@ -1152,10 +1245,14 @@ proc sql;
 	order by key;
 quit;
 
+proc sort data=episode_ccns4;
+	by key measure_year;
+run;
+
 
 /*transpose data from long to wide*/
 proc transpose data=episode_ccns4 out=episode_ccns5 (drop=_NAME_);
-	by key;
+	by key MEASURE_YEAR;
 	ID type;
 	var CCN_NAME;
 	run;
@@ -1182,9 +1279,13 @@ create table Episode_Detail_6 as
 	from Episode_Detail_5 as a
 	left join Episode_CCNs6 as b
 	on a.epi_id_milliman = b.key
-	left join bpciaref.BPCIA_DRG_Mapping as c
-	on a.ANCHOR_CODE = c.code;
+	and a.measure_year=b.measure_year
+	left join bpcia_drg_mapping_combined as c
+	on a.ANCHOR_CODE = c.code
+	and A.measure_year = C.measure_year;
 ;
+quit;
+
 /*Added the Clinical Episode Names to Episode_Detail */
 proc sql;
 create table Episode_Detail_7 as
@@ -1195,8 +1296,9 @@ create table Episode_Detail_7 as
 		  ,strip(BPID)||" - "||strip(b.Short_name) as BPID_ClinicalEp
 		  ,strip(BPID)||" - "||strip(b.Short_name)||" - "||strip(anchor_ccn) as BPID_ClinicalEp_ccn
 	from Episode_Detail_6 as a
-	left join bpciaref.BPCIA_Clinical_Episode_Names as b
+	left join bpcia_clin_epi_names_combined as b
 	on a.BPCI_Episode_Idx = b.BPCI_Episode_Index
+	and A.measure_year = B.measure_year
 ;
 	create table out.epi_detail_&label._&bpid1._&bpid2. as
 	select distinct a.*
@@ -1214,7 +1316,9 @@ create table Episode_Detail_7 as
 					then 1 else 0 end as client_type
 			%if &label = ybase %then %do;
 			,"BASE" as period
-			,"Baseline (2014 - 2016)" as timeframe_filter format = $100. length=100 
+			, case when a.measure_year = "MY1 & MY2" then "Baseline (2014 - 2016)" 
+				  when a.measure_year = "MY3" then "Baseline (2015Q4 - 2018Q3)"
+				end as timeframe_filter format = $100. length=100 
 			%end;
 			%else %do;
 			,"PERF" as period
@@ -1228,7 +1332,7 @@ create table Episode_Detail_7 as
 				   when '01JUL2022'd le POST_DSCH_END_DT le '31DEC2022'd then "Performance Period 8"
 				   when '01JAN2023'd le POST_DSCH_END_DT le '30JUN2023'd then "Performance Period 9"
 				   when '01JUL2023'd le POST_DSCH_END_DT le '31DEC2023'd then "Performance Period 10"
-			end as timeframe_filter format = $100. length=100
+				end as timeframe_filter format = $100. length=100
 			%end;
 			,case when (&transmit_date. - b.POST_DSCH_END_DT) >= 60 then "Yes" else "No" end as COMP_EP_FLAG
 			,b.POST_DSCH_END_DT as epi_end_date
@@ -1249,13 +1353,14 @@ create table Episode_Detail_7 as
 			from episode_detail_7 as a 
 			left join out.epi_&label._&bpid1._&bpid2. as b
 			on a.epi_id_milliman = b.epi_id_milliman
+			and a.measure_year=b.measure_year
 ;
 quit ;
 
 /*/*********************************************************************************************/*/
 /*/*Code to create a CCN-level observational dataset********************************************/*/
 /*/*********************************************************************************************/*/;
-data ccn_enc_ip (keep=BPID anchor_ccn claimno EPISODE_INITIATOR epi_id_milliman drg_cd type allowed std_allowed_wage provider_ccn0 admsn_dt DSCHRGDT util_day dos timeframe GEO_BENE_SK pdgns_cd pproc_cd transfer_stay admitting_diag_code DGNSCD02-DGNSCD25 edac_flag);
+data ccn_enc_ip (keep=BPID anchor_ccn claimno EPISODE_INITIATOR measure_year epi_id_milliman drg_cd type allowed std_allowed_wage provider_ccn0 admsn_dt DSCHRGDT util_day dos timeframe GEO_BENE_SK pdgns_cd pproc_cd transfer_stay admitting_diag_code DGNSCD02-DGNSCD25 edac_flag);
 	set		out.ipr_&label._&bpid1._&bpid2.;
 /*	where timeframe ^=0 ; */
 	format DRG_CD $3.;
@@ -1276,6 +1381,7 @@ proc sql;
 			  ,claimno
 			  ,anchor_ccn
 			  ,BPID  
+			  ,measure_year
 			  ,epi_id_milliman
 			  ,EPISODE_INITIATOR
 			  ,drg_cd 
@@ -1299,6 +1405,7 @@ proc sql;
 			  ,claimno
 			  ,anchor_ccn
 			  ,BPID
+			  ,measure_year
 			  ,epi_id_milliman
 			  ,EPISODE_INITIATOR
 			  ,drg_cd 
@@ -1318,31 +1425,31 @@ quit;
 
 *!! JL BPCIA update: Temporary - to fix formats and rename variables to get them all to stack;
 data ccn_enc_snf;
-set out.snf_&label._&bpid1._&bpid2. (keep= EPISODE_INITIATOR claimno BPID epi_id_milliman type allowed std_allowed_wage PROVIDER admsn_dt DSCHRGDT THRU_DT util_day dos timeframe DGNSCD01-DGNSCD25 rename=(PROVIDER=provider_ccn0 DGNSCD01=pdgns_cd /*util_day = util_day_pre*/)) ;
+set out.snf_&label._&bpid1._&bpid2. (keep= EPISODE_INITIATOR claimno BPID measure_year epi_id_milliman type allowed std_allowed_wage PROVIDER admsn_dt DSCHRGDT THRU_DT util_day dos timeframe DGNSCD01-DGNSCD25 rename=(PROVIDER=provider_ccn0 DGNSCD01=pdgns_cd /*util_day = util_day_pre*/)) ;
 /*	util_day = min(util_day_pre,90);*/
 run;
 
 data ccn_enc_hha;
-set out.hha_&label._&bpid1._&bpid2.(keep=BENE_SK  claimno anchor_ccn EPISODE_INITIATOR BPID epi_id_milliman type allowed std_allowed_wage PROVIDER dos timeframe DGNSCD01-DGNSCD25 FROM_DT THRU_DT util_day
+set out.hha_&label._&bpid1._&bpid2.(keep=BENE_SK  claimno anchor_ccn EPISODE_INITIATOR BPID measure_year epi_id_milliman type allowed std_allowed_wage PROVIDER dos timeframe DGNSCD01-DGNSCD25 FROM_DT THRU_DT util_day
 											 rename=(BENE_SK=GEO_BENE_SK DGNSCD01=pdgns_cd FROM_DT=admsn_dt THRU_DT=DSCHRGDT) in=d) ;
 	provider_ccn0 = strip(provider);
 run;
 
 data ccn_enc_op;
-	set out.op_&label._&bpid1._&bpid2. (keep= bene_sk claimno anchor_ccn EPISODE_INITIATOR BPID epi_id_milliman type allowed std_allowed_wage PROVIDER dos timeframe DGNSCD01-DGNSCD25 at_npi HCPCS_CD  REV_CNTR edac_flag in=c rename=(PROVIDER=provider_ccn0 bene_sk = geo_bene_sk DGNSCD01=pdgns_cd)) ;
+	set out.op_&label._&bpid1._&bpid2. (keep= bene_sk claimno anchor_ccn EPISODE_INITIATOR BPID measure_year epi_id_milliman type allowed std_allowed_wage PROVIDER dos timeframe DGNSCD01-DGNSCD25 at_npi HCPCS_CD  REV_CNTR edac_flag in=c rename=(PROVIDER=provider_ccn0 bene_sk = geo_bene_sk DGNSCD01=pdgns_cd)) ;
 	ADMSN_DT = dos;
 	DSCHRGDT = dos;
 run;
 
 data ccn_enc_hs (drop=provider);
-	set out.hs_&label._&bpid1._&bpid2. (keep= bene_sk claimno anchor_ccn EPISODE_INITIATOR BPID epi_id_milliman type allowed std_allowed_wage PROVIDER dos timeframe DGNSCD01-DGNSCD25 thru_dt util_day in=c rename=(bene_sk=geo_bene_sk dos = admsn_dt DGNSCD01=pdgns_cd thru_dt = dschrgdt));
+	set out.hs_&label._&bpid1._&bpid2. (keep= bene_sk claimno anchor_ccn EPISODE_INITIATOR BPID measure_year epi_id_milliman type allowed std_allowed_wage PROVIDER dos timeframe DGNSCD01-DGNSCD25 thru_dt util_day in=c rename=(bene_sk=geo_bene_sk dos = admsn_dt DGNSCD01=pdgns_cd thru_dt = dschrgdt));
 	provider_ccn0 = input(provider,$20.);
 run;
 *;
 
 data ccn_enc(drop=provider_ccn0);
 set		
-		ccn_enc_ip_a (keep=GEO_BENE_SK anchor_ccn EPISODE_INITIATOR BPID epi_id_milliman drg_cd type allowed std_allowed_wage provider_ccn0 admsn_dt DSCHRGDT util_day  pdgns_cd pproc_cd dos timeframe admitting_diag_code DGNSCD02-DGNSCD25 edac_flag)
+		ccn_enc_ip_a (keep=GEO_BENE_SK anchor_ccn EPISODE_INITIATOR BPID measure_year epi_id_milliman drg_cd type allowed std_allowed_wage provider_ccn0 admsn_dt DSCHRGDT util_day  pdgns_cd pproc_cd dos timeframe admitting_diag_code DGNSCD02-DGNSCD25 edac_flag)
 		ccn_enc_snf
 		ccn_enc_hha
 		ccn_enc_op
@@ -1358,6 +1465,7 @@ proc sql;
 			  ,anchor_CCN
 			  ,BPID
 			  ,EPISODE_INITIATOR
+			  ,measure_year
 			  ,epi_id_milliman
 			  ,type
 			  ,provider_ccn
@@ -1382,6 +1490,7 @@ proc sql;
 			  ,anchor_CCN
 			  ,BPID
 			  ,EPISODE_INITIATOR
+			  ,measure_year
 			  ,epi_id_milliman
 			  ,type
 			  ,provider_ccn
@@ -1396,13 +1505,13 @@ proc sql;
 			  ,admitting_diag_code
 			  ,DGNSCD02,DGNSCD03,DGNSCD04,DGNSCD05,DGNSCD06,DGNSCD07,DGNSCD08,DGNSCD09,DGNSCD10,DGNSCD11,DGNSCD12,DGNSCD13,DGNSCD14,DGNSCD15,DGNSCD16,DGNSCD17,DGNSCD18,DGNSCD19,DGNSCD20,DGNSCD21,DGNSCD22,DGNSCD23,DGNSCD24,DGNSCD25
 			  ,edac_flag
-		order by BPID, epi_id_milliman,type,admsn_dt;
+		order by measure_year, BPID, epi_id_milliman,type,admsn_dt;
 	quit;
 
 	/*combine records with 1 or less days between discharge and admission to the same post-acute type as a single event*/
 data ccn_enc3;
 	set ccn_enc2;
-	by BPID epi_id_milliman type admsn_dt;
+	by measure_year BPID epi_id_milliman type admsn_dt;
 
 /*	at_npi2 = strip(input(at_npi,$20.));*/
 
@@ -1421,7 +1530,7 @@ data ccn_enc3;
 
 data ccn_enc3a;
 	set ccn_enc3;
-	by BPID epi_id_milliman type admsn_dt;
+	by measure_year BPID epi_id_milliman type admsn_dt;
 	if first.BPID then counter = 0;
 
 	counter + 1;
@@ -1432,6 +1541,7 @@ run;
 proc sql;
 	create table ccn_enc4 as
 		select anchor_CCN
+		,measure_year
 		,BPID
 		,EPISODE_INITIATOR
 			  ,epi_id_milliman
@@ -1468,6 +1578,7 @@ proc sql;
 	from ccn_enc3a
 	group by episode
 			,anchor_ccn
+			,measure_year
 			 ,BPID
 			 ,EPISODE_INITIATOR
 		      ,epi_id_milliman
@@ -1508,6 +1619,7 @@ create table ccn_enc5 as
 		right join ccn_enc4 as b
 		on a.epi_id_milliman = b.epi_id_milliman
 		and a.BPID = b.BPID
+		and a.measure_year=b.measure_year
 	;
 
 	/* New Time Frame for the Facilites page */ 
@@ -1668,7 +1780,7 @@ create table ccn_enc_ER as
 					,1 as IP_visit_flag
 			from ccn_enc10 as a
 			left join ccn_enc10 as b
-			on a.epi_id_milliman = b.epi_id_milliman and (a.startdate = b.startdate or sum(a.startdate,1) = b.startdate)
+			on a.measure_year=b.measure_year and a.epi_id_milliman = b.epi_id_milliman and (a.startdate = b.startdate or sum(a.startdate,1) = b.startdate)
 			where a.caretype = "Emergency" and b.type in ("IP_d","IP_s","IP_Idx")
  ; 
 
@@ -1679,7 +1791,7 @@ create table ccn_enc10a as
 				,b.IP_visit_flag
 		    from ccn_enc10 as a
 			left join ccn_enc_ER as b
-			on a.epi_id_milliman = b.epi_id_milliman and a.startdate = b.startdate and a.caretype = b.caretype
+			on a.measure_year=b.measure_year and a.epi_id_milliman = b.epi_id_milliman and a.startdate = b.startdate and a.caretype = b.caretype
    ;
 quit; 
 
@@ -1741,10 +1853,12 @@ proc sql;
 			from ccn_enc10c as a
 			left join out.Cc_sum_&label._&bpid1._&bpid2. as b
 			on a.EPI_ID_MILLIMAN = b.EPI_ID_MILLIMAN
+/*			and a.measure_year=b.measure_year*/
 			;
 
 	create table out.comp_&label._&bpid1._&bpid2. as 
 		select a.anchor_ccn
+			  ,a.measure_year
 			  ,a.BPID
 			  ,a.EPI_ID_MILLIMAN
 			  ,a.provider_ccn
@@ -1772,6 +1886,7 @@ proc sql;
 	from ccn_enc11 as a
 	inner join out.cc_det_&label._&bpid1._&bpid2. as b
 	on a.EPI_ID_MILLIMAN = b.EPI_ID_MILLIMAN 
+/*	and a.measure_year=b.measure_year*/
 	and a.provider_ccn = b.provider
 	and a.startdate = b.stay_admsn_dt
 	and a.caretype in ('Anchor Admit','Readmit')
@@ -1790,7 +1905,7 @@ quit;
 /*break out attending physicians from episode detail*/;
 
 data dataprov_a (rename=(attending_npi=provider_npi attending_name=provider_name at_npi_last_nm=npi_last_nm at_npi_first_nm=npi_first_nm));
-	set out.epi_detail_&label._&bpid1._&bpid2.  (keep= anchor_CCN  BPID EncounterID epi_id_milliman  DataYearMo Anchor_YearQtr Anchor_YearMo Anchor_Year ANCHOR_BEG_DT 
+	set out.epi_detail_&label._&bpid1._&bpid2.  (keep= anchor_CCN measure_year BPID EncounterID epi_id_milliman  DataYearMo Anchor_YearQtr Anchor_YearMo Anchor_Year ANCHOR_BEG_DT 
 						 ANCHOR_END_DT attending_npi attending_name at_npi_last_nm at_npi_first_nm );	
 	length physician_type $35;
 	where attending_npi ^= ".";
@@ -1800,7 +1915,7 @@ run;
 
 /*break out operating physicians from episode detail*/
 data dataprov_b (rename=(operating_npi=provider_npi operating_name=provider_name op_npi_last_nm=npi_last_nm op_npi_first_nm=npi_first_nm));
-	set out.epi_detail_&label._&bpid1._&bpid2.  (keep= anchor_CCN EncounterID BPID epi_id_milliman  DataYearMo Anchor_YearQtr Anchor_YearMo Anchor_Year ANCHOR_BEG_DT 
+	set out.epi_detail_&label._&bpid1._&bpid2.  (keep= anchor_CCN EncounterID measure_year BPID epi_id_milliman  DataYearMo Anchor_YearQtr Anchor_YearMo Anchor_Year ANCHOR_BEG_DT 
 						 ANCHOR_END_DT operating_npi operating_name op_npi_last_nm op_npi_first_nm);
 	length physician_type $35;
 	where operating_npi ^= ".";
@@ -1817,13 +1932,13 @@ data dataprov_c;
 run;
 
 proc sort data=dataprov_c;
-	by EncounterID BPID epi_id_milliman  provider_npi;
+	by measure_year EncounterID BPID epi_id_milliman  provider_npi;
 run;
 
 /*Create one record per episode-NPI*/
 data dataprov_d;
 	set dataprov_c;
-	by EncounterID BPID epi_id_milliman  provider_npi;
+	by measure_year EncounterID BPID epi_id_milliman  provider_npi;
 
 	if first.provider_npi and last.provider_npi then output;
 	else if last.provider_npi then do;
@@ -1836,7 +1951,8 @@ run;
 *20180524 JL UPDATE: Output for physician summary table*;
 proc sql;
 	create table out.phys_summ_&label._&bpid1._&bpid2. as
-	select a.BPID
+	select a.measure_year
+		,a.BPID
 		,a.epi_id_milliman
 		,a.provider_name as at_op_provider_name
 		,a.physician_type as at_op_role
@@ -1866,6 +1982,7 @@ run;
 proc sql;
 	create table npi_level_a as
 	select a.anchor_CCN
+		,a.measure_year
 		,a.epi_id_milliman
 		,a.BPID
 		,a.EXPNSDT1 as service_date
@@ -1880,6 +1997,7 @@ proc sql;
 		,a.DGNSCD02,a.DGNSCD03,a.DGNSCD04,a.DGNSCD05,a.DGNSCD06,a.DGNSCD07,a.DGNSCD08,a.DGNSCD09,a.DGNSCD10,a.DGNSCD11,a.DGNSCD12
 	from npi_level as a 
 	group by a.anchor_CCN
+			,a.measure_year
 			,a.epi_id_milliman
 			,a.BPID
 			,service_date
@@ -1907,6 +2025,7 @@ proc sql ;
 	inner join npi_level_a as b
 	on a.epi_id_milliman = b.epi_id_milliman
 	and a.BPID = b.BPID
+	and a.measure_year=b.measure_year
 	;
 
 /*create various descriptive information information and attach provider names*/
@@ -1914,6 +2033,7 @@ proc sql ;
 		select a.ANCHOR_BEG_DT
 			  ,a.anchor_CCN
 			  ,a.EncounterID
+			  ,a.measure_year
 			  ,a.BPID
 			  ,a.DataYearMo
 			  ,a.Anchor_YearQtr
@@ -2076,6 +2196,7 @@ create table npi_level3e as
 		left join dataprov_d as c
 		on strip(a.provider_npi)=strip(c.provider_npi)
 		and a.EncounterID = c.EncounterID
+		and a.measure_year=c.measure_year
 ;
 
 
@@ -2087,7 +2208,7 @@ create table npi_level_ER_0 as
 					,1 as IP_visit_flag
 			from npi_level3e as a
 			left join ccn_enc11 as b
-			on a.epi_id_milliman = b.epi_id_milliman and (a.service_date = b.startdate or sum(a.service_date,1) = b.startdate)
+			on a.measure_year=b.measure_year and a.epi_id_milliman = b.epi_id_milliman and (a.service_date = b.startdate or sum(a.service_date,1) = b.startdate)
 			where a.type = "Prof_ER" and b.type in ("IP_d","IP_s","IP_Idx")
  ; 
 
@@ -2098,7 +2219,7 @@ create table npi_level4 as
 				,b.IP_visit_flag
 		    from npi_level3e as a
 			left join npi_level_ER_0 as b
-			on a.epi_id_milliman = b.epi_id_milliman and a.service_date = b.service_date and a.type = b.type
+			on a.measure_year=b.measure_year and a.epi_id_milliman = b.epi_id_milliman and a.service_date = b.service_date and a.type = b.type
    ;
 
 quit; 
@@ -2124,12 +2245,12 @@ data pj_hs;
 run;
 
 data patientjourney_1 ;
-	retain  epi_id_milliman type provider_ccn admsn_dt dschrgdt;
-	set out.op_&label._&bpid1._&bpid2. (keep =  epi_id_milliman type provider_num from_dt thru_dt anchor_beg_dt anchor_end_dt BPID std_allowed_wage util_day in = a rename=(from_dt = admsn_dt thru_dt=dschrgdt provider_num=provider)) 
-		out.ip_&label._&bpid1._&bpid2. (keep =  epi_id_milliman type provider STAY_ADMSN_DT STAY_DSCHRGDT anchor_beg_dt anchor_end_dt BPID std_allowed_wage util_day in = b rename=(STAY_ADMSN_DT = admsn_dt STAY_DSCHRGDT=dschrgdt)) 
-		out.snf_&label._&bpid1._&bpid2. (keep =  epi_id_milliman type provider admsn_dt dschrgdt thru_dt anchor_beg_dt anchor_end_dt BPID std_allowed_wage util_day in = c rename =(thru_dt=dichrgdt2 util_day = util_day_pre))
-		out.hha_&label._&bpid1._&bpid2. (keep =  epi_id_milliman type provider from_dt thru_dt anchor_beg_dt anchor_end_dt BPID std_allowed_wage util_day in = d rename=(from_dt = admsn_dt thru_dt = dschrgdt))
-		pj_hs (keep =  epi_id_milliman type provider1 from_dt thru_dt anchor_beg_dt anchor_end_dt BPID std_allowed_wage util_day in = d rename=(from_dt = admsn_dt thru_dt = dschrgdt provider1 = provider));
+	retain  measure_year epi_id_milliman type provider_ccn admsn_dt dschrgdt;
+	set out.op_&label._&bpid1._&bpid2. (keep =  measure_year epi_id_milliman type provider_num from_dt thru_dt anchor_beg_dt anchor_end_dt BPID std_allowed_wage util_day in = a rename=(from_dt = admsn_dt thru_dt=dschrgdt provider_num=provider)) 
+		out.ip_&label._&bpid1._&bpid2. (keep =  measure_year epi_id_milliman type provider STAY_ADMSN_DT STAY_DSCHRGDT anchor_beg_dt anchor_end_dt BPID std_allowed_wage util_day in = b rename=(STAY_ADMSN_DT = admsn_dt STAY_DSCHRGDT=dschrgdt)) 
+		out.snf_&label._&bpid1._&bpid2. (keep =  measure_year epi_id_milliman type provider admsn_dt dschrgdt thru_dt anchor_beg_dt anchor_end_dt BPID std_allowed_wage util_day in = c rename =(thru_dt=dichrgdt2 util_day = util_day_pre))
+		out.hha_&label._&bpid1._&bpid2. (keep =  measure_year epi_id_milliman type provider from_dt thru_dt anchor_beg_dt anchor_end_dt BPID std_allowed_wage util_day in = d rename=(from_dt = admsn_dt thru_dt = dschrgdt))
+		pj_hs (keep =  measure_year epi_id_milliman type provider1 from_dt thru_dt anchor_beg_dt anchor_end_dt BPID std_allowed_wage util_day in = d rename=(from_dt = admsn_dt thru_dt = dschrgdt provider1 = provider));
 
 		provider=strip(Provider); /*20180615 MK UPDATE*/
 		if length(provider)=5 then provider="0"||provider; /*20180615 MK UPDATE*/
@@ -2196,7 +2317,7 @@ proc sql;
 quit;
 
 proc sort data = patientjourney_1a nodupkey;
-	by epi_id_milliman admsn_dt rank_order; *20170807 - Add rank_order to sort statement;
+	by measure_year epi_id_milliman admsn_dt rank_order; *20170807 - Add rank_order to sort statement;
 run;
 
 data patientjourney_1b (drop=provider);
@@ -2215,7 +2336,7 @@ data patientjourney_2 (drop = i start_date end_date provider_ccn type admsn_dt d
 	format d1-d90 type2 provider type_lag $255.;
 	format d_first_admit_date d_first_disch_date d_second_admit_date d_second_disch_date d_third_admit_date d_third_disch_date mmddyy10.;
 
-	by epi_id_milliman;
+	by measure_year epi_id_milliman;
 
 	if type ^="" then do;
 		if provider_name ^= '' then do;
@@ -2549,23 +2670,24 @@ create table patientjourney_3 as
 	from out.epi_detail_&label._&bpid1._&bpid2. as a
 	right join patientjourney_2 as b
 	on a.epi_id_milliman = b.epi_id_milliman
+	and a.measure_year=b.measure_year
 	;
 	quit ; 
 
-	proc sort data = patientjourney_3 out = pjourney_2;by epi_id_milliman;run;
+	proc sort data = patientjourney_3 out = pjourney_2;by measure_year epi_id_milliman;run;
 
 proc transpose data = pjourney_2 out = pjourney_agg_1
 	name= d_number
 	prefix=d_type;
 	var d_first d_second d_third;
-	by epi_id_milliman;
+	by measure_year epi_id_milliman;
 run;
 
 proc transpose data = pjourney_2 (drop= d_first d_second d_third rename=(d_first_name=d_first d_second_name=d_second d_third_name=d_third)) out = pjourney_agg_2
 	name= d_number
 	prefix=d_name;
 	var d_first d_second d_third;
-	by epi_id_milliman;
+	by measure_year epi_id_milliman;
 run;
 
 data pjourney_agg_1 (drop=d_type1 rename=d_type2=d_type1); 
@@ -2584,7 +2706,7 @@ run;
 
 proc sql;
 	create table out.pjourneyagg_&label._&bpid1._&bpid2. as
-	select a.epi_id_milliman
+	select a.measure_year, a.epi_id_milliman
 	   , c.BPID  /*Dummy Variables for BPCIA */
 		,case when a.d_number = 'd_first' then 'FIRST'
 			when a.d_number = 'd_second' then 'SECOND'
@@ -2595,9 +2717,10 @@ proc sql;
 		,c.ANCHOR_BEG_DT
 		,c.ANCHOR_END_DT
 	from pjourney_agg_1 as a left join pjourney_agg_2 as b
-		on a.epi_id_milliman = b.epi_id_milliman and a.d_number=b.d_number
+		on a.measure_year=b.measure_year and a.epi_id_milliman = b.epi_id_milliman and a.d_number=b.d_number
 		left join patientjourney_3 as c
 		on a.epi_id_milliman = c.epi_id_milliman
+		and a.measure_year=c.measure_year
 ;
 quit;
 
@@ -2608,7 +2731,7 @@ quit;
 /********************************************************************************************/
 *20171204 - JL Update: Add source of readmit information;
 proc sort data= patientjourney_1a;
-	by  epi_id_milliman admsn_dt dschrgdt;
+	by measure_year epi_id_milliman admsn_dt dschrgdt;
 run; 
 
 data readmit_source;
@@ -2616,7 +2739,7 @@ data readmit_source;
 	length source_type readmit_source_type $20;
 	length source_name readmit_source $85;
 	where type ^='';
-	by epi_id_milliman admsn_dt dschrgdt;
+	by measure_year epi_id_milliman admsn_dt dschrgdt;
 
 	retain last_discharge source_name source_type;
 
@@ -2649,7 +2772,7 @@ where substr(caretype,1,9) = "Emergency" ;
 run ; 
 
 proc sort data= ccn_enc_er_claims nodupkey;
-	by  epi_id_milliman startdate enddate;
+	by measure_year epi_id_milliman startdate enddate;
 run;  
 
 data prov_er_claims ; 
@@ -2658,7 +2781,7 @@ where substr(type,1,7) = "Prof_ER" ;
 run ; 
 
 proc sort data= prov_er_claims nodupkey;
-	by  epi_id_milliman service_date;
+	by measure_year epi_id_milliman service_date;
 run;  
 
 proc sql ; 
@@ -2674,9 +2797,9 @@ create table readmit_source1 as
 					 ,c.type as prov_type
 			from readmit_source as a
 			left join ccn_enc_er_claims as b
-			on a.epi_id_milliman = b.epi_id_milliman and  (a.admsn_dt = b.enddate or a.admsn_dt = sum(b.enddate,1) )
+			on a.measure_year=b.measure_year and a.epi_id_milliman = b.epi_id_milliman and  (a.admsn_dt = b.enddate or a.admsn_dt = sum(b.enddate,1) )
 			left join prov_er_claims as c
-			on a.epi_id_milliman = c.epi_id_milliman and  (a.admsn_dt = c.service_date or a.admsn_dt = sum(c.service_date,1))
+			on a.measure_year=c.measure_year and a.epi_id_milliman = c.epi_id_milliman and  (a.admsn_dt = c.service_date or a.admsn_dt = sum(c.service_date,1))
 ;
 quit ; 
 
@@ -2699,11 +2822,11 @@ end ;
 *This sorting is done to remove duplicates in instances where there are mutliple ER providers on the same day.;
 
 proc sort data=readmit_source2 out=readmit_source3 ; 
-by epi_id_milliman type provider_ccn  admsn_dt dschrgdt std_allowed_wage er_admsn_dt er_dschrgdt er_type ;
+by measure_year epi_id_milliman type provider_ccn  admsn_dt dschrgdt std_allowed_wage er_admsn_dt er_dschrgdt er_type ;
 run ; 
 
 proc sort data=readmit_source3 out=readmit_source4 nodupkey ; 
-by epi_id_milliman type provider_ccn  admsn_dt dschrgdt std_allowed_wage ;
+by measure_year epi_id_milliman type provider_ccn  admsn_dt dschrgdt std_allowed_wage ;
 run ;
 
 
@@ -2718,6 +2841,7 @@ create table ccn_enc12 as
 	from ccn_enc11 as a
 		left join readmit_source4 as b
 	on a.epi_id_milliman = b.epi_id_milliman
+	and a.measure_year=b.measure_year
 	and a.startdate=admsn_dt
 	and a.enddate=dschrgdt
 	and a.CCN_Name_Desc=b.Fac_Name_Desc
@@ -2740,7 +2864,7 @@ run;
 
 proc sql;
 	create table snfirf_readmit as
-		select distinct a.epi_id_milliman
+		select distinct a.measure_year, a.epi_id_milliman
 			  ,a.admsn_dt
 			  ,a.dschrgdt
 			  ,a.BPID
@@ -2755,6 +2879,7 @@ proc sql;
 		from post_acute_snfirf as a
 		,post_acute_readmits as b
 		where a.epi_id_milliman = b.epi_id_milliman
+		and a.measure_year=b.measure_year
 		and a.BPID = b.BPID
 		and a.dschrgdt <= b.admsn_dt
 		and intck('day',a.dschrgdt,b.admsn_dt) <= 1
@@ -2780,8 +2905,8 @@ proc sql;
 quit;
 
 *20170707 JL Update: Dedup rows for SNF/IRF stays where there were two readmits happening within the day after discharge;
-proc sort data = snfirf_readmit2 out=snfirf_readmit2a; by epi_id_milliman admsn_dt readmit_admit; run;
-proc sort data = snfirf_readmit2a out=snfirf_readmit3 nodupkey; by epi_id_milliman admsn_dt; run;
+proc sort data = snfirf_readmit2 out=snfirf_readmit2a; by measure_year epi_id_milliman admsn_dt readmit_admit; run;
+proc sort data = snfirf_readmit2a out=snfirf_readmit3 nodupkey; by measure_year epi_id_milliman admsn_dt; run;
 
 proc sql;
 	create table ccn_enc13 as
@@ -2808,6 +2933,7 @@ proc sql;
 		from ccn_enc12 as a
 		left join snfirf_readmit3 as b
 		on a.epi_id_milliman = b.epi_id_milliman 
+		and a.measure_year=b.measure_year
 		and a.BPID = b.BPID
 		and a.provider_ccn_use = b.provider_ccn
 		and a.startdate = b.admsn_dt
@@ -2825,12 +2951,13 @@ proc sql;
 		from ccn_enc13 as a
 		left join out.ipr_&label._&bpid1._&bpid2. as b
 		on a.epi_id_milliman = b.epi_id_milliman 
+		and a.measure_year=b.measure_year
 		and a.BPID = b.BPID
 		and a.type = b.type
 		and a.startdate = b.stay_admsn_dt
 		and a.enddate = b.stay_dschrgdt
 		and a.timeframe=b.timeframe
-		and a.DRG_CD=put(b.stay_drg_cd,3.)
+		and a.DRG_CD=put(b.stay_drg_cd,$3.)
 		and a.provider_ccn=b.provider
 	;
 
@@ -2846,38 +2973,38 @@ quit;
 /*Code to identify clinical visits in post-acute period***************************************/
 /*********************************************************************************************/ ;
 data op;
-	set out.ccn_enc_&label._&bpid1._&bpid2. (keep=BPID Epi_id_Milliman type provider_ccn CCN_Name_Desc startdate HCPCS_CD rev_cntr std_allowed_wage edac_flag rename=(CCN_Name_Desc=Provider startdate = service_date));
+	set out.ccn_enc_&label._&bpid1._&bpid2. (keep=measure_year BPID Epi_id_Milliman type provider_ccn CCN_Name_Desc startdate HCPCS_CD rev_cntr std_allowed_wage edac_flag rename=(CCN_Name_Desc=Provider startdate = service_date));
 	if substr(type,1,2) = "OP" and type ^= "OP_Idx";
 	rev_ctr = put(rev_cntr,$3.);
 run;
 
 data prov;
-	set out.provider_&label._&bpid1._&bpid2.(keep=BPID Epi_id_Milliman type provider_npi Physician service_date HCPCS_CD Op_MD_flag At_MD_flag std_allowed_wage timeframe2 edac_flag rename=(Physician=Provider));
+	set out.provider_&label._&bpid1._&bpid2.(keep=measure_year BPID Epi_id_Milliman type provider_npi Physician service_date HCPCS_CD Op_MD_flag At_MD_flag std_allowed_wage timeframe2 edac_flag rename=(Physician=Provider));
 	where timeframe2 ^= "Anchor";
 run;
 
 data hh_hdr1;
-	set out.ccn_enc_&label._&bpid1._&bpid2.  (keep=BPID GEO_BENE_SK claimno startdate Anchor_CCN Epi_id_Milliman type provider_ccn CCN_Name_Desc rename=(CCN_Name_Desc=Provider /*provider_ccn=provider_ccn1*/));
+	set out.ccn_enc_&label._&bpid1._&bpid2.  (keep=measure_year BPID GEO_BENE_SK claimno startdate Anchor_CCN Epi_id_Milliman type provider_ccn CCN_Name_Desc rename=(CCN_Name_Desc=Provider /*provider_ccn=provider_ccn1*/));
 	if substr(type,1,2) = "HH";
 run;
 
 *20180720 - transpose dates, rev center, and hcpcs to set up long list of dates;
-proc sort data = out.hha_&label._&bpid1._&bpid2. out=hh_hdr2aa; by epi_id_milliman claimno;run;
-proc sort data = out.hha_&label._&bpid1._&bpid2. out=hh_hdr2bb; by epi_id_milliman claimno;run;
-proc sort data = out.hha_&label._&bpid1._&bpid2. out=hh_hdr2cc; by epi_id_milliman claimno;run;
+proc sort data = out.hha_&label._&bpid1._&bpid2. out=hh_hdr2aa; by measure_year epi_id_milliman claimno;run;
+proc sort data = out.hha_&label._&bpid1._&bpid2. out=hh_hdr2bb; by measure_year epi_id_milliman claimno;run;
+proc sort data = out.hha_&label._&bpid1._&bpid2. out=hh_hdr2cc; by measure_year epi_id_milliman claimno;run;
 
 proc transpose data = hh_hdr2aa out=hh_hdr2a;
-	by epi_id_milliman claimno;
+	by measure_year epi_id_milliman claimno;
 	var rvcntr01-rvcntr45;
 run;
 
 proc transpose data = hh_hdr2bb out=hh_hdr2b;
-	by epi_id_milliman claimno;
+	by measure_year epi_id_milliman claimno;
 	var rev_dt01-rev_dt45;
 run;
 
 proc transpose data = hh_hdr2cc out=hh_hdr2c;
-	by epi_id_milliman claimno;
+	by measure_year epi_id_milliman claimno;
 	var hcpscd01-hcpscd45;
 run;
 
@@ -2911,9 +3038,9 @@ proc sql;
 		,c.hcpcs
 	from hh_hdr2a1 as a
 	inner join hh_hdr2b1 as b
-	on a.epi_id_milliman = b.epi_id_milliman and a.claimno = b.claimno and a.num = b.num
+	on a.measure_year=b.measure_year and a.epi_id_milliman = b.epi_id_milliman and a.claimno = b.claimno and a.num = b.num
 	inner join hh_hdr2c1 as c
-	on a.epi_id_milliman = c.epi_id_milliman and a.claimno = c.claimno and a.num = c.num
+	on a.measure_year=c.measure_year and a.epi_id_milliman = c.epi_id_milliman and a.claimno = c.claimno and a.num = c.num
 	where a.rvcntr not in (1,23) and c.hcpcs ^= "Q5001"
 ;
 quit;
@@ -2926,7 +3053,7 @@ proc sql;
 		,	b.rev_dt as service_date
 	from	hh_hdr1 as a
 			inner join hh_hdr3 as b
-			on a.epi_id_milliman = b.epi_id_milliman and a.claimno = b.claimno
+			on a.measure_year=b.measure_year and a.epi_id_milliman = b.epi_id_milliman and a.claimno = b.claimno
 ;
 quit ;
 *20180720 update end;
@@ -2956,11 +3083,11 @@ end;
 	if hierarchy > 0;
 run;
 
-proc sort; by epi_id_milliman service_date hierarchy type descending std_allowed_wage;
+proc sort; by measure_year epi_id_milliman service_date hierarchy type descending std_allowed_wage;
 
 run;
 			
-proc sort data = visits nodupkey out=visits2; by epi_id_milliman service_date; run;
+proc sort data = visits nodupkey out=visits2; by measure_year epi_id_milliman service_date; run;
 
 *Join anchor end date to file for later calculation;
 proc sql;
@@ -2970,6 +3097,7 @@ proc sql;
 	from visits2 as a
 	left join out.epi_detail_&label._&bpid1._&bpid2. as b
 	on a.epi_id_milliman = b.epi_id_milliman
+	and a.measure_year=b.measure_year
 ;
 quit;
 
@@ -2979,7 +3107,7 @@ proc sql;
 		,1 as IP_visit_flag
 	from visits3a as a
 	left join out.ccn_enc_&label._&bpid1._&bpid2. as b
-	on a.epi_id_milliman = b.epi_id_milliman and (a.service_date = b.startdate or sum(a.service_date,1) = b.startdate)
+	on a.measure_year=b.measure_year and a.epi_id_milliman = b.epi_id_milliman and (a.service_date = b.startdate or sum(a.service_date,1) = b.startdate)
 	where a.clinic_visit_type = "Emergency Room" and b.type in ("IP_d","IP_s")
 ;
 *Merge flags for overlapping admissions to original dataset;
@@ -2988,7 +3116,7 @@ proc sql;
 		,b.IP_visit_flag
 	from visits3a as a
 	left join visits_ER as b
-	on a.epi_id_milliman = b.epi_id_milliman and a.service_date = b.service_date and a.type = b.type
+	on a.measure_year=b.measure_year and a.epi_id_milliman = b.epi_id_milliman and a.service_date = b.service_date and a.type = b.type
 ;
 quit;
 
@@ -3002,7 +3130,7 @@ data visits3;
 run;
 
 *Assign visits for each day of post-acute period;
-data visits4 (keep = epi_id_milliman v1-v90);
+data visits4 (keep = measure_year epi_id_milliman v1-v90);
 	set visits3;
 
 	format visit_provider $255.; length visit_provider $255;
@@ -3012,7 +3140,7 @@ data visits4 (keep = epi_id_milliman v1-v90);
 	if clinic_visit_type ^="" then visit_provider = strip(clinic_visit_type)||": "||strip(provider)||": "||strip(put(service_date,$mmddyy10.));
 	else visit_provider = "";
 
-	by epi_id_milliman; 
+	by measure_year epi_id_milliman; 
 
 	retain v1-v90;
 	length v1-v90 $255;
@@ -3051,7 +3179,8 @@ proc sql ;
 		   b.* 
 	from patientjourney_3 as a 
 	left join visits4 as b 
-	on a.epi_id_milliman=b.epi_id_milliman ;
+	on a.epi_id_milliman=b.epi_id_milliman 
+	and a.measure_year=b.measure_year;
 quit ;
 
 data out.pjourney_&label._&bpid1._&bpid2. (drop=i);
@@ -3070,16 +3199,16 @@ data out.pjourney_&label._&bpid1._&bpid2. (drop=i);
 run ;
 
 *Create output table of all PAC and clinic visit types for all episodes as QVW filter;
-data util_table (keep= BPID epi_id_milliman type);
-	set patientjourney_1b (keep= BPID epi_id_milliman type)
-		visits3 (keep= BPID epi_id_milliman clinic_visit_type rename=(clinic_visit_type=type))
+data util_table (keep= measure_year BPID epi_id_milliman type);
+	set patientjourney_1b (keep= measure_year BPID epi_id_milliman type)
+		visits3 (keep= measure_year BPID epi_id_milliman clinic_visit_type rename=(clinic_visit_type=type))
 	;
 	where type ^= "";
 	if type = "Other Readmit" then type = "Other Readmit"; /*20171107 JL Update - clean up label*/
 	if type = "Anchor Readmit" then type = "Anchor Readmit";
 run;
 
-proc sort data = util_table nodupkey out = out.util_&label._&bpid1._&bpid2.; by epi_id_milliman type; run;
+proc sort data = util_table nodupkey out = out.util_&label._&bpid1._&bpid2.; by measure_year epi_id_milliman type; run;
 
 
 
@@ -3091,11 +3220,11 @@ proc sort data = util_table nodupkey out = out.util_&label._&bpid1._&bpid2.; by 
 *Count number of unique visits for each claim;
 proc sql;
 	create table hh_hdr4 as
-	select epi_id_milliman
+	select measure_year, epi_id_milliman
 		,claimno
 		,count(*) as hh_visits
 	from hh_hdr3
-	group by epi_id_milliman, claimno
+	group by measure_year, epi_id_milliman, claimno
 ;
 quit;
 
@@ -3105,7 +3234,7 @@ proc sql;
 		,case when type = "HH" then b.hh_visits else a.util_day end as util_day2
 	from out.ccn_enc_&label._&bpid1._&bpid2. as a
 	left join hh_hdr4 as b
-	on a.epi_id_milliman=b.epi_id_milliman and a.claimno=b.claimno
+	on a.measure_year=b.measure_year and a.epi_id_milliman=b.epi_id_milliman and a.claimno=b.claimno
 ;
 quit;
 
@@ -3120,7 +3249,8 @@ create table patient_detail1 as
 	select 
 
 /*Inpatient Anchor info - pulled from CCN file to include transfers*/
-	 epi_id_milliman
+	 measure_year
+	,epi_id_milliman
 	,BPID
 	,CCN_Name_desc as service_provider
 	,'Anchor Hospital Stay' as caretype
@@ -3181,7 +3311,8 @@ union all
 
 /*Outpatient Anchor info*/
 	select
-		 epi_id_milliman
+		 measure_year
+		,epi_id_milliman
 		,BPID
 		,CCN_Name_desc as service_provider
 		,'Anchor Hospital Stay' as caretype
@@ -3264,7 +3395,8 @@ union all
 union all
 
 	select
-		 epi_id_milliman 
+		 measure_year
+		,epi_id_milliman 
 		,BPID
 		,physician as service_provider
 		,type as caretype
@@ -3346,7 +3478,8 @@ union all
 union all
 
 	select
-		a.epi_id_milliman
+		a.measure_year
+		,a.epi_id_milliman
 		,a.BPID
 		,a.CCN_Name_Desc as service_provider
 		,a.caretype
@@ -3403,7 +3536,7 @@ union all
 	from out.ccn_enc_&label._&bpid1._&bpid2. as a
 	where timeframe2 ^= 'Anchor' or (timeframe2 = 'Anchor' and (caretype in ('Emergency - W/in 1 Day of Admit','Emergency - Stand Alone','Rehab','Home Health','Hospice','LTCH','SNF','IRF','Observation') or substr(caretype,1,10) ='Outpatient'))
 
-	order by BPID, epi_id_milliman, begin_date;
+	order by measure_year, BPID, epi_id_milliman, begin_date;
 
 quit;
 
@@ -3430,7 +3563,8 @@ proc sql;
 	,patient_detail1 as b
 	where a.epi_id_milliman = b.epi_id_milliman
 	and a.BPID = b.BPID
-	order by BPID, epi_id_milliman, timeframe, transfer_stay, begin_date, rank3, end_date desc;
+	and a.measure_year=b.measure_year
+	order by measure_year, BPID, epi_id_milliman, timeframe, transfer_stay, begin_date, rank3, end_date desc;
 quit;
 
 data patient_Detail2;
@@ -3439,12 +3573,12 @@ data patient_Detail2;
 	if end_date_drop=. then end_date_drop=mdy(12,31,2099);
 	if end_date_drop=mdy(12,31,2099) and (substr(Caretype,1,7) = 'Prof_ER' or substr(Caretype,1,2) = 'Em') then end_date_drop=mdy(12,30,2099);
 	if end_date_drop=mdy(12,31,2099) and substr(Caretype,1,10) = 'Outpatient' then end_date_drop=mdy(12,29,2099);
-	proc sort; by BPID epi_id_milliman timeframe transfer_stay begin_date rank3 end_date_drop;
+	proc sort; by measure_year BPID epi_id_milliman timeframe transfer_stay begin_date rank3 end_date_drop;
 run;
 
 data patient_detail3 (drop=counter);
 	set patient_detail2;
-	by BPID epi_id_Milliman ;
+	by measure_year BPID epi_id_Milliman ;
 	length claimid $12 caretype_long $50.;
 	format begin_date end_date mmddyy10.;
 
@@ -3561,31 +3695,54 @@ data patient_detail4;
 run;
 
 data bpcia_episode_initiator_info;
-	set bpciaref.bpcia_episode_initiator_info;
-	djrle = sum(Double_joint_replacement_of_the_,0);
-	mjrle = sum(Major_joint_replacement_of_the_l,0);
-	comp_flag_num = max(djrle,mjrle);
-	if comp_flag_num = 1 then Comp_Flag='1';
-	else Comp_Flag = '';
+set bpcia_epi_initiator_combined;
 run;
+
+data bpcia_episode_initiator_perf;
+	set bpcia.bpcia_performance_episodes (in=a) bpcia.bpcia_performance_episodes_MY3 (in=b);
+	if a then MEASURE_YEAR = 'MY1 & MY2';
+	else MEASURE_YEAR = 'MY3';
+ 
+	if episode_group_name = 'Double joint replacement of the lower extremity' THEN djrle = 1;
+	if episode_group_name = 'Major joint replacement of the lower extremity' THEN mjrle = 1;
+	if episode_group_name = 'Coronary artery bypass graft' THEN CABG_Flag_num = 1;	
+	if episode_group_name = 'Acute myocardial infarction' THEN AMI_Flag_num = 1;
+	comp_flag_num = max(djrle,mjrle);
+
+	if Inpatient___Outpatient='' then Inpatient___Outpatient = SETTING;
+	if Inpatient___Outpatient = 'INPATIENT' THEN PSI_Flag_num = 1;
+run;
+
+proc sql;
+create table bpcia_episode_initiator_max as
+select BPID, MEASURE_YEAR, 
+	max(comp_flag_num) AS Comp_Flag_num, 
+	max(CABG_Flag_num) AS CABG_Flag_num, 
+	max(AMI_Flag_num) AS AMI_Flag_num, 
+	max(PSI_Flag_num) AS PSI_Flag_num
+from bpcia_episode_initiator_perf
+group by BPID, MEASURE_YEAR;
+quit;
+
 
 proc sql;
 	create table out.pat_detail_&label._&bpid1._&bpid2. as
 		select distinct
 			a.*
-			,b.ALL as All_Flag
-			,b.ALL_IP as PSI_Flag
-			,b.Coronary_artery_bypass_graft as CABG_Flag
-			,b.Acute_myocardial_infarction as AMI_Flag
-			,b.Comp_Flag
+			,'1' AS  All_Flag
+			,(CASE WHEN b.PSI_Flag_num = 1 then '1' ELSE '0' END) AS PSI_Flag
+			,(CASE WHEN b.AMI_Flag_num = 1 then '1' ELSE '0' END) AS AMI_Flag
+			,(CASE WHEN b.CABG_Flag_num = 1 then '1' ELSE '0' END) AS CABG_Flag
+			,(CASE WHEN b.Comp_Flag_num = 1 then '1' ELSE '0' END) AS Comp_Flag
 		from patient_detail4 as a left join 
-			bpcia_episode_initiator_info as b
-			on a.BPID = b.BPCI_Advanced_ID_Number_2
+			bpcia_episode_initiator_max as b
+			on a.BPID = b.BPID
+			and A.measure_year = B.measure_year
 ;
 quit;
 
 
-proc sort data=out.pat_detail_&label._&bpid1._&bpid2.; by BPID epi_id_milliman timeframe transfer_stay begin_date rank3 end_date_drop; run;
+proc sort data=out.pat_detail_&label._&bpid1._&bpid2.; by measure_year BPID epi_id_milliman timeframe transfer_stay begin_date rank3 end_date_drop; run;
 
 
 /*********************************************************************************************/
@@ -3595,7 +3752,8 @@ proc sort data=out.pat_detail_&label._&bpid1._&bpid2.; by BPID epi_id_milliman t
 proc sql;
 create table provider_sum1 as 
 	select distinct
-		 epi_id_milliman
+		 measure_year
+		,epi_id_milliman
 		,BPID
 		,physician 
 		,physician_abbr
@@ -3621,9 +3779,11 @@ create table out.prov_detail_&label._&bpid1._&bpid2. as
 	from provider_sum1 as a
 	left join out.epi_detail_&label._&bpid1._&bpid2. as b
 	on a.epi_id_milliman = b.epi_id_milliman
+	and a.measure_year=b.measure_year
 	and a.BPID = b.BPID
 	group by
-		b.epi_id_milliman
+		b.measure_year
+		,b.epi_id_milliman
 		,a.BPID
 		,a.physician 
 		,a.physician_abbr
@@ -3644,7 +3804,7 @@ quit;
 /*** Code to create Performance Benchmarks table  ********************************************/
 /*********************************************************************************************/
 
-data perf (keep=epi_id_milliman anchor_code FRACTURE_FLAG frac_flag_filter BPID);
+data perf (keep=measure_year epi_id_milliman anchor_code FRACTURE_FLAG frac_flag_filter BPID);
 	set out.epi_&label._&bpid1._&bpid2.;
 		 if FRACTURE_FLAG=1 then frac_flag_filter = "Yes" ;
 			else frac_flag_filter = "No" ;  /*MB Code to create a chracter fracture variable */
@@ -3670,10 +3830,10 @@ data perf0a;
 
 run;
 
-data perf1 (keep = BPID epi_id_milliman anchor_code timeframe IP_UTIL IP_DAYS IRF_UTIL IRF_DAYS LTAC_UTIL LTAC_DAYS SNF_UTIL SNF_DAYS HH_UTIL);
-	set out.ip_&label._&bpid1._&bpid2. (in=d keep = BPID epi_id_milliman anchor_code type stay_admsn_dt stay_dschrgdt timeframe POST_DSCH_BEG_DT POST_DSCH_END_DT anchor_end_dt util_day days1 rename=(stay_admsn_dt=admsn_dt stay_dschrgdt=dschrgdt))
-		out.snf_&label._&bpid1._&bpid2. (in=e keep = BPID epi_id_milliman anchor_code type admsn_dt dschrgdt timeframe POST_DSCH_BEG_DT POST_DSCH_END_DT anchor_end_dt from_dt thru_dt util_day)
-		out.hha_&label._&bpid1._&bpid2. (in=f keep = BPID epi_id_milliman anchor_code type timeframe POST_DSCH_END_DT anchor_end_dt util_day); 
+data perf1 (keep = measure_year BPID epi_id_milliman anchor_code timeframe IP_UTIL IP_DAYS IRF_UTIL IRF_DAYS LTAC_UTIL LTAC_DAYS SNF_UTIL SNF_DAYS HH_UTIL);
+	set out.ip_&label._&bpid1._&bpid2. (in=d keep = measure_year BPID epi_id_milliman anchor_code type stay_admsn_dt stay_dschrgdt timeframe POST_DSCH_BEG_DT POST_DSCH_END_DT anchor_end_dt util_day days1 rename=(stay_admsn_dt=admsn_dt stay_dschrgdt=dschrgdt))
+		out.snf_&label._&bpid1._&bpid2. (in=e keep = measure_year BPID epi_id_milliman anchor_code type admsn_dt dschrgdt timeframe POST_DSCH_BEG_DT POST_DSCH_END_DT anchor_end_dt from_dt thru_dt util_day)
+		out.hha_&label._&bpid1._&bpid2. (in=f keep = measure_year BPID epi_id_milliman anchor_code type timeframe POST_DSCH_END_DT anchor_end_dt util_day); 
 	
 			if type in ('IP_d','IP_s') then do;
 					IP_UTIL = 1;
@@ -3707,7 +3867,7 @@ run;
 
 proc sql;
 	create table perf_UTIL as
-		select epi_id_milliman, anchor_code,timeframe, BPID
+		select measure_year, epi_id_milliman, anchor_code,timeframe, BPID
 			,case when sum(IP_UTIL) > 0 then 1 else 0 end as IP_UTIL
 			,case when sum(IRF_UTIL) > 0 then 1 else 0 end as IRF_UTIL
 			,case when sum(LTAC_UTIL) > 0 then 1 else 0 end as LTAC_UTIL
@@ -3723,13 +3883,13 @@ proc sql;
 
 		from perf1
 		where timeframe ^=0
-		group by epi_id_milliman, anchor_code,timeframe, BPID
+		group by measure_year, epi_id_milliman, anchor_code,timeframe, BPID
 		;
 quit;
 
 proc sql;
 	create table perf_UTIL2 as
-		select epi_id_milliman, anchor_code, BPID
+		select measure_year, epi_id_milliman, anchor_code, BPID
 			,case when sum(IP_UTIL) > 0 then 1 else 0 end as IP_UTIL
 			,case when sum(IRF_UTIL) > 0 then 1 else 0 end as IRF_UTIL
 			,case when sum(LTAC_UTIL) > 0 then 1 else 0 end as LTAC_UTIL
@@ -3745,13 +3905,13 @@ proc sql;
 
 		from perf1
 		where timeframe ^=0
-		group by epi_id_milliman, anchor_code, BPID
+		group by measure_year, epi_id_milliman, anchor_code, BPID
 		;
 quit;
 
 proc sql;
 	create table perf_UTIL3 as
-		select epi_id_milliman, anchor_code, BPID
+		select measure_year, epi_id_milliman, anchor_code, BPID
 			,case when sum(IP_UTIL) > 0 then 1 else 0 end as IP_UTIL
 			,case when sum(IRF_UTIL) > 0 then 1 else 0 end as IRF_UTIL
 			,case when sum(LTAC_UTIL) > 0 then 1 else 0 end as LTAC_UTIL
@@ -3767,7 +3927,7 @@ proc sql;
 
 		from perf1
 		where timeframe in (1,2)
-		group by epi_id_milliman, anchor_code, BPID
+		group by measure_year, epi_id_milliman, anchor_code, BPID
 		;
 quit;
 
@@ -3808,6 +3968,7 @@ proc sql;
 		from perf0a as a
 		left join perf_util4 as b
 		on a.epi_id_milliman = b.epi_id_milliman
+		and a.measure_year=b.measure_year
 		and a.timeframe = b.timeframe
 		;
 quit; 
@@ -3825,6 +3986,7 @@ proc sql;
 		from perf_util7 as a
 		,out.epi_detail_&label._&bpid1._&bpid2. as b
 		where a.epi_id_milliman= b.epi_id_milliman
+		and a.measure_year=b.measure_year
 		;
 quit ;
 
@@ -3842,7 +4004,7 @@ proc sql ;
 		left join benchmarks as b
 		on a.Anchor_code = b.drg
 		and timeframe_id = b._id 
-		order by epi_id_milliman, timeframe
+		order by measure_year, epi_id_milliman, timeframe
 		;
 	quit ; 
 
@@ -3850,7 +4012,8 @@ proc sql ;
 proc sql;
 	create table epi_DOD as
 	select	distinct
-			epi_id_milliman
+			measure_year
+		,	epi_id_milliman
 		,	bene_death_dt
 		,	case when bene_death_dt=. then 0 
 			  	 when bene_death_dt <= (ANCHOR_END_DT + 29) then 1
@@ -3891,6 +4054,7 @@ proc sql;
 				left join
 				epi_DOD as b
 				on	a.epi_id_milliman = b.epi_id_milliman
+				and a.measure_year=b.measure_year
 		;
 quit;
 /*SD ADDITION END 20190304 - Mortality rates DURING episode*/
@@ -3900,7 +4064,8 @@ quit;
 proc sql;
 	create table baseline_util  as 
 		select distinct 	
- 				BPID
+ 				measure_year
+				,BPID
 				,anchor_code
 				,timeframe
 				,timeframe2
@@ -3915,7 +4080,8 @@ proc sql;
 				,sum(SNF_DAYS) as base_snf_days
 				,sum(DOD_N) as base_dod_n
 		from out.perf_&label._&bpid1._&bpid2. as a
-		group by BPID
+		group by measure_year
+				,BPID
 				,anchor_code
 				,timeframe
 				,timeframe2
@@ -3994,28 +4160,29 @@ Proc sql ;
 			out.epi_detail_&label._&bpid1._&bpid2. as a
 			left join out.perf_&label._&bpid1._&bpid2. as b
 			on a.epi_id_milliman = b.epi_id_milliman 
+			and a.measure_year=b.measure_year
 			and timeframe = 4
 			;
 
 *20170707 JL: Add flag for presence of OP provider claim that matches OP provider listed on anchor claim;
 	create table op_prov as
-		select distinct a.epi_id_milliman
+		select distinct a.measure_year, a.epi_id_milliman
 			,a.operating_npi
 			,b.provider_npi
 		from episode_detail_10 as a
 		left join out.provider_&label._&bpid1._&bpid2. as b
-		on a.epi_id_milliman = b.epi_id_milliman and a.operating_npi = b.provider_npi
+		on a.measure_year=b.measure_year and a.epi_id_milliman = b.epi_id_milliman and a.operating_npi = b.provider_npi
 		where b.physician_role in ('Operating MD','Attending & Operating MD')
 		;
 
 *20180524 JL: Add flag for presence of AT provider claim that matches AT provider listed on anchor claim;
 	create table at_prov as
-		select distinct a.epi_id_milliman
+		select distinct a.measure_year, a.epi_id_milliman
 			,a.attending_npi
 			,b.provider_npi
 		from episode_detail_10 as a
 		left join out.provider_&label._&bpid1._&bpid2. as b
-		on a.epi_id_milliman = b.epi_id_milliman and a.attending_npi = b.provider_npi
+		on a.measure_year=b.measure_year and a.epi_id_milliman = b.epi_id_milliman and a.attending_npi = b.provider_npi
 		where b.physician_role in ('Attending MD','Attending & Operating MD')
 		;
 
@@ -4040,14 +4207,18 @@ Proc sql ;
 		from episode_detail_10 as a
 		left join out.Cc_sum_&label._&bpid1._&bpid2. as b
 		on a.epi_id_milliman = b.epi_id_milliman
+/*		and a.measure_year=b.measure_year*/
 		left join out.comp_&label._&bpid1._&bpid2. as c
 		on a.epi_id_milliman = c.epi_id_milliman
+		and a.measure_year=c.measure_year
 		left join op_prov as d
 		on a.epi_id_milliman = d.epi_id_milliman
+		and a.measure_year=d.measure_year
 		left join at_prov as e
 		on a.epi_id_milliman = e.epi_id_milliman
-		group by a.epi_id_milliman
-;
+		and a.measure_year=e.measure_year
+		group by a.measure_year, a.epi_id_milliman
+;	
 
 *SD: Add performance period episode flag to table ;
 create table episode_detail_12 as
@@ -4055,7 +4226,9 @@ create table episode_detail_12 as
 			,b.perf_period_epi_flag
 		from episode_detail_11 as a
 			left join bpcia_performance_episodes as b
-			on	a.BPID = b.BPID
+			on	a.measure_year=b.measure_year
+				and 
+				a.BPID = b.BPID
 				and
 				a.Clinical_Episode = b.EPISODE_GROUP_NAME_USE
 				and
@@ -4065,7 +4238,7 @@ create table episode_detail_12 as
 
 *20181113 SD: Sum final excess days to episode level ;
 	create table all_cause_days as
-			select distinct epi_id_milliman
+			select distinct measure_year, epi_id_milliman
 			,edac_flag
 			,excess_ip_readmit_days
 			,excess_op_ed_days
@@ -4107,15 +4280,16 @@ create table episode_detail_12 as
 		from episode_detail_12 as a
 			left join all_cause_days as b
 			on a.epi_id_milliman = b.epi_id_milliman
+			and a.measure_year=b.measure_year
 ;
 
 *20181113 SD: Add final unplanned readmission flag to episode detail table ;
 	create table epi_level_readm_flag as
-		select EPI_ID_MILLIMAN
+		select measure_year, EPI_ID_MILLIMAN
 			 , sum(HAS_READMISSION) as unplanned_readmit_flag
 		from out.ipr_&label._&bpid1._&bpid2.
 		where HAS_READMISSION ^=9
-		group by EPI_ID_MILLIMAN;
+		group by measure_year, EPI_ID_MILLIMAN;
 ;
 
 		create table episode_detail_14 as
@@ -4134,7 +4308,7 @@ create table episode_detail_12 as
 		from episode_detail_13 as a
 			left join epi_level_readm_flag as b
 			on a.epi_id_milliman = b.epi_id_milliman
-
+			and a.measure_year=b.measure_year
 ;
 
 *Use performance period flag on epi_detail file to limit readmissions on patient detail file*;
@@ -4162,11 +4336,12 @@ proc sql;
 		from out.pat_detail_&label._&bpid1._&bpid2. as a
 		left join episode_detail_14 as b
 		on a.epi_id_milliman = b.epi_id_milliman
+		and a.measure_year=b.measure_year
 ;
 quit;
 
 ***** EPISODE INDEX CREATION *****;
-proc sort data = episode_detail_14 out = episode_detail_14a; by epi_id_milliman anchor_beg_dt anchor_end_dt;run;
+proc sort data = episode_detail_14 out = episode_detail_14a; by measure_year epi_id_milliman anchor_beg_dt anchor_end_dt;run;
 
 ******* NEW EPISODE INDEX CREATION - RUN ONCE FOR FIRST TIME RUN ONLY ************************************;
 %macro epi_idx_first;
@@ -4184,7 +4359,7 @@ data episode_detail_15 (rename = (counter2=episode_index));
 run;
 
 data out.epi_idx_&label._&bpid1._&bpid2.;
-	set episode_detail_15 (keep=bpid epi_id_milliman MBI_ID counter episode_index anchor_beg_dt anchor_end_dt);
+	set episode_detail_15 (keep=measure_year bpid epi_id_milliman MBI_ID counter episode_index anchor_beg_dt anchor_end_dt);
 	format recent_label $10.; length recent_label $10;
 	recent_label = "&label.";
 run;
@@ -4202,8 +4377,8 @@ proc sql;
 		,	b.episode_index
 	from out.epi_detail_&label._&bpid1._&bpid2. as a
 	left join out.epi_idx_&prevlabel._&bpid1._&bpid2. as b
-	on a.epi_id_milliman = b.epi_id_milliman
-	order by counter desc, epi_id_milliman, anchor_beg_dt, anchor_end_dt
+	on a.epi_id_milliman = b.epi_id_milliman and a.measure_year=b.measure_year
+	order by counter desc, measure_year, epi_id_milliman, anchor_beg_dt, anchor_end_dt
 	;
 quit;
 
@@ -4232,7 +4407,7 @@ data episode (drop=max_epi_idx);
 run;
 
 *Add newest episodes to existing list - recent_label indicates the most recent time period that the episode was in the data;
-data epi_list (keep= bpid epi_id_milliman counter episode_index recent_label anchor_beg_dt anchor_end_dt MBI_ID);
+data epi_list (keep= measure_year bpid epi_id_milliman counter episode_index recent_label anchor_beg_dt anchor_end_dt MBI_ID);
 	set episode;
 	format recent_label $10.; length recent_label $10;
 	recent_label = "&label.";
@@ -4253,8 +4428,8 @@ data epi_list2;
 run;
 
 * Output the comprehensive list of episode indexes for all episodes that have entered the program;
-proc sort data = epi_list2; by epi_id_milliman descending recent_label; run;
-proc sort data = epi_list2 nodupkey out=out.epi_idx_&label._&bpid1._&bpid2.; by epi_id_milliman; run;
+proc sort data = epi_list2; by measure_year epi_id_milliman descending recent_label; run;
+proc sort data = epi_list2 nodupkey out=out.epi_idx_&label._&bpid1._&bpid2.; by measure_year epi_id_milliman; run;
 
 * Join the episode index to the episode file;
 proc sql;
@@ -4265,6 +4440,7 @@ proc sql;
 	from episode_detail_14a as a
 	left join out.epi_idx_&label._&bpid1._&bpid2. as b
 	on a.epi_id_milliman = b.epi_id_milliman
+	and a.measure_year=b.measure_year
 ;
 quit;
 
@@ -4350,7 +4526,7 @@ quit ;
 proc sql ;
 create table er_prov as
 	select distinct
-	     epi_id_milliman
+	     measure_year, epi_id_milliman
 		,'Yes' as Er_start_flag
 	from out.provider_&label._&bpid1._&bpid2. a
 	where substr(type,1,7)= 'Prof_ER'  and service_date ^= . 
@@ -4359,7 +4535,7 @@ create table er_prov as
 *Isolating EPI_IDS within the Facility table;
 create table er_ccn as
 	select distinct
-	     epi_id_milliman
+	     measure_year, epi_id_milliman
 		,'Yes' as Er_start_flag
 	from out.ccn_enc_&label._&bpid1._&bpid2. as a
 	where substr(caretype,1,2)= 'Em' and startdate ^= . 
@@ -4367,7 +4543,7 @@ create table er_ccn as
 
 create table er_ccn_desc_name as
 	select distinct
-	     epi_id_milliman
+	     measure_year, epi_id_milliman
 		 ,er_CCN_Name_Desc
 	from out.ccn_enc_&label._&bpid1._&bpid2. as a
 	where substr(caretype,1,2)= 'Em' and startdate ^= . 
@@ -4380,11 +4556,11 @@ set er_prov er_ccn ;
 run ;
 
 proc sort data = Er_prov_ccn nodupkey;
-by epi_id_milliman ; 
+by measure_year epi_id_milliman ; 
 run ; 
 
 proc sort data = er_ccn_desc_name nodupkey;
-by epi_id_milliman ; 
+by measure_year epi_id_milliman ; 
 run ; 
 
 proc sql ;
@@ -4397,8 +4573,10 @@ proc sql ;
 	from 	episode_detail_16 as a
 				left join Er_prov_ccn as b
 				on a.epi_id_milliman = b.epi_id_milliman
+				and a.measure_year=b.measure_year
 				left join er_ccn_desc_name as c
 				on a.epi_id_milliman = c.epi_id_milliman
+				and a.measure_year=c.measure_year
 ;
 
 quit;
@@ -4419,7 +4597,8 @@ run;
 proc sql;
 create table exclusions1 as
 	select 
-		a.BPID
+		a.measure_year
+		,a.BPID
 		,"&reporting_period." as DataYearMo
 		,put(year(a.anchor_beg_dt),4.)||" Q"||put(qtr(a.anchor_beg_dt),1.) as Anchor_YearQtr
 		,case when month(a.anchor_beg_dt) < 10 then strip(put(year(a.anchor_beg_dt),4.)||" M0"||strip(put(month(a.anchor_beg_dt),2.)))
@@ -4480,7 +4659,7 @@ create table exclusions1 as
 /*			then 1 else 0 end as DROPFLAG_OTHER*/
 		,case
 			when a.DROPFLAG_CJR = 1 then 1 /*facility level exclusion*/
-			when a.DROPFLAG_ACO_MSSP_OVERLAP = 1 then 2 /*facility level exclusion*/
+			/*when a.DROPFLAG_ACO_MSSP_OVERLAP = 1 then 2 *//*facility level exclusion*/
 			when a.DROPFLAG_ACO_CEC_OVERLAP = 1 then 3 /*facility level exclusion*/
 			when a.DROPFLAG_ACO_NEXTGEN_OVERLAP = 1 then 4 /*facility level exclusion*/
 			when a.DROPFLAG_ACO_VERMONTAP_OVERLAP = 1 then 5 /*facility level exclusion*/
@@ -4503,7 +4682,7 @@ create table exclusions1 as
             end as dropreason
 		,case
 			when a.DROPFLAG_CJR = 1 then "CJR hospital with MJRLE MS-DRG" /*facility level exclusion*/
-			when a.DROPFLAG_ACO_MSSP_OVERLAP = 1 then "Beneficiary aligned with Medicare Shared Savings Program Track 3 (ACO)" /*facility level exclusion*/
+			/*when a.DROPFLAG_ACO_MSSP_OVERLAP = 1 then "Beneficiary aligned with Medicare Shared Savings Program Track 3 (ACO)"*/ /*facility level exclusion*/
 			when a.DROPFLAG_ACO_CEC_OVERLAP = 1 then "Beneficiary aligned with Comprehensive ESRD Care (ACO)" /*facility level exclusion*/
 			when a.DROPFLAG_ACO_NEXTGEN_OVERLAP = 1 then "Beneficiary aligned with Next Generation (ACO)" /*facility level exclusion*/
 			when a.DROPFLAG_ACO_VERMONTAP_OVERLAP = 1 then "Beneficiary aligned with Vermont All Payer (ACO)" /*facility level exclusion*/
@@ -4529,10 +4708,12 @@ create table exclusions1 as
 			else propcase(STRIP(a.BENE_SRNM_NAME)||", "||STRIP(a.BENE_GVN_NAME)) 
 			end as PATIENT_NAME format = $255. length=255
 	from out.epiexc_perf_&label._&bpid1._&bpid2.	as a
-	left join bpciaref.BPCIA_DRG_Mapping as b
+	left join bpcia_drg_mapping_combined as b
 	on a.ANCHOR_CODE = b.code
-	left join bpciaref.BPCIA_Clinical_Episode_Names as c
+	and A.measure_year = B.measure_year
+	left join bpcia_clin_epi_names_combined as c
 	on b.BPCI_Episode_Idx = c.BPCI_Episode_Index
+	and A.measure_year = c.measure_year
 	left join ref.ccns_codemap as d
 	on put(a.anchor_ccn,z6.) = d.ccn;
 
@@ -4630,6 +4811,9 @@ quit;
 
 *MACRO RUNS;
 
+*%Dashboard(5264,0000,0);
+*%Dashboard(5282,0000,0);
+*%Dashboard(5746,0002,1);
 /* 
 dev runs 
 */
@@ -4643,100 +4827,264 @@ dev runs
 %Dashboard(2607,0000,0);
 %Dashboard(5479,0002,0);
 */
-*%Dashboard(1125,0000,0);
-%Dashboard(1148,0000,0);
-%Dashboard(1167,0000,0);
-%Dashboard(1209,0000,0);
-%Dashboard(1343,0000,0);
-%Dashboard(1368,0000,0);
+/*
+%Dashboard(2586,0002,1);
+%Dashboard(2586,0005,1);
+%Dashboard(2586,0006,1);
+%Dashboard(2586,0007,1);
+%Dashboard(2586,0010,1);
+%Dashboard(2586,0013,1);
+%Dashboard(2586,0025,1);
+%Dashboard(2586,0026,1);
+%Dashboard(2586,0028,1);
+%Dashboard(2586,0029,1);
+%Dashboard(2586,0030,1);
+%Dashboard(2586,0031,1);
+%Dashboard(2586,0032,1);
+%Dashboard(2586,0033,1);
+%Dashboard(2586,0034,1);
+%Dashboard(2586,0035,1);
+*%Dashboard(2586,0036,1);
+*%Dashboard(2586,0038,1);
+%Dashboard(2586,0039,1);
+*%Dashboard(2586,0040,1);
+*%Dashboard(2586,0041,1);
+*%Dashboard(2586,0042,1);
+*%Dashboard(2586,0043,1);
+%Dashboard(2586,0044,1);
+%Dashboard(2586,0045,1);
+%Dashboard(2586,0046,1);
 %Dashboard(1374,0004,0);
 %Dashboard(1374,0008,0);
 %Dashboard(1374,0009,0);
-%Dashboard(1686,0002,0);
-%Dashboard(1688,0002,0);
-%Dashboard(1696,0002,0);
-%Dashboard(1710,0002,0);
-%Dashboard(1958,0000,0);
-%Dashboard(2070,0000,0);
-%Dashboard(2374,0000,0);
-%Dashboard(2376,0000,0);
-%Dashboard(2378,0000,0);
-%Dashboard(2379,0000,0);
-%Dashboard(1075,0000,0);
-%Dashboard(2594,0000,0);
-%Dashboard(2048,0000,0);
-%Dashboard(2049,0000,0);
-%Dashboard(2607,0000,0);
-%Dashboard(5038,0000,0);
-%Dashboard(5050,0000,0);
-%Dashboard(2587,0000,0);
-%Dashboard(2589,0000,0);
-%Dashboard(5154,0000,0);
-%Dashboard(5282,0000,0);
-%Dashboard(5037,0000,0);
-%Dashboard(5478,0002,0);
-%Dashboard(5043,0000,0);
-%Dashboard(5479,0002,0);
-%Dashboard(5480,0002,0);
-%Dashboard(5215,0003,0);
-%Dashboard(5215,0002,0);
-%Dashboard(5229,0000,0);
-%Dashboard(5263,0000,0);
-%Dashboard(5264,0000,0);
-%Dashboard(5481,0002,0);
-%Dashboard(5394,0000,0);
-%Dashboard(5395,0000,0);
-%Dashboard(5397,0002,0);
-%Dashboard(5397,0005,0);
-%Dashboard(5397,0004,0);
-%Dashboard(5397,0008,0);
-%Dashboard(5397,0003,0);
-%Dashboard(5397,0006,0);
-%Dashboard(5397,0009,0);
-%Dashboard(5397,0010,0);
-%Dashboard(5916,0002,0);
-%Dashboard(6049,0002,0);
-%Dashboard(6050,0002,0);
-%Dashboard(6051,0002,0);
-%Dashboard(6052,0002,0);
-%Dashboard(6053,0002,0);
-%Dashboard(5397,0007,0);
-%Dashboard(1102,0000,0);
-%Dashboard(1105,0000,0);
-%Dashboard(1106,0000,0);
-%Dashboard(1103,0000,0);
-%Dashboard(1104,0000,0);
-%Dashboard(5392,0004,0);
+%Dashboard(1374,0012,1);
+%Dashboard(1374,0013,1);
+%Dashboard(1374,0014,1);
+%Dashboard(1374,0015,1);
+%Dashboard(1374,0017,1);
+%Dashboard(1374,0018,1);
+%Dashboard(1191,0002,0);
+%Dashboard(7310,0002,1);
+%Dashboard(7310,0003,1);
+%Dashboard(7310,0004,1);
+%Dashboard(7310,0005,1);
+%Dashboard(7310,0006,1);
+%Dashboard(7310,0007,1);
+%Dashboard(7312,0002,1);
 %Dashboard(6054,0002,0);
 %Dashboard(6055,0002,0);
 %Dashboard(6056,0002,0);
 %Dashboard(6057,0002,0);
 %Dashboard(6058,0002,0);
 %Dashboard(6059,0002,0);
-%Dashboard(5746,0002,0);
-%Dashboard(1191,0002,0);
+%Dashboard(1209,0000,0);
+%Dashboard(1028,0000,1);
+%Dashboard(1075,0000,0);
+%Dashboard(1102,0000,0);
+%Dashboard(1103,0000,0);
+%Dashboard(1104,0000,0);
+%Dashboard(1105,0000,0);
+%Dashboard(1106,0000,0);
+%Dashboard(1148,0000,0);
+%Dashboard(1167,0000,0);
+%Dashboard(1343,0000,0);
+%Dashboard(1368,0000,0);
+%Dashboard(1461,0000,1);
+%Dashboard(1634,0000,0);
+*%Dashboard(1803,0000,1);
+%Dashboard(1958,0000,0);
+%Dashboard(2048,0000,0);
+%Dashboard(2049,0000,0);
+%Dashboard(2070,0000,0);
+%Dashboard(2214,0000,1);
+%Dashboard(2215,0000,1);
+%Dashboard(2216,0000,1);
 %Dashboard(2302,0000,0);
+%Dashboard(2317,0000,1);
+%Dashboard(2374,0000,0);
+%Dashboard(2376,0000,0);
+%Dashboard(2378,0000,0);
+%Dashboard(2379,0000,0);
+%Dashboard(2451,0000,1);
+%Dashboard(2452,0000,1);
+%Dashboard(2461,0000,1);
+%Dashboard(2468,0000,1);
+%Dashboard(2587,0000,0);
+%Dashboard(2589,0000,0);
+%Dashboard(2594,0000,0);
+%Dashboard(2607,0000,0);
+%Dashboard(5037,0000,0);
+%Dashboard(5038,0000,0);
+%Dashboard(5043,0000,0);
+%Dashboard(5050,0000,0);
+%Dashboard(5154,0000,0);
+%Dashboard(5215,0002,0);
+%Dashboard(5215,0003,0);
+%Dashboard(5229,0000,0);
+%Dashboard(5263,0000,0);
+%Dashboard(5264,0000,0);
+%Dashboard(5282,0000,0);
+%Dashboard(5392,0004,0);
+%Dashboard(5394,0000,0);
+%Dashboard(5395,0000,0);
+%Dashboard(5397,0002,0);
+%Dashboard(5397,0003,0);
+%Dashboard(5397,0004,0);
+%Dashboard(5397,0005,0);
+%Dashboard(5397,0006,0);
+%Dashboard(5397,0007,0);
+%Dashboard(5397,0008,0);
+%Dashboard(5397,0009,0);
+%Dashboard(5397,0010,0);
+%Dashboard(5478,0002,0);
+%Dashboard(5479,0002,0);
+%Dashboard(5480,0002,0);
+%Dashboard(5481,0002,0);
+%Dashboard(5746,0002,0);
+%Dashboard(1686,0002,0);
+%Dashboard(1688,0002,0);
+%Dashboard(1696,0002,0);
+%Dashboard(1710,0002,0);
+%Dashboard(2941,0002,1);
+%Dashboard(2956,0002,1);
+%Dashboard(6049,0002,0);
+%Dashboard(6050,0002,0);
+%Dashboard(6051,0002,0);
+%Dashboard(6052,0002,0);
+%Dashboard(6053,0002,0);
+%Dashboard(2974,0003,1);
+%Dashboard(2974,0007,1);
+*/
 
+***********************************;
+*****Baseline*****;
 
-*CCF ONLY;
-/*%Dashboard(2586,0002,0);*/
-/*%Dashboard(2586,0003,0);*/
-/*%Dashboard(2586,0004,0);*/
-/*%Dashboard(2586,0005,0);*/
-/*%Dashboard(2586,0006,0);*/
-/*%Dashboard(2586,0007,0);*/
-/*%Dashboard(2586,0009,0);*/
-/*%Dashboard(2586,0010,0);*/
-/*%Dashboard(2586,0011,0);*/
-/*%Dashboard(2586,0012,0);*/
-/*%Dashboard(2586,0013,0);*/
-/*%Dashboard(2586,0014,0);*/
-/*%Dashboard(2586,0015,0);*/
-/*%Dashboard(2586,0016,0);*/
-/*%Dashboard(2586,0017,0);*/
-/*%Dashboard(2586,0020,0);*/
-/*%Dashboard(2586,0021,0);*/
-/*%Dashboard(2586,0023,0);*/
+%Dashboard(2586,0002,1);
+%Dashboard(2586,0005,1);
+%Dashboard(2586,0006,1);
+%Dashboard(2586,0007,1);
+%Dashboard(2586,0010,1);
+%Dashboard(2586,0013,1);
+%Dashboard(2586,0025,1);
+%Dashboard(2586,0026,1);
+%Dashboard(2586,0028,1);
+%Dashboard(2586,0029,1);
+%Dashboard(2586,0030,1);
+%Dashboard(2586,0031,1);
+%Dashboard(2586,0032,1);
+%Dashboard(2586,0033,1);
+%Dashboard(2586,0034,1);
+%Dashboard(2586,0035,1);
+*%Dashboard(2586,0036,1);
+*%Dashboard(2586,0038,1);
+%Dashboard(2586,0039,1);
+*%Dashboard(2586,0040,1);
+*%Dashboard(2586,0041,1);
+*%Dashboard(2586,0042,1);
+*%Dashboard(2586,0043,1);
+%Dashboard(2586,0044,1);
+%Dashboard(2586,0045,1);
+%Dashboard(2586,0046,1);
+%Dashboard(1374,0004,1);
+%Dashboard(1374,0008,1);
+%Dashboard(1374,0009,1);
+%Dashboard(1374,0012,1);
+%Dashboard(1374,0013,1);
+%Dashboard(1374,0014,1);
+%Dashboard(1374,0015,1);
+%Dashboard(1374,0017,1);
+%Dashboard(1374,0018,1);
+%Dashboard(1191,0002,1);
+%Dashboard(7310,0002,1);
+%Dashboard(7310,0003,1);
+%Dashboard(7310,0004,1);
+%Dashboard(7310,0005,1);
+%Dashboard(7310,0006,1);
+%Dashboard(7310,0007,1);
+%Dashboard(7312,0002,1);
+%Dashboard(6054,0002,1);
+%Dashboard(6055,0002,1);
+%Dashboard(6056,0002,1);
+%Dashboard(6057,0002,1);
+%Dashboard(6058,0002,1);
+%Dashboard(6059,0002,1);
+%Dashboard(1209,0000,1);
+%Dashboard(1028,0000,1);
+%Dashboard(1075,0000,1);
+%Dashboard(1102,0000,1);
+%Dashboard(1103,0000,1);
+%Dashboard(1104,0000,1);
+%Dashboard(1105,0000,1);
+%Dashboard(1106,0000,1);
+%Dashboard(1148,0000,1);
+%Dashboard(1167,0000,1);
+%Dashboard(1343,0000,1);
+%Dashboard(1368,0000,1);
+%Dashboard(1461,0000,1);
+%Dashboard(1634,0000,1);
+*%Dashboard(1803,0000,1);
+%Dashboard(1958,0000,1);
+%Dashboard(2048,0000,1);
+%Dashboard(2049,0000,1);
+%Dashboard(2070,0000,1);
+%Dashboard(2214,0000,1);
+%Dashboard(2215,0000,1);
+%Dashboard(2216,0000,1);
+%Dashboard(2302,0000,1);
+%Dashboard(2317,0000,1);
+%Dashboard(2374,0000,1);
+%Dashboard(2376,0000,1);
+%Dashboard(2378,0000,1);
+%Dashboard(2379,0000,1);
+%Dashboard(2451,0000,1);
+%Dashboard(2452,0000,1);
+%Dashboard(2461,0000,1);
+%Dashboard(2468,0000,1);
+%Dashboard(2587,0000,1);
+%Dashboard(2589,0000,1);
+%Dashboard(2594,0000,1);
+%Dashboard(2607,0000,1);
+%Dashboard(5037,0000,1);
+%Dashboard(5038,0000,1);
+%Dashboard(5043,0000,1);
+%Dashboard(5050,0000,1);
+%Dashboard(5154,0000,1);
+%Dashboard(5215,0002,1);
+%Dashboard(5215,0003,1);
+%Dashboard(5229,0000,1);
+%Dashboard(5263,0000,1);
+%Dashboard(5264,0000,1);
+%Dashboard(5282,0000,1);
+%Dashboard(5392,0004,1);
+%Dashboard(5394,0000,1);
+%Dashboard(5395,0000,1);
+%Dashboard(5397,0002,1);
+%Dashboard(5397,0003,1);
+%Dashboard(5397,0004,1);
+%Dashboard(5397,0005,1);
+%Dashboard(5397,0006,1);
+%Dashboard(5397,0007,1);
+%Dashboard(5397,0008,1);
+%Dashboard(5397,0009,1);
+%Dashboard(5397,0010,1);
+%Dashboard(5478,0002,1);
+%Dashboard(5479,0002,1);
+%Dashboard(5480,0002,1);
+%Dashboard(5481,0002,1);
+%Dashboard(5746,0002,1);
+%Dashboard(1686,0002,1);
+%Dashboard(1688,0002,1);
+%Dashboard(1696,0002,1);
+%Dashboard(1710,0002,1);
+%Dashboard(2941,0002,1);
+%Dashboard(2956,0002,1);
+%Dashboard(6049,0002,1);
+%Dashboard(6050,0002,1);
+%Dashboard(6051,0002,1);
+%Dashboard(6052,0002,1);
+%Dashboard(6053,0002,1);
+%Dashboard(2974,0003,1);
+%Dashboard(2974,0007,1);
 
 
 
