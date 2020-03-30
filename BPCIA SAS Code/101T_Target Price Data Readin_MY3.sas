@@ -303,7 +303,7 @@ Step 3 - out tables, limit TP_Components to BPIDs in the Data Tracker, and expor
 			create table out.&table._MY3_all as
 			select a.*
 			from &table. as a
-			inner join ref.bpcia_episode_initiator_info_MY3 as b
+			inner join ref.bpcia_episode_initiator_info as b
 			on a.initiator_bpid = b.BPCI_Advanced_ID_number_2
 			;
 			title "&table."; select count(distinct initiator_bpid) as distinct_bpid from out.&table._MY3_all; 
@@ -490,7 +490,7 @@ run;
 
 
 		data out.TP_Components_pmr_comb out.TP_Components_oth_comb out.TP_Components_ccf_comb out.TP_Components_dev_comb;
-			set out.TP_Components_all out.TP_Components_all_my3;
+			set out.TP_Components_all out.TP_Components_my3_all;
 			if initiator_bpid in (&PMR_EI_lst.) then output out.TP_Components_pmr_comb;
 			else if initiator_bpid in (&NON_PMR_EI_lst.) then output out.TP_Components_oth_comb;
 			else if initiator_bpid in (&CCF_lst.) then output out.TP_Components_ccf_comb;
