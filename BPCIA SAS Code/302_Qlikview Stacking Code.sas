@@ -73,8 +73,8 @@ libname bench "R:\client work\CMS_PAC_Bundle_Processing\Benchmark Releases\v.201
 			prov_counter = _N_;
 		%end;
 		%else %if &file = epi_detail %then %do;
-			format join_variable_recon $32.;
-			join_variable_recon = strip(EPI_ID_Milliman);
+			format join_variable_recon $132.;
+			join_variable_recon = strip(Measure_year)||"_"||strip(EPI_ID_Milliman);
 			if primary_diag_with_desc1 = 'Not Available' then primary_diag_with_desc1 = '-';
 			if primary_diag_with_desc1 = '' then primary_diag_with_desc1 = 'Not Available';
 			if primary_proc_with_desc1 = '-' then primary_proc_with_desc1 = 'Not Available';
@@ -215,8 +215,8 @@ run;
 		BPID_ClinicalEp = strip(BPID)||" - "||strip(clinical_episode_abbr);
 		BPID_ClinicalEp_ccn = strip(BPID)||" - "||strip(clinical_episode_abbr)||" - "||strip(anchor_ccn);
 
-		format join_variable_recon $32.;
-		join_variable_recon = strip(EPI_ID_Milliman);
+		format join_variable_recon $132.;
+		join_variable_recon = strip(Measure_year)||"_"||strip(EPI_ID_Milliman);
 
 				format ANCHOR_BEG_DT0 mmddyy10. ; 
 		ANCHOR_BEG_DT0 = ANCHOR_BEG_DT;
@@ -596,14 +596,14 @@ run;
 *** MILLIMAN RUN ***;
 %stacking_pre_other(R:\data\HIPAA\BPCIA_BPCI Advanced\80 - Qlikview\Outfiles\Milliman, MIL);
 
+*** CCF RUN ***;
+%stacking_pre_other(R:\data\HIPAA\BPCIA_BPCI Advanced\80 - Qlikview\Outfiles\CCF, CCF);
+
 *** DEMO RUN ***;
 %stackingdemo(R:\data\HIPAA\BPCIA_BPCI Advanced\80 - Qlikview\Outfiles,1148,1167,1343,1368,2379,2587,2607,5479);
 
 *** BASELINE DEMO RUN ***;
 /*%stackingdemo(R:\data\HIPAA\BPCIA_BPCI Advanced\80 - Qlikview\Outfiles\Baseline Demo,1148,1167,1343,1368,2379,2587,2607,5479);*/
-
-*** CCF RUN ***;
-/*%stacking_pre_other(R:\data\HIPAA\BPCIA_BPCI Advanced\80 - Qlikview\Outfiles\CCF, CCF);*/
 
 
 ;
