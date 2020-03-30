@@ -548,7 +548,7 @@ run;
 /*********************************************************************************************/
 
 proc sort data=out.data3_&label._&bpid1._&bpid2. out=report6_total_details;
-	by measure_year EPI_ID_MILLIMAN  dos;
+	by EPI_ID_MILLIMAN  dos;
 	where (timeframe not in (0)) or sumcat in ('HH');
 run;
 
@@ -563,7 +563,7 @@ data report6_total_details2 (keep = MEASURE_YEAR BPID 				epi_id_milliman T4_IP_
                                     T4_ER_R_CCN         T4_ER_R_STARTDATE           T4_ER_R_ENDDATE
 									T4_HOSPICE_CCN      T4_HOSPICE_STARTDATE        T4_HOSPICE_ENDDATE);
 	set report6_total_details;
-	by measure_year epi_id_milliman;
+	by epi_id_milliman;
 
 	length T4_IP_A_FAC_CCN 		T4_IP_O_FAC_CCN 	T4_LTAC_CCN 	T4_IRF_CCN 		T4_HH_CCN 	T4_SNF_CCN T4_ER_S_CCN T4_ER_R_CCN $12;
 	
@@ -671,7 +671,7 @@ data report6_total_details2a (keep = measure_year epi_id_milliman bpid T12_IP_A_
 						 		   	T12_HH_CCN 				T12_HH_STARTDATE 			T12_HH_ENDDATE 
 								   	T12_SNF_CCN 			T12_SNF_STARTDATE 			T12_SNF_ENDDATE);
 	set report6_total_details1a;
-	by measure_year epi_id_milliman;
+	by epi_id_milliman;
 
 	length T12_IP_A_FAC_CCN 	T12_IP_O_FAC_CCN	T12_LTAC_CCN
 		   T12_IRF_CCN 			T12_HH_CCN 			T12_SNF_CCN $12;
@@ -751,7 +751,7 @@ proc sql;
 			full join report6_total_details2 as b
 			on a.epi_id_milliman = b.epi_id_milliman
 			and a.measure_year=b.measure_year
-	order by a.measure_year, a.epi_id_milliman
+	order by a.epi_id_milliman
 		;
 quit;
 
@@ -767,7 +767,7 @@ proc sql;
 				report6_total_details2a as b
 				on a.epi_id_milliman = b.epi_id_milliman
 				and a.measure_year=b.measure_year
-		order by a.measure_year, a.epi_id_milliman
+		order by a.epi_id_milliman
 ;
 quit;
 
@@ -777,7 +777,7 @@ run ;
 
 *BPCIA Update: Identify transfers - anchor facility DRGs and costs;
 *identify and keep cost and DRG of very first facility;
-proc sort data = out.ip_&label._&bpid1._&bpid2. out = ip_test; by measure_year epi_id_milliman transfer_stay stay_admsn_dt;
+proc sort data = out.ip_&label._&bpid1._&bpid2. out = ip_test; by epi_id_milliman transfer_stay stay_admsn_dt;
 where type = 'IP_Idx';
 run;
 
@@ -785,7 +785,7 @@ data dgcd1 (rename=(DGNSCD01 = primary_diag_code PRCDRCD01 = primary_proc_code A
 	set ip_test;
 	format anchor_facility_code $20.; length anchor_facility_code $20; 
 	retain anchor_facility_code anchor_facility_cost;
-	by measure_year epi_id_milliman;
+	by epi_id_milliman;
 	if first.epi_id_milliman then do;
 		anchor_facility_code = strip(put(stay_drg_cd,$3.));
 		anchor_facility_cost = std_allowed_wage;
@@ -1140,12 +1140,12 @@ data episode_ccns (keep = MEASURE_YEAR epi_id_milliman timeframe sumcat sumcat1 
 	clm_provider = strip(Provider_CCN);
 	run;
 proc sort data = episode_ccns;
-	by measure_year epi_id_milliman sumcat sumcat1 dos;
+	by epi_id_milliman sumcat sumcat1 dos;
 run;
 
 data episode_ccns_a (drop=CCN2 timeframe sumcat sumcat1 dos);
 set episode_ccns;
-by measure_year epi_id_milliman sumcat sumcat1 dos;
+by epi_id_milliman sumcat sumcat1 dos;
 	if sumcat1 = '' then do ;
 		if first.sumcat then do;
 			if sumcat = 'IP_s_F' then do;
@@ -1242,17 +1242,12 @@ proc sql;
 	from episode_ccns3 as a
 	left join ref.ccns_codemap as b
 	on a.provider_ccn_use = b.ccn
-	order by key;
+	order by key measure_year;
 quit;
-
-proc sort data=episode_ccns4;
-	by key measure_year;
-run;
-
 
 /*transpose data from long to wide*/
 proc transpose data=episode_ccns4 out=episode_ccns5 (drop=_NAME_);
-	by key MEASURE_YEAR;
+	by key measure_year;
 	ID type;
 	var CCN_NAME;
 	run;
@@ -1505,13 +1500,13 @@ proc sql;
 			  ,admitting_diag_code
 			  ,DGNSCD02,DGNSCD03,DGNSCD04,DGNSCD05,DGNSCD06,DGNSCD07,DGNSCD08,DGNSCD09,DGNSCD10,DGNSCD11,DGNSCD12,DGNSCD13,DGNSCD14,DGNSCD15,DGNSCD16,DGNSCD17,DGNSCD18,DGNSCD19,DGNSCD20,DGNSCD21,DGNSCD22,DGNSCD23,DGNSCD24,DGNSCD25
 			  ,edac_flag
-		order by measure_year, BPID, epi_id_milliman,type,admsn_dt;
+		order by BPID, epi_id_milliman,type,admsn_dt;
 	quit;
 
 	/*combine records with 1 or less days between discharge and admission to the same post-acute type as a single event*/
 data ccn_enc3;
 	set ccn_enc2;
-	by measure_year BPID epi_id_milliman type admsn_dt;
+	by BPID epi_id_milliman type admsn_dt;
 
 /*	at_npi2 = strip(input(at_npi,$20.));*/
 
@@ -1530,7 +1525,7 @@ data ccn_enc3;
 
 data ccn_enc3a;
 	set ccn_enc3;
-	by measure_year BPID epi_id_milliman type admsn_dt;
+	by BPID epi_id_milliman type admsn_dt;
 	if first.BPID then counter = 0;
 
 	counter + 1;
@@ -1853,7 +1848,7 @@ proc sql;
 			from ccn_enc10c as a
 			left join out.Cc_sum_&label._&bpid1._&bpid2. as b
 			on a.EPI_ID_MILLIMAN = b.EPI_ID_MILLIMAN
-/*			and a.measure_year=b.measure_year*/
+			and a.measure_year=b.measure_year
 			;
 
 	create table out.comp_&label._&bpid1._&bpid2. as 
@@ -1886,7 +1881,7 @@ proc sql;
 	from ccn_enc11 as a
 	inner join out.cc_det_&label._&bpid1._&bpid2. as b
 	on a.EPI_ID_MILLIMAN = b.EPI_ID_MILLIMAN 
-/*	and a.measure_year=b.measure_year*/
+	and a.measure_year=b.measure_year
 	and a.provider_ccn = b.provider
 	and a.startdate = b.stay_admsn_dt
 	and a.caretype in ('Anchor Admit','Readmit')
@@ -1932,13 +1927,13 @@ data dataprov_c;
 run;
 
 proc sort data=dataprov_c;
-	by measure_year EncounterID BPID epi_id_milliman  provider_npi;
+	by EncounterID BPID epi_id_milliman  provider_npi;
 run;
 
 /*Create one record per episode-NPI*/
 data dataprov_d;
 	set dataprov_c;
-	by measure_year EncounterID BPID epi_id_milliman  provider_npi;
+	by EncounterID BPID epi_id_milliman  provider_npi;
 
 	if first.provider_npi and last.provider_npi then output;
 	else if last.provider_npi then do;
@@ -2245,7 +2240,7 @@ data pj_hs;
 run;
 
 data patientjourney_1 ;
-	retain  measure_year epi_id_milliman type provider_ccn admsn_dt dschrgdt;
+	retain  epi_id_milliman type provider_ccn admsn_dt dschrgdt;
 	set out.op_&label._&bpid1._&bpid2. (keep =  measure_year epi_id_milliman type provider_num from_dt thru_dt anchor_beg_dt anchor_end_dt BPID std_allowed_wage util_day in = a rename=(from_dt = admsn_dt thru_dt=dschrgdt provider_num=provider)) 
 		out.ip_&label._&bpid1._&bpid2. (keep =  measure_year epi_id_milliman type provider STAY_ADMSN_DT STAY_DSCHRGDT anchor_beg_dt anchor_end_dt BPID std_allowed_wage util_day in = b rename=(STAY_ADMSN_DT = admsn_dt STAY_DSCHRGDT=dschrgdt)) 
 		out.snf_&label._&bpid1._&bpid2. (keep =  measure_year epi_id_milliman type provider admsn_dt dschrgdt thru_dt anchor_beg_dt anchor_end_dt BPID std_allowed_wage util_day in = c rename =(thru_dt=dichrgdt2 util_day = util_day_pre))
@@ -2317,7 +2312,7 @@ proc sql;
 quit;
 
 proc sort data = patientjourney_1a nodupkey;
-	by measure_year epi_id_milliman admsn_dt rank_order; *20170807 - Add rank_order to sort statement;
+	by epi_id_milliman admsn_dt rank_order; *20170807 - Add rank_order to sort statement;
 run;
 
 data patientjourney_1b (drop=provider);
@@ -2336,7 +2331,7 @@ data patientjourney_2 (drop = i start_date end_date provider_ccn type admsn_dt d
 	format d1-d90 type2 provider type_lag $255.;
 	format d_first_admit_date d_first_disch_date d_second_admit_date d_second_disch_date d_third_admit_date d_third_disch_date mmddyy10.;
 
-	by measure_year epi_id_milliman;
+	by epi_id_milliman;
 
 	if type ^="" then do;
 		if provider_name ^= '' then do;
@@ -2731,7 +2726,7 @@ quit;
 /********************************************************************************************/
 *20171204 - JL Update: Add source of readmit information;
 proc sort data= patientjourney_1a;
-	by measure_year epi_id_milliman admsn_dt dschrgdt;
+	by epi_id_milliman admsn_dt dschrgdt;
 run; 
 
 data readmit_source;
@@ -2739,7 +2734,7 @@ data readmit_source;
 	length source_type readmit_source_type $20;
 	length source_name readmit_source $85;
 	where type ^='';
-	by measure_year epi_id_milliman admsn_dt dschrgdt;
+	by epi_id_milliman admsn_dt dschrgdt;
 
 	retain last_discharge source_name source_type;
 
@@ -2772,7 +2767,7 @@ where substr(caretype,1,9) = "Emergency" ;
 run ; 
 
 proc sort data= ccn_enc_er_claims nodupkey;
-	by measure_year epi_id_milliman startdate enddate;
+	by epi_id_milliman startdate enddate;
 run;  
 
 data prov_er_claims ; 
@@ -2781,7 +2776,7 @@ where substr(type,1,7) = "Prof_ER" ;
 run ; 
 
 proc sort data= prov_er_claims nodupkey;
-	by measure_year epi_id_milliman service_date;
+	by epi_id_milliman service_date;
 run;  
 
 proc sql ; 
@@ -2822,11 +2817,11 @@ end ;
 *This sorting is done to remove duplicates in instances where there are mutliple ER providers on the same day.;
 
 proc sort data=readmit_source2 out=readmit_source3 ; 
-by measure_year epi_id_milliman type provider_ccn  admsn_dt dschrgdt std_allowed_wage er_admsn_dt er_dschrgdt er_type ;
+by epi_id_milliman type provider_ccn  admsn_dt dschrgdt std_allowed_wage er_admsn_dt er_dschrgdt er_type ;
 run ; 
 
 proc sort data=readmit_source3 out=readmit_source4 nodupkey ; 
-by measure_year epi_id_milliman type provider_ccn  admsn_dt dschrgdt std_allowed_wage ;
+by epi_id_milliman type provider_ccn  admsn_dt dschrgdt std_allowed_wage ;
 run ;
 
 
@@ -2905,8 +2900,8 @@ proc sql;
 quit;
 
 *20170707 JL Update: Dedup rows for SNF/IRF stays where there were two readmits happening within the day after discharge;
-proc sort data = snfirf_readmit2 out=snfirf_readmit2a; by measure_year epi_id_milliman admsn_dt readmit_admit; run;
-proc sort data = snfirf_readmit2a out=snfirf_readmit3 nodupkey; by measure_year epi_id_milliman admsn_dt; run;
+proc sort data = snfirf_readmit2 out=snfirf_readmit2a; by epi_id_milliman admsn_dt readmit_admit; run;
+proc sort data = snfirf_readmit2a out=snfirf_readmit3 nodupkey; by epi_id_milliman admsn_dt; run;
 
 proc sql;
 	create table ccn_enc13 as
@@ -3083,11 +3078,11 @@ end;
 	if hierarchy > 0;
 run;
 
-proc sort; by measure_year epi_id_milliman service_date hierarchy type descending std_allowed_wage;
+proc sort; by epi_id_milliman service_date hierarchy type descending std_allowed_wage;
 
 run;
 			
-proc sort data = visits nodupkey out=visits2; by measure_year epi_id_milliman service_date; run;
+proc sort data = visits nodupkey out=visits2; by epi_id_milliman service_date; run;
 
 *Join anchor end date to file for later calculation;
 proc sql;
@@ -3140,7 +3135,7 @@ data visits4 (keep = measure_year epi_id_milliman v1-v90);
 	if clinic_visit_type ^="" then visit_provider = strip(clinic_visit_type)||": "||strip(provider)||": "||strip(put(service_date,$mmddyy10.));
 	else visit_provider = "";
 
-	by measure_year epi_id_milliman; 
+	by epi_id_milliman; 
 
 	retain v1-v90;
 	length v1-v90 $255;
@@ -3208,7 +3203,7 @@ data util_table (keep= measure_year BPID epi_id_milliman type);
 	if type = "Anchor Readmit" then type = "Anchor Readmit";
 run;
 
-proc sort data = util_table nodupkey out = out.util_&label._&bpid1._&bpid2.; by measure_year epi_id_milliman type; run;
+proc sort data = util_table nodupkey out = out.util_&label._&bpid1._&bpid2.; by epi_id_milliman type; run;
 
 
 
@@ -3536,7 +3531,7 @@ union all
 	from out.ccn_enc_&label._&bpid1._&bpid2. as a
 	where timeframe2 ^= 'Anchor' or (timeframe2 = 'Anchor' and (caretype in ('Emergency - W/in 1 Day of Admit','Emergency - Stand Alone','Rehab','Home Health','Hospice','LTCH','SNF','IRF','Observation') or substr(caretype,1,10) ='Outpatient'))
 
-	order by measure_year, BPID, epi_id_milliman, begin_date;
+	order by BPID, epi_id_milliman, begin_date;
 
 quit;
 
@@ -3564,7 +3559,7 @@ proc sql;
 	where a.epi_id_milliman = b.epi_id_milliman
 	and a.BPID = b.BPID
 	and a.measure_year=b.measure_year
-	order by measure_year, BPID, epi_id_milliman, timeframe, transfer_stay, begin_date, rank3, end_date desc;
+	order by BPID, epi_id_milliman, timeframe, transfer_stay, begin_date, rank3, end_date desc;
 quit;
 
 data patient_Detail2;
@@ -3573,12 +3568,12 @@ data patient_Detail2;
 	if end_date_drop=. then end_date_drop=mdy(12,31,2099);
 	if end_date_drop=mdy(12,31,2099) and (substr(Caretype,1,7) = 'Prof_ER' or substr(Caretype,1,2) = 'Em') then end_date_drop=mdy(12,30,2099);
 	if end_date_drop=mdy(12,31,2099) and substr(Caretype,1,10) = 'Outpatient' then end_date_drop=mdy(12,29,2099);
-	proc sort; by measure_year BPID epi_id_milliman timeframe transfer_stay begin_date rank3 end_date_drop;
+	proc sort; by BPID epi_id_milliman timeframe transfer_stay begin_date rank3 end_date_drop;
 run;
 
 data patient_detail3 (drop=counter);
 	set patient_detail2;
-	by measure_year BPID epi_id_Milliman ;
+	by BPID epi_id_Milliman ;
 	length claimid $12 caretype_long $50.;
 	format begin_date end_date mmddyy10.;
 
@@ -3700,6 +3695,7 @@ run;
 
 data bpcia_episode_initiator_perf;
 	set bpcia.bpcia_performance_episodes (in=a) bpcia.bpcia_performance_episodes_MY3 (in=b);
+	format MEASURE_YEAR $10.;
 	if a then MEASURE_YEAR = 'MY1 & MY2';
 	else MEASURE_YEAR = 'MY3';
  
@@ -3742,7 +3738,7 @@ proc sql;
 quit;
 
 
-proc sort data=out.pat_detail_&label._&bpid1._&bpid2.; by measure_year BPID epi_id_milliman timeframe transfer_stay begin_date rank3 end_date_drop; run;
+proc sort data=out.pat_detail_&label._&bpid1._&bpid2.; by BPID epi_id_milliman timeframe transfer_stay begin_date rank3 end_date_drop; run;
 
 
 /*********************************************************************************************/
@@ -4004,7 +4000,7 @@ proc sql ;
 		left join benchmarks as b
 		on a.Anchor_code = b.drg
 		and timeframe_id = b._id 
-		order by measure_year, epi_id_milliman, timeframe
+		order by epi_id_milliman, timeframe
 		;
 	quit ; 
 
@@ -4207,7 +4203,7 @@ Proc sql ;
 		from episode_detail_10 as a
 		left join out.Cc_sum_&label._&bpid1._&bpid2. as b
 		on a.epi_id_milliman = b.epi_id_milliman
-/*		and a.measure_year=b.measure_year*/
+		and a.measure_year=b.measure_year
 		left join out.comp_&label._&bpid1._&bpid2. as c
 		on a.epi_id_milliman = c.epi_id_milliman
 		and a.measure_year=c.measure_year
@@ -4341,7 +4337,7 @@ proc sql;
 quit;
 
 ***** EPISODE INDEX CREATION *****;
-proc sort data = episode_detail_14 out = episode_detail_14a; by measure_year epi_id_milliman anchor_beg_dt anchor_end_dt;run;
+proc sort data = episode_detail_14 out = episode_detail_14a; by epi_id_milliman anchor_beg_dt anchor_end_dt;run;
 
 ******* NEW EPISODE INDEX CREATION - RUN ONCE FOR FIRST TIME RUN ONLY ************************************;
 %macro epi_idx_first;
@@ -4378,7 +4374,7 @@ proc sql;
 	from out.epi_detail_&label._&bpid1._&bpid2. as a
 	left join out.epi_idx_&prevlabel._&bpid1._&bpid2. as b
 	on a.epi_id_milliman = b.epi_id_milliman and a.measure_year=b.measure_year
-	order by counter desc, measure_year, epi_id_milliman, anchor_beg_dt, anchor_end_dt
+	order by counter desc, epi_id_milliman, anchor_beg_dt, anchor_end_dt
 	;
 quit;
 
@@ -4428,8 +4424,8 @@ data epi_list2;
 run;
 
 * Output the comprehensive list of episode indexes for all episodes that have entered the program;
-proc sort data = epi_list2; by measure_year epi_id_milliman descending recent_label; run;
-proc sort data = epi_list2 nodupkey out=out.epi_idx_&label._&bpid1._&bpid2.; by measure_year epi_id_milliman; run;
+proc sort data = epi_list2; by epi_id_milliman descending recent_label; run;
+proc sort data = epi_list2 nodupkey out=out.epi_idx_&label._&bpid1._&bpid2.; by epi_id_milliman; run;
 
 * Join the episode index to the episode file;
 proc sql;
@@ -4556,11 +4552,11 @@ set er_prov er_ccn ;
 run ;
 
 proc sort data = Er_prov_ccn nodupkey;
-by measure_year epi_id_milliman ; 
+by epi_id_milliman ; 
 run ; 
 
 proc sort data = er_ccn_desc_name nodupkey;
-by measure_year epi_id_milliman ; 
+by epi_id_milliman ; 
 run ; 
 
 proc sql ;
