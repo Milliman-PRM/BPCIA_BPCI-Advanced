@@ -10,7 +10,7 @@ options mprint;
 proc printto;run;
 
 ***** USER INPUTS ******************************************************************************************;
-%let mode = base; *main = main interface, base = baseline interface;
+%let mode = main; *main = main interface, base = baseline interface;
 
 
 ****** REFERENCE PROGRAMS ***********************************************************************************;
@@ -29,25 +29,28 @@ proc printto;run;
 libname tp "&dataDir.\08 - Target Price Data";
 
 libname ref "H:\Nonclient\Medicare Bundled Payment Reference\Program - BPCIA\SAS Datasets" ;
+libname bpciaref "H:\Nonclient\Medicare Bundled Payment Reference\Program - BPCIA\SAS Datasets" ;
+libname genref "H:\Nonclient\Medicare Bundled Payment Reference\General\SAS Datasets" ;
+libname cjrref "H:\Nonclient\Medicare Bundled Payment Reference\Program - CJR\SAS Datasets" ;
 
 
 %macro modesetup;
 %if &mode.=main %then %do;
 libname out "&dataDir.\07 - Processed Data\";
 libname out2 "&dataDir.\07 - Processed Data\Output";
-proc printto log="H:\BPCIA_BPCI Advanced\50 - BPCI Advanced Ongoing Reporting - 2019\Work Papers\SAS\logs\201 - Target Prices_&sysdate..log" print=print new;
+proc printto log="H:\BPCIA_BPCI Advanced\50 - BPCI Advanced Ongoing Reporting - 2020\Work Papers\SAS\logs\201 - MY3 Target Prices_&sysdate..log" print=print new;
 run;
 %end;
 %else %if &mode.=base %then %do;
 libname out "&dataDir.\07 - Processed Data\Baseline Interface";
 libname out2 "&dataDir.\07 - Processed Data\Baseline Interface\Output";
-proc printto log="H:\BPCIA_BPCI Advanced\50 - BPCI Advanced Ongoing Reporting - 2019\Work Papers\SAS\logs\201 - Baseline Target Prices_&sysdate..log" print=print new;
+proc printto log="H:\BPCIA_BPCI Advanced\50 - BPCI Advanced Ongoing Reporting - 2020\Work Papers\SAS\logs\201 - MY3 Baseline Target Prices_&sysdate..log" print=print new;
 run;
 %end;
 %else %if &mode.=dev %then %do;
 libname out "&dataDir.\07 - Processed Data\Development";
 libname out2 "&dataDir.\07 - Processed Data\Development\Output";
-proc printto log="H:\BPCIA_BPCI Advanced\50 - BPCI Advanced Ongoing Reporting - 2019\Work Papers\SAS\logs\201 - Dev Target Prices_&sysdate..log" print=print new;
+proc printto log="H:\BPCIA_BPCI Advanced\50 - BPCI Advanced Ongoing Reporting - 2020\Work Papers\SAS\logs\201 - MY3 Dev Target Prices_&sysdate..log" print=print new;
 run;
 %end;
 %mend modesetup;
@@ -100,7 +103,7 @@ data PAT_Factors;
 	anchor_type='ip';
 	if substr(Clinical_Episode,1,2) = 'OP' then anchor_type='op';
 	if substr(Clinical_Episode,1,2) = 'MS' then anchor_type='ms';
-
+	AMC = MTH;
 	if anchor_type='op' then do;
 		if Clinical_Episode = 'OP-Back & neck except spinal fusion' then Clinical_Episode = 'Back & neck except spinal fusion';
 		if Clinical_Episode = 'OP-Cardiac defibrillator' then Clinical_Episode = 'Cardiac defibrillator';
@@ -119,7 +122,7 @@ data PAT_Factors;
 run;
 
 proc sort nodupkey data=PAT_Factors out=PAT_Factors_forBase;
-	by Clinical_Episode anchor_type MTH Urban_Rural Safety_Net Bed_Size Census_Div Year Quarter;
+	by Clinical_Episode anchor_type AMC MTH Urban_Rural Safety_Net Bed_Size Census_Div Year Quarter;
 run;
 
 data PAT_Factors_baseline;
@@ -127,7 +130,7 @@ data PAT_Factors_baseline;
 	anchor_type='ip';
 	if substr(Clinical_Episode,1,2) = 'OP' then anchor_type='op';
 	if substr(Clinical_Episode,1,2) = 'MS' then anchor_type='ms';
-
+	AMC = MTH;
 	if anchor_type='op' then do;
 		if Clinical_Episode = 'OP-Back & neck except spinal fusion' then Clinical_Episode = 'Back & neck except spinal fusion';
 		if Clinical_Episode = 'OP-Cardiac defibrillator' then Clinical_Episode = 'Cardiac defibrillator';
@@ -194,7 +197,7 @@ run;
 data temp0;
 	format BPID $9. EPI_ID_MILLIMAN $32. ;
 	set out.epi_&label._&bpid1._&bpid2. ;
-
+	if measure_year = 'MY3';
 	if EPISODE_GROUP_NAME = "Disorders Of Liver Except Malignancy, Cirrhosis Or Alcoholic Hepatitis" then
 		EPISODE_GROUP_NAME = "Disorders of liver except malignancy, cirrhosis or alcoholic hepatitis" ;
 
@@ -227,23 +230,23 @@ data temp1_prea temp1_preb;
 	else output temp1_preb;
 run;
 
-/*%if &label. ^= ybase %then %do;*/
-/*	proc sql;*/
-/*		create table temp1a_pre as*/
-/*		select a.*, b.ACADEMIC, b.URBAN_RURAL, b.SAFETY_NET, b.BED_SIZE, b.CENSUS as CENSUS_Pre*/
-/*		from temp1_prea as a left join Peer_Group as b*/
-/*		on a.anc_ccn = b.ccn_join*/
-/*			and b.epi_start <= a.ANCHOR_BEG_DT <= b.epi_end;*/
-/*	quit;*/
-/*%end;*/
-/*%else %do;*/
+%if %substr(&label.,1,5)  ^= ybase %then %do;
+	proc sql;
+		create table temp1a_pre as
+		select a.*, b.Major_Teaching_Hospital as ACADEMIC, b.Urban as URBAN_RURAL, b.SAFETY_NET, b.BED_SIZE, b.CENSUS_Division as CENSUS_Pre
+		from temp1_prea as a left join Peer_Group as b
+		on a.anc_ccn = b.ccn_join
+			and b.epi_start <= a.ANCHOR_END_DT <= b.epi_end;
+	quit;
+%end;
+%else %do;
 	proc sql;
 		create table temp1a_pre as
 		select a.*, b.Major_Teaching_Hospital, b.Urban as URBAN_RURAL, b.SAFETY_NET, b.BED_SIZE as BED_SIZE_join, b.CENSUS_Division as CENSUS_Pre
 		from temp1_prea as a left join Peer_Group_forBase as b
 		on a.anc_ccn = b.ccn_join;
 	quit;
-/*%end;*/
+%end;
 
 data temp1a;
 	set temp1a_pre;
@@ -253,17 +256,17 @@ data temp1a;
 	else Bed_SIZE = BED_SIZE_join;
 run;
 
-/*%if &label. ^= ybase %then %do;*/
-/*	proc sql;*/
-/*		create table temp2a as*/
-/*		select a.*, b.**/
-/*		from temp1a as a left join TP_Risk_Adj_Parameters as b*/
-/*		on a.EPISODE_GROUP_NAME = b.Clinical_Episode_Category*/
-/*			and a.anchor_type_upper = b.Clinical_Episode_Type*/
-/*			and b.epi_start <= a.ANCHOR_BEG_DT <= b.epi_end;*/
-/*	quit;*/
-/*%end;*/
-/*%else %do;*/
+%if %substr(&label.,1,5)  ^= ybase %then %do;
+	proc sql;
+		create table temp2a as
+		select a.*, b.*
+		from temp1a as a left join TP_Risk_Adj_Parameters as b
+		on a.EPISODE_GROUP_NAME = b.Clinical_Episode_Category
+			and a.anchor_type_upper = b.Clinical_Episode_Type
+			and b.epi_start <= a.ANCHOR_END_DT <= b.epi_end;
+	quit;
+%end;
+%else %do;
 proc sql;
 		create table temp2a as
 		select a.*, b.*
@@ -271,42 +274,42 @@ proc sql;
 		on a.EPISODE_GROUP_NAME = b.Clinical_Episode_Category
 			and a.anchor_type_upper = b.Clinical_Episode_Type;
 	quit;
-/*%end;*/
+%end;
 
-/*%if &label. ^= ybase %then %do;*/
-/*	proc sql;*/
-/*		create table temp3a_pre as*/
-/*		select a.*, b.PAT_Factor as PAT_New*/
-/*		from temp2a as a left join PAT_Factors as b*/
-/*		on a.EPISODE_GROUP_NAME = b.Clinical_Episode*/
-/*			and a.ANCHOR_TYPE=b.anchor_type*/
-/*			and a.ACADEMIC=b.AMC*/
-/*			and a.URBAN_RURAL=b.Urban_Rural*/
-/*			and a.SAFETY_NET=b.Safety_Net*/
-/*			and a.BED_SIZE=b.Bed_Size*/
-/*			and a.CENSUS=b.Census_Div*/
-/*			and year(a.POST_DSCH_END_DT)=b.Year*/
-/*			and qtr(a.POST_DSCH_END_DT)=b.Quarter*/
-/*			and b.epi_start <= a.ANCHOR_BEG_DT <= b.epi_end;*/
-/*	quit;*/
-/**/
-/*	proc sql;*/
-/*		create table temp3a as*/
-/*		select a.*, b.PAT_Factor as PAT_2019Q3*/
-/*		from temp3a_pre as a left join PAT_Factors as b*/
-/*		on a.EPISODE_GROUP_NAME = b.Clinical_Episode*/
-/*			and a.ANCHOR_TYPE=b.anchor_type*/
-/*			and a.ACADEMIC=b.AMC*/
-/*			and a.URBAN_RURAL=b.Urban_Rural*/
-/*			and a.SAFETY_NET=b.Safety_Net*/
-/*			and a.BED_SIZE=b.Bed_Size*/
-/*			and a.CENSUS=b.Census_Div*/
-/*			and b.Year=2019*/
-/*			and b.Quarter=3*/
-/*			and b.epi_start <= a.ANCHOR_BEG_DT <= b.epi_end;*/
-/*	quit;*/
-/*%end;*/
-/*%else %do;*/
+%if %substr(&label.,1,5)  ^= ybase %then %do;
+	proc sql;
+		create table temp3a_pre as
+		select a.*, b.PAT_Factor as PAT_New
+		from temp2a as a left join PAT_Factors as b
+		on a.EPISODE_GROUP_NAME = b.Clinical_Episode
+			and a.ANCHOR_TYPE=b.anchor_type
+			and a.ACADEMIC=b.AMC
+			and a.URBAN_RURAL=b.Urban_Rural
+			and a.SAFETY_NET=b.Safety_Net
+			and a.BED_SIZE=b.Bed_Size
+			and a.CENSUS=b.Census_Div
+			and year(a.POST_DSCH_END_DT)=b.Year
+			and qtr(a.POST_DSCH_END_DT)=b.Quarter
+			and b.epi_start <= a.ANCHOR_END_DT <= b.epi_end;
+	quit;
+
+	proc sql;
+		create table temp3a as
+		select a.*, b.PAT_Factor as PAT_2019Q3
+		from temp3a_pre as a left join PAT_Factors as b
+		on a.EPISODE_GROUP_NAME = b.Clinical_Episode
+			and a.ANCHOR_TYPE=b.anchor_type
+			and a.ACADEMIC=b.AMC
+			and a.URBAN_RURAL=b.Urban_Rural
+			and a.SAFETY_NET=b.Safety_Net
+			and a.BED_SIZE=b.Bed_Size
+			and a.CENSUS=b.Census_Div
+			and b.Year=2019
+			and b.Quarter=3
+			and b.epi_start <= a.ANCHOR_END_DT <= b.epi_end;
+	quit;
+%end;
+%else %do;
 	proc sql;
 		create table temp3a_pre as
 		select a.*, b.PAT_Factor as PAT_New
@@ -336,54 +339,54 @@ proc sql;
 			and b.Year=2020
 			and b.Quarter=3;
 	quit;
-/*%end;*/
+%end;
 
 
-/*%if &label. ^= ybase %then %do;*/
-/*	proc sql;*/
-/*		create table temp4a as*/
-/*		select a.*, */
-/*			b.PGP_ACH,*/
-/*			b.CCN_TIN,*/
-/*			b.ASSOC_ACH_CCN,*/
-/*			b.CCN_JOIN,*/
-/*			b.EPI_TYPE,*/
-/*			b.EPI_CAT,*/
-/*			b.EPI_COUNT,*/
-/*			b.COUNT_GT_40,*/
-/*			b.EPI_CAT_ADJ,*/
-/*			b.EPI_CAT_SHORT,*/
-/*			b.EPI_CAT_2,*/
-/*			b.EPI_SPEND,*/
-/*			b.AMT,*/
-/*			b.ACH_EFF,*/
-/*			b.SBS,*/
-/*			b.PCMA,*/
-/*			b.PAT,*/
-/*			b.HBP,*/
-/*			b.PGP_EFF,*/
-/*			b.PGP_OFFSET,*/
-/*			b.PGP_OFFSET_ADJ,*/
-/*			b.PGP_ACH_PCMA,*/
-/*			b.CASE_MIX,*/
-/*			b.PGP_ACH_BNCHMRK,*/
-/*			b.TARGET_PRICE,*/
-/*			b.PAYMENT_RATIO,*/
-/*			b.TARGET_PRICE_REAL,*/
-/*			b.EPI_INDEX,*/
-/*			b.BPID_CHANGE,*/
-/*			b.EPI_DROPPED_FLAG,*/
-/*			b.TIME_PERIOD*/
-/*		from temp3a as a */
-/*			left join TP_Components as b*/
-/*				on a.BPID = b.INITIATOR_BPID*/
-/*				and a.EPISODE_GROUP_NAME = b.EPI_CAT*/
-/*				and a.anchor_type_upper = b.EPI_TYPE*/
-/*				and a.anc_ccn = b.ccn_join*/
-/*				and b.epi_start <= a.ANCHOR_BEG_DT <= b.epi_end;*/
-/*	quit;*/
-/*%end;*/
-/*%else %do;*/
+%if %substr(&label.,1,5)  ^= ybase %then %do;
+	proc sql;
+		create table temp4a as
+		select a.*, 
+			b.PGP_ACH,
+			b.CCN_TIN,
+			b.ASSOC_ACH_CCN,
+			b.CCN_JOIN,
+			b.EPI_TYPE,
+			b.EPI_CAT,
+			b.EPI_COUNT,
+			b.COUNT_GT_40,
+			b.EPI_CAT_ADJ,
+			b.EPI_CAT_SHORT,
+			b.EPI_CAT_2,
+			b.EPI_SPEND,
+			b.AMT,
+			b.ACH_EFF,
+			b.SBS,
+			b.PCMA,
+			b.PAT,
+			b.HBP,
+			b.PGP_EFF,
+			b.PGP_OFFSET,
+			b.PGP_OFFSET_ADJ,
+			b.PGP_ACH_PCMA,
+			b.CASE_MIX,
+			b.PGP_ACH_BNCHMRK,
+			b.TARGET_PRICE,
+			b.PAYMENT_RATIO,
+			b.TARGET_PRICE_REAL,
+			b.EPI_INDEX,
+			b.BPID_CHANGE,
+			b.EPI_DROPPED_FLAG,
+			b.TIME_PERIOD
+		from temp3a as a 
+			left join TP_Components as b
+				on a.BPID = b.INITIATOR_BPID
+				and a.EPISODE_GROUP_NAME = b.EPI_CAT
+				and a.anchor_type_upper = b.EPI_TYPE
+				and a.anc_ccn = b.ccn_join
+				and b.epi_start <= a.ANCHOR_END_DT <= b.epi_end;
+	quit;
+%end;
+%else %do;
 proc sql;
 		create table temp4a as
 		select a.*, 
@@ -426,18 +429,18 @@ proc sql;
 				and a.anchor_type_upper = b.EPI_TYPE
 				and a.anc_ccn = b.ccn_join;
 	quit;
-/*%end;*/
+%end;
 
 data temp5a;
 	set temp4a;
 	format DRG_CODE BEST12.;
-/*	%if &label. = ybase %then %do; */
-/*		DRG_CODE=DRG_2018; */
-/*	%end;*/
-/*	%else %do;*/
+	%if %substr(&label.,1,5)  = ybase %then %do; 
+		DRG_CODE=DRG_2019; 
+	%end;
+	%else %do;
 		if ANCHOR_TYPE = 'ip' then DRG_CODE = input(ANCHOR_CODE,$20.);
 		else DRG_CODE = . ;
-/*	%end;*/
+	%end;
 
 	Epi_Year = year(POST_DSCH_END_DT);
 	Epi_Qtr = qtr(POST_DSCH_END_DT);
@@ -1073,7 +1076,7 @@ proc sql;
 	select a.*, b.Major_Teaching_Hospital, b.Urban as URBAN_RURAL, b.SAFETY_NET, b.BED_SIZE as BED_SIZE_join, b.CENSUS_Division as CENSUS_Pre
 	from temp1_preb as a left join Peer_Group_baseline as b
 	on a.anc_ccn = b.ccn_join;
-/*		and b.epi_start <= a.ANCHOR_BEG_DT <= b.epi_end;*/
+/*		and b.epi_start <= a.ANCHOR_END_DT <= b.epi_end;*/
 quit;
 
 data temp1b;
@@ -1090,7 +1093,7 @@ proc sql;
 	from temp1b as a left join TP_Risk_Adj_Parameters_baseline as b
 	on a.EPISODE_GROUP_NAME = b.Clinical_Episode_Category
 		and a.anchor_type_upper = b.Clinical_Episode_Type;
-		/*and b.epi_start <= a.ANCHOR_BEG_DT <= b.epi_end;*/
+		/*and b.epi_start <= a.ANCHOR_END_DT <= b.epi_end;*/
 quit;
 
 proc sql;
@@ -1106,7 +1109,7 @@ proc sql;
 		and a.CENSUS=b.Census_Div
 		and year(a.POST_DSCH_END_DT)=b.Year
 		and qtr(a.POST_DSCH_END_DT)=b.Quarter;
-/*		and b.epi_start <= a.ANCHOR_BEG_DT <= b.epi_end;*/
+/*		and b.epi_start <= a.ANCHOR_END_DT <= b.epi_end;*/
 quit;
 
 proc sql;
@@ -1122,7 +1125,7 @@ proc sql;
 		and a.CENSUS=b.Census_Div
 		and b.Year=2020
 		and b.Quarter=3;
-/*		and b.epi_start <= a.ANCHOR_BEG_DT <= b.epi_end;*/
+/*		and b.epi_start <= a.ANCHOR_END_DT <= b.epi_end;*/
 quit;
 
 
@@ -1167,19 +1170,19 @@ proc sql;
 			and a.EPISODE_GROUP_NAME = b.EPI_CAT
 			and a.anchor_type_upper = b.EPI_TYPE
 			and a.anc_ccn = b.ccn_join;
-			/*and b.epi_start <= a.ANCHOR_BEG_DT <= b.epi_end;*/
+			/*and b.epi_start <= a.ANCHOR_END_DT <= b.epi_end;*/
 quit;
 
 data temp5b;
 	set temp4b;
 	format DRG_CODE BEST12.;
-/*	%if &label. = ybase %then %do; */
-/*		DRG_CODE=DRG_2018;*/
-/*	%end; */
-/*	%else %do;*/
+	%if %substr(&label.,1,5)  = ybase %then %do; 
+		DRG_CODE=DRG_2019;
+	%end; 
+	%else %do;
 		if ANCHOR_TYPE = 'ip' then DRG_CODE = input(ANCHOR_CODE,$20.);
 		else DRG_CODE = . ;
-/*	%end;*/
+	%end;
 
 	Epi_Year = year(POST_DSCH_END_DT);
 	Epi_Qtr = qtr(POST_DSCH_END_DT);
@@ -1867,9 +1870,68 @@ proc sql;
 	from t1 as a left join t2 as b
 	on a.BPID=b.BPID and a.ANCHOR_TYPE=b.ANCHOR_TYPE and a.EPISODE_GROUP_NAME=b.EPISODE_GROUP_NAME;
 quit;
+
+***** Natural Disaster Exclusion *****;
+proc sql;
+	create table disaster as
+	select distinct a.*, b.state, b.county
+	from t3 as a left join genref.ccn_statecounty as b
+	on a.anc_ccn = b.ccn;
+quit;
+
+proc sql;
+	create table disaster2 as
+	select distinct a.*, 
+	 b.Disaster_Number as NATURAL_DISASTER_MONTHLY_NUM
+	from disaster as a left join cjrref.disasterarealist_Milliman as b
+	on sum(b.incident_start_date,-29) <= a.anchor_beg_dt <= sum(b.incident_end_date,29)
+	and a.state = b.state
+	and a.county = strip(b.county)
+		;
+quit;
+
+data t4;
+	set disaster2;
+	format NATURAL_DISASTER_MONTHLY $3.;
+
+	if NATURAL_DISASTER_MONTHLY_NUM>0 then do;
+		NATURAL_DISASTER_MONTHLY='Yes';
+%if &label. ^= ybase %then %do ;
+		if EPI_STD_PMT_FCTR_WIN_1_99>TARGET_PRICE then do;
+			EPI_STD_PMT_FCTR_WIN_1_99=0;
+			TP_Adj=0;
+		end;
+%end ;
+	end;
+	else NATURAL_DISASTER_MONTHLY='No';
+run;
+
+proc sql;
+create table t5 as 
+	select a.*
+		  ,b.BPCI_Episode_Idx
+ /* from out2.tp_pp1Initial_1148_0000 AS A */
+ from t4 AS A 
+	left join bpciaref.BPCIA_DRG_Mapping_my3 as b
+	on a.ANCHOR_CODE = b.code
+;
+quit;
+
+proc sql;
+create table t6 as
+  select a.*
+          ,b.Clinical_Episode
+		  ,b.Short_name as clinical_episode_abbr
+		  ,b.Short_name_2 as clinical_episode_abbr2
+		  ,strip(BPID)||" - "||strip(b.Short_name) as BPID_ClinicalEp
+	from t5 as a
+	left join bpciaref.BPCIA_Clinical_Episode_Names_my3 as b
+	on a.BPCI_Episode_Idx = b.BPCI_Episode_Index
+;
+quit;
 	 
-data out.tp_&label._&bpid1._&bpid2.;
-	set t3 (rename=(anchor_ccn=anchor_ccn_orig EPI_STD_PMT_FCTR_WIN_1_99=EPI_STD_PMT_FCTR_WIN_1_99_orig)) ;
+data out.tp_&label._&bpid1._&bpid2._MY3;
+	set t6 (rename=(anchor_ccn=anchor_ccn_orig EPI_STD_PMT_FCTR_WIN_1_99=EPI_STD_PMT_FCTR_WIN_1_99_orig)) ;
 	format HAS_TP PERFORMANCE_PERIOD $3.;
 
 	PGP_Offset_Amt_Real=0;
@@ -1885,16 +1947,17 @@ data out.tp_&label._&bpid1._&bpid2.;
 
 	Adjusted_TP_Real = TP_Adj * PAYMENT_RATIO;
 
-/*	%if &label. = ybase %then %do;*/
-/*		if EPI_SPEND_Original ^= 0 then EPI_STD_PMT_FCTR_WIN_1_99 = EPI_STD_PMT_FCTR_WIN_1_99_orig * EPI_SPEND / EPI_SPEND_Original;*/
-/*		EPI_STD_PMT_FCTR_WIN_1_99_Real = EPI_STD_PMT_FCTR_WIN_1_99 * PAYMENT_RATIO;*/
-/*	%end;*/
-/*	%else %do;*/
+	%if %substr(&label.,1,5)  = ybase %then %do;
+		if EPI_SPEND_Original ^= 0 then EPI_STD_PMT_FCTR_WIN_1_99 = EPI_STD_PMT_FCTR_WIN_1_99_orig * EPI_SPEND / EPI_SPEND_Original;
+		else EPI_STD_PMT_FCTR_WIN_1_99=EPI_STD_PMT_FCTR_WIN_1_99_orig;
+		EPI_STD_PMT_FCTR_WIN_1_99_Real = EPI_STD_PMT_FCTR_WIN_1_99 * PAYMENT_RATIO;
+	%end;
+	%else %do;
 		EPI_STD_PMT_FCTR_WIN_1_99=EPI_STD_PMT_FCTR_WIN_1_99_orig;
-/*		if EPI_DROPPED_FLAG = 0 then EPI_STD_PMT_FCTR_WIN_1_99_Real = EPI_STD_PMT_FCTR_WIN_1_99 * PAYMENT_RATIO;*/
-/*		else EPI_STD_PMT_FCTR_WIN_1_99_Real = .;*/
-/*	%end;*/
-	EPI_STD_PMT_FCTR_WIN_1_99_Real = EPI_STD_PMT_FCTR_WIN_1_99 * PAYMENT_RATIO;
+		if EPI_DROPPED_FLAG = 0 then EPI_STD_PMT_FCTR_WIN_1_99_Real = EPI_STD_PMT_FCTR_WIN_1_99 * PAYMENT_RATIO;
+		else EPI_STD_PMT_FCTR_WIN_1_99_Real = .;
+	%end;
+	*EPI_STD_PMT_FCTR_WIN_1_99_Real = EPI_STD_PMT_FCTR_WIN_1_99 * PAYMENT_RATIO;
 
 	PAT_Adj = PAT_New;
 
@@ -1914,8 +1977,8 @@ data out.tp_&label._&bpid1._&bpid2.;
 
 run;
 
-data out2.tp_&label._&bpid1._&bpid2.;
-	set out.tp_&label._&bpid1._&bpid2. (rename=(ORIGDS=ORIGDS_orig LTI=LTI_orig FRACTURE_FLAG=FRACTURE_FLAG_orig ANY_DUAL=ANY_DUAL_orig KNEE_ARTHRO_FLAG=KNEE_ARTHRO_FLAG_orig PRIOR_HOSP_W_NON_PAC_IP_FLAG_90=PRIOR_HOSP_W_NON_PAC_IP_FLAG_ori PRIOR_PAC_FLAG=PRIOR_PAC_FLAG_orig
+data out2.tp_&label._&bpid1._&bpid2._MY3;
+	set out.tp_&label._&bpid1._&bpid2._MY3 (rename=(ORIGDS=ORIGDS_orig LTI=LTI_orig FRACTURE_FLAG=FRACTURE_FLAG_orig ANY_DUAL=ANY_DUAL_orig KNEE_ARTHRO_FLAG=KNEE_ARTHRO_FLAG_orig PRIOR_HOSP_W_NON_PAC_IP_FLAG_90=PRIOR_HOSP_W_NON_PAC_IP_FLAG_ori PRIOR_PAC_FLAG=PRIOR_PAC_FLAG_orig
 											HCC18=HCC18_orig HCC19=HCC19_orig HCC40=HCC40_orig HCC58=HCC58_orig HCC84=HCC84_orig HCC85=HCC85_orig HCC86=HCC86_orig HCC88=HCC88_orig HCC96=HCC96_orig HCC108=HCC108_orig HCC111=HCC111_orig));
 	format ORIGDS LTI FRACTURE_FLAG ANY_DUAL KNEE_ARTHRO_FLAG PRIOR_HOSP_W_NON_PAC_IP_FLAG_90 
 			 HCC18 HCC19 HCC40 HCC58 HCC84 HCC85 HCC86 HCC88 HCC96 HCC108 HCC111 $3. HCC_COUNT $6. ;
@@ -1958,32 +2021,16 @@ run;
 
 %mend;
 
+*****For Development*****;
 /*
-%runhosp(6054_0001,6054_0001,6054,0002,330019);
-%runhosp(6055_0001,6055_0001,6055,0002,330194);
-%runhosp(6056_0001,6056_0001,6056,0002,330201);
-%runhosp(6057_0001,6057_0001,6057,0002,330221);
-%runhosp(6058_0001,6058_0001,6058,0002,330233);
-%runhosp(6059_0001,6059_0001,6059,0002,330397);
-
-%runhosp(1191_0001,1191_0001,1191,0002,61440790);
-%runhosp(7309_0001,7309_0001,7309,0002,070029);
-%runhosp(7310_0001,7310_0001,7310,0002,070010);
-%runhosp(7310_0001,7310_0001,7310,0003,070018);
-%runhosp(7310_0001,7310_0001,7310,0004,070007);
-%runhosp(7310_0001,7310_0001,7310,0005,410013);
-%runhosp(7310_0001,7310_0001,7310,0006,070022);
-%runhosp(7310_0001,7310_0001,7310,0007,070019);
-%runhosp(7311_0001,7311_0001,7311,0002,070036);
-%runhosp(7312_0001,7312_0001,7312,0002,521725543);
-
-%runhosp(2974_0001,2974_0001,2974,0009,390046);
-%runhosp(2974_0001,2974_0001,2974,0006,390066);
-%runhosp(2974_0001,2974_0001,2974,0004,390151);
-%runhosp(2974_0001,2974_0001,2974,0002,390225);
-%runhosp(2974_0001,2974_0001,2974,0008,390327);
-%runhosp(2974_0001,2974_0001,2974,0003,251716306);
-%runhosp(2974_0001,2974_0001,2974,0007,232730785);
+%runhosp(1148_0000,1148_0000,1148,0000,310008);
+%runhosp(1167_0000,1167_0000,1167,0000,390173);
+%runhosp(1343_0000,1343_0000,1343,0000,232856880);
+%runhosp(1368_0000,1368_0000,1368,0000,390049);
+%runhosp(2379_0000,2379_0000,2379,0000,310060);
+%runhosp(2587_0000,2587_0000,2587,0000,310014);
+%runhosp(2607_0000,2607_0000,2607,0000,223700669);
+%runhosp(1931_0001,5479_0001,5479,0002,310051);
 */
 
 %runhosp(2586_0001,2586_0001,2586,0002,360027);
@@ -2002,32 +2049,32 @@ run;
 %runhosp(2586_0001,2586_0001,2586,0033,100044);
 %runhosp(2586_0001,2586_0001,2586,0034,650003177);
 %runhosp(2586_0001,2586_0001,2586,0035,340714585);
+*%runhosp(2586_0001,2586_0001,2586,0036,341855775);
+*%runhosp(2586_0001,2586_0001,2586,0038,);
 %runhosp(2586_0001,2586_0001,2586,0039,341843403);
+*%runhosp(2586_0001,2586_0001,2586,0040,113837554);
+*%runhosp(2586_0001,2586_0001,2586,0041,);
+*%runhosp(2586_0001,2586_0001,2586,0042,800410599);
+*%runhosp(2586_0001,2586_0001,2586,0043,);
 %runhosp(2586_0001,2586_0001,2586,0044,650029298);
 %runhosp(2586_0001,2586_0001,2586,0045,650556041);
 %runhosp(2586_0001,2586_0001,2586,0046,264215547);
-%runhosp(1374_0001,1374_0001,1374,0015,420009);
-%runhosp(1374_0001,1374_0001,1374,0017,420015);
+%runhosp(1374_0001,1374_0001,1374,0004,420078);
 %runhosp(1374_0001,1374_0001,1374,0008,420018);
+%runhosp(1374_0001,1374_0001,1374,0009,420086);
+%runhosp(1374_0001,1374_0001,1374,0012,420038);
 %runhosp(1374_0001,1374_0001,1374,0013,420033);
 %runhosp(1374_0001,1374_0001,1374,0014,420037);
-%runhosp(1374_0001,1374_0001,1374,0012,420038);
-%runhosp(1374_0001,1374_0001,1374,0019,420070);
-%runhosp(1374_0001,1374_0001,1374,0004,420078);
-%runhosp(1374_0001,1374_0001,1374,0009,420086);
-%runhosp(1374_0001,1374_0001,1374,0016,420102);
+%runhosp(1374_0001,1374_0001,1374,0015,420009);
+%runhosp(1374_0001,1374_0001,1374,0017,420015);
 %runhosp(1374_0001,1374_0001,1374,0018,420106);
-%runhosp(1505_0000,1505_0000,1505,0000,100017);
-%runhosp(1832_0000,1832_0000,1832,0000,330270);
 %runhosp(1191_0001,1191_0001,1191,0002,61440790);
-%runhosp(7309_0001,7309_0001,7309,0002,070029);
 %runhosp(7310_0001,7310_0001,7310,0002,070010);
 %runhosp(7310_0001,7310_0001,7310,0003,070018);
 %runhosp(7310_0001,7310_0001,7310,0004,070007);
 %runhosp(7310_0001,7310_0001,7310,0005,410013);
 %runhosp(7310_0001,7310_0001,7310,0006,070022);
 %runhosp(7310_0001,7310_0001,7310,0007,070019);
-%runhosp(7311_0001,7311_0001,7311,0002,070036);
 %runhosp(7312_0001,7312_0001,7312,0002,521725543);
 %runhosp(6054_0001,6054_0001,6054,0002,330019);
 %runhosp(6055_0001,6055_0001,6055,0002,330194);
@@ -2036,152 +2083,85 @@ run;
 %runhosp(6058_0001,6058_0001,6058,0002,330233);
 %runhosp(6059_0001,6059_0001,6059,0002,330397);
 %runhosp(1209_0000,1209_0000,1209,0000,420004);
-%runhosp(1209_0000,1209_0000,1209,0002,420091);
-%runhosp(1209_0000,1209_0000,1209,0003,420055);
-%runhosp(1209_0000,1209_0000,1209,0004,420036);
-%runhosp(1209_0000,1209_0000,1209,0005,420019);
+%runhosp(1028_0000,1028_0000,1028,0000,100008);
+%runhosp(1075_0000,1075_0000,1075,0000,360133);
+%runhosp(1102_0000,1102_0000,1102,0000,390001);
+%runhosp(1103_0000,1103_0000,1103,0000,390004);
+%runhosp(1104_0000,1104_0000,1104,0000,390048);
+%runhosp(1105_0000,1105_0000,1105,0000,390006);
+%runhosp(1106_0000,1106_0000,1106,0000,390270);
+%runhosp(1148_0000,1148_0000,1148,0000,310008);
+%runhosp(1167_0000,1167_0000,1167,0000,390173);
+%runhosp(1368_0000,1368_0000,1368,0000,390049);
+%runhosp(1461_0000,1461_0000,1461,0000,100296);
+%runhosp(1634_0000,1634_0000,1634,0000,310012);
+*%runhosp(1803_0000,1803_0000,1803,0000,070017);
+%runhosp(1958_0000,1958_0000,1958,0000,390183);
+%runhosp(2048_0000,2048_0000,2048,0000,360079);
+%runhosp(2049_0000,2049_0000,2049,0000,360239);
+%runhosp(2070_0000,2070_0000,2070,0000,100084);
+%runhosp(2214_0000,2214_0000,2214,0000,100285);
+%runhosp(2215_0000,2215_0000,2215,0000,100230);
+%runhosp(2216_0000,2216_0000,2216,0000,100154);
+%runhosp(2302_0000,2302_0000,2302,0000,110074);
+%runhosp(2317_0000,2317_0000,2317,0000,390330);
+%runhosp(2374_0000,2374_0000,2374,0000,390326);
+%runhosp(2376_0000,2376_0000,2376,0000,390035);
+%runhosp(2378_0000,2378_0000,2378,0000,390197);
+%runhosp(2379_0000,2379_0000,2379,0000,310060);
+%runhosp(2451_0000,2451_0000,2451,0000,340173);
+%runhosp(2452_0000,2452_0000,2452,0000,340069);
+%runhosp(2461_0000,2461_0000,2461,0000,100314);
+%runhosp(2468_0000,2468_0000,2468,0000,190111);
+%runhosp(2587_0000,2587_0000,2587,0000,310014);
+%runhosp(2589_0000,2589_0000,2589,0000,360132);
+%runhosp(2594_0000,2594_0000,2594,0000,070035);
+%runhosp(2607_0000,2607_0000,2607,0000,223700669);
+%runhosp(5037_0000,5037_0000,5037,0000,360360);
+%runhosp(5038_0000,5038_0000,5038,0000,080007);
+%runhosp(5043_0000,5043_0000,5043,0000,100002);
+%runhosp(5050_0000,5050_0000,5050,0000,390194);
+%runhosp(5154_0000,5154_0000,5154,0000,330005);
+%runhosp(5215_0001,5215_0001,5215,0002,310044);
+%runhosp(5215_0001,5215_0001,5215,0003,310092);
+%runhosp(5263_0000,5263_0000,5263,0000,100281);
+%runhosp(5264_0000,5264_0000,5264,0000,100038);
+%runhosp(5282_0000,5282_0000,5282,0000,360155);
+%runhosp(5392_0001,5392_0001,5392,0004,110184);
+%runhosp(5394_0000,5394_0000,5394,0000,390267);
+%runhosp(5397_0001,5397_0001,5397,0002,360137);
+%runhosp(5397_0001,5397_0001,5397,0003,360359);
+%runhosp(5397_0001,5397_0001,5397,0004,360041);
+%runhosp(5397_0001,5397_0001,5397,0005,360145);
+%runhosp(5397_0001,5397_0001,5397,0006,360192);
+%runhosp(5397_0001,5397_0001,5397,0007,360075);
+%runhosp(5397_0001,5397_0001,5397,0008,360078);
+%runhosp(5397_0001,5397_0001,5397,0009,360002);
+%runhosp(5397_0001,5397_0001,5397,0010,360123);
+%runhosp(5478_0001,5478_0001,5478,0002,310015);
+%runhosp(5479_0001,5479_0001,5479,0002,310051);
+%runhosp(5480_0001,5480_0001,5480,0002,310017);
+%runhosp(5481_0001,5481_0001,5481,0002,310028);
+%runhosp(5746_0001,5746_0001,5746,0002,100007);
 %runhosp(1686_0001,1686_0001,1686,0002,752661095);
 %runhosp(1688_0001,1688_0001,1688,0002,310588183);
 %runhosp(1696_0001,1696_0001,1696,0002,571141121);
 %runhosp(1710_0001,1710_0001,1710,0002,560963485);
+%runhosp(2941_0001,2941_0001,2941,0002,670067);
+%runhosp(2956_0001,2956_0001,2956,0002,450853);
 %runhosp(6049_0001,6049_0001,6049,0002,450880);
 %runhosp(6050_0001,6050_0001,6050,0002,450874);
 %runhosp(6051_0001,6051_0001,6051,0002,030112);
 %runhosp(6052_0001,6052_0001,6052,0002,670076);
 %runhosp(6053_0001,6053_0001,6053,0002,450883);
-%runhosp(2941_0001,2941_0001,2941,0002,670067);
-%runhosp(2942_0001,2942_0001,2942,0002,390316);
-%runhosp(2943_0001,2943_0001,2943,0002,370212);
-%runhosp(2944_0001,2944_0001,2944,0002,670054);
-%runhosp(2945_0001,2945_0001,2945,0002,50708);
-%runhosp(2946_0001,2946_0001,2946,0002,370203);
-%runhosp(2947_0001,2947_0001,2947,0002,370192);
-%runhosp(2948_0001,2948_0001,2948,0002,450864);
-%runhosp(2949_0001,2949_0001,2949,0002,670060);
-%runhosp(2950_0001,2950_0001,2950,0002,30131);
-%runhosp(2951_0001,2951_0001,2951,0002,670049);
-%runhosp(2952_0001,2952_0001,2952,0002,440218);
-%runhosp(2953_0001,2953_0001,2953,0002,450774);
-%runhosp(2954_0001,2954_0001,2954,0002,670005);
-%runhosp(2955_0001,2955_0001,2955,0002,450860);
-%runhosp(2956_0001,2956_0001,2956,0002,450853);
-%runhosp(2957_0001,2957_0001,2957,0002,430089);
-%runhosp(2958_0001,2958_0001,2958,0002,450422);
-%runhosp(2959_0001,2959_0001,2959,0002,190270);
-%runhosp(2974_0001,2974_0001,2974,0009,390046);
-%runhosp(2974_0001,2974_0001,2974,0006,390066);
-%runhosp(2974_0001,2974_0001,2974,0004,390151);
-%runhosp(2974_0001,2974_0001,2974,0002,390225);
-%runhosp(2974_0001,2974_0001,2974,0008,390327);
 %runhosp(2974_0001,2974_0001,2974,0003,251716306);
 %runhosp(2974_0001,2974_0001,2974,0007,232730785);
 
-%runhosp(5746_0001,5746_0001,5746,0002,100007);
-%runhosp(5395_0000,5395_0000,5395,0000,390050);
-%runhosp(5394_0000,5394_0000,5394,0000,390267);
-%runhosp(5229_0000,5229_0000,5229,0000,390009);
-%runhosp(5480_0001,5480_0001,5480,0002,310017);
-%runhosp(5478_0001,5478_0001,5478,0002,310015);
-%runhosp(5481_0001,5481_0001,5481,0002,310028);
-%runhosp(5479_0001,5479_0001,5479,0002,310051);
-%runhosp(6592_0001,6592_0001,6592,0003,340001);
-%runhosp(6592_0001,6592_0001,6592,0002,340021);
-%runhosp(6592_0001,6592_0001,6592,0004,340145);
-%runhosp(6592_0001,6592_0001,6592,0013,340098);
-%runhosp(6592_0001,6592_0001,6592,0009,340119);
-%runhosp(6592_0001,6592_0001,6592,0010,340130);
-%runhosp(6592_0001,6592_0001,6592,0007,340166);
-%runhosp(6592_0001,6592_0001,6592,0012,340075);
-%runhosp(6592_0001,6592_0001,6592,0006,340113);
-%runhosp(5043_0000,5043_0000,5043,0000,100002);
-%runhosp(1029_0000,1029_0000,1029,0000,100117);
-%runhosp(2217_0000,2217_0000,2217,0000,100088);
-%runhosp(5038_0000,5038_0000,5038,0000,080007);
-%runhosp(1028_0000,1028_0000,1028,0000,100008);
-%runhosp(1025_0000,1025_0000,1025,0000,260886056);
-%runhosp(1026_0000,1026_0000,1026,0000,205155995);
-%runhosp(1461_0000,1461_0000,1461,0000,100296);
-%runhosp(1525_0000,1525_0000,1525,0000,100125);
-%runhosp(2216_0000,2216_0000,2216,0000,100154);
-%runhosp(2461_0000,2461_0000,2461,0000,100314);
-%runhosp(5215_0001,5215_0001,5215,0002,310044);
-%runhosp(5215_0001,5215_0001,5215,0003,310092);
-%runhosp(2070_0000,2070_0000,2070,0000,100084);
-%runhosp(2587_0000,2587_0000,2587,0000,310014);
-%runhosp(1470_0000,1470_0000,1470,0000,330219);
-%runhosp(1102_0000,1102_0000,1102,0000,390001);
-%runhosp(1105_0000,1105_0000,1105,0000,390006);
-%runhosp(1106_0000,1106_0000,1106,0000,390270);
-%runhosp(1103_0000,1103_0000,1103,0000,390004);
-%runhosp(1104_0000,1104_0000,1104,0000,390048);
-%runhosp(2594_0000,2594_0000,2594,0000,070035);
-%runhosp(1125_0000,1125_0000,1125,0000,070025);
-%runhosp(8031_0001,8031_0001,8031,0002,070024);
-%runhosp(8029_0001,8029_0001,8029,0002,070035);
-%runhosp(8028_0001,8028_0001,8028,0002,070025);
-%runhosp(8027_0001,8027_0001,8027,0002,070011);
-%runhosp(8030_0001,8030_0001,8030,0002,070017);
-%runhosp(8032_0001,8032_0001,8032,0002,070021);
-%runhosp(1507_0000,1507_0000,1507,0000,230047);
-%runhosp(1508_0000,1508_0000,1508,0000,230302);
-%runhosp(1510_0000,1510_0000,1510,0000,230146);
-%runhosp(1506_0000,1506_0000,1506,0000,230053);
-%runhosp(2449_0000,2449_0000,2449,0000,230092);
-%runhosp(1148_0000,1148_0000,1148,0000,310008);
-%runhosp(1167_0000,1167_0000,1167,0000,390173);
-%runhosp(5154_0000,5154_0000,5154,0000,330005);
-%runhosp(2589_0000,2589_0000,2589,0000,360132);
-%runhosp(1075_0000,1075_0000,1075,0000,360133);
-%runhosp(2048_0000,2048_0000,2048,0000,360079);
-%runhosp(5037_0000,5037_0000,5037,0000,360360);
-%runhosp(2049_0000,2049_0000,2049,0000,360239);
-%runhosp(5264_0000,5264_0000,5264,0000,100038);
-%runhosp(5263_0000,5263_0000,5263,0000,100281);
-%runhosp(2785_0000,2785_0000,2785,0000,330024);
-%runhosp(2788_0001,2788_0001,2788,0002,330198);
-%runhosp(2790_0001,2790_0001,2790,0002,330046);
-%runhosp(2302_0000,2302_0000,2302,0000,110074);
-%runhosp(1343_0000,1343_0000,1343,0000,232856880);
-%runhosp(2607_0000,2607_0000,2607,0000,223700669);
-%runhosp(2102_0000,2102_0000,2102,0000,050099);
-%runhosp(5282_0000,5282_0000,5282,0000,360155);
-%runhosp(2317_0000,2317_0000,2317,0000,390330);
-%runhosp(2374_0000,2374_0000,2374,0000,390326);
-%runhosp(1368_0000,1368_0000,1368,0000,390049);
-%runhosp(1958_0000,1958_0000,1958,0000,390183);
-%runhosp(5050_0000,5050_0000,5050,0000,390194);
-%runhosp(2376_0000,2376_0000,2376,0000,390035);
-%runhosp(2378_0000,2378_0000,2378,0000,390197);
-%runhosp(2379_0000,2379_0000,2379,0000,310060);
-%runhosp(1753_0000,1753_0000,1753,0000,450686);
-%runhosp(5397_0001,5397_0001,5397,0003,360359);
-%runhosp(5397_0001,5397_0001,5397,0002,360137);
-%runhosp(5397_0001,5397_0001,5397,0005,360145);
-%runhosp(5397_0001,5397_0001,5397,0006,360192);
-%runhosp(5397_0001,5397_0001,5397,0004,360041);
-%runhosp(5397_0001,5397_0001,5397,0008,360078);
-%runhosp(5397_0001,5397_0001,5397,0007,360075);
-%runhosp(5397_0001,5397_0001,5397,0009,360002);
-%runhosp(5397_0001,5397_0001,5397,0010,360123);
-%runhosp(1634_0000,1634_0000,1634,0000,310012);
-%runhosp(2451_0000,2451_0000,2451,0000,340173);
-%runhosp(2452_0000,2452_0000,2452,0000,340069);
-%runhosp(2966_0001,2966_0001,2966,0002,110115);
-%runhosp(2964_0001,2964_0001,2964,0002,110143);
-%runhosp(2965_0001,2965_0001,2965,0002,110035);
-%runhosp(2967_0001,2967_0001,2967,0002,110198);
-%runhosp(2968_0001,2968_0001,2968,0002,110042);
-%runhosp(2969_0001,2969_0001,2969,0002,110031);
-%runhosp(2971_0001,2971_0001,2971,0002,110016);
-%runhosp(2973_0001,2973_0001,2973,0002,273818647);
-%runhosp(5392_0001,5392_0001,5392,0004,110184);
-%runhosp(2468_0000,2468_0000,2468,0000,190111);
-%runhosp(5481_0001,5481_0001,5481,0003,202088165);
-
-
 %MEND TP;
 
-%TP(ybase3);
+%TP(ybase);
+%TP(y202002);
+*%TP(pp1Initial);
 
 data All_Target_Prices;
 	format BPID EPI_ID_MILLIMAN EPISODE_ID EPISODE_INITIATOR EPISODE_GROUP_NAME ANCHOR_TYPE ANCHOR_CODE ANCHOR_CCN
@@ -2221,50 +2201,107 @@ proc sql;
 	on a.BPID=b.BPID;
 quit;
 
-data All_Target_Prices_1 All_Target_Prices_pmr_exist All_Target_Prices_pmr_new
-		All_Target_Prices_pmr All_Target_Prices_ccb All_Target_Prices_ccf All_Target_Prices_ghs All_Target_Prices_hal
-		All_Target_Prices_hss All_Target_Prices_ics All_Target_Prices_musc All_Target_Prices_uspi All_Target_Prices_wsp ;
+data All_Target_Prices_1 All_Target_Prices_Premier All_Target_Prices_NonPremier All_Target_Prices_CCF All_Target_Prices_Dev;
 	set All_Target_Prices;
 
-	if BPID in (&MY3_lst.) then output All_Target_Prices_1;
+	if BPID in (&PMR_EI_lst.) or BPID in (&NON_PMR_EI_lst.) then output All_Target_Prices_1;
+	if BPID in (&DEV_EI_lst.) then output All_Target_Prices_Dev;
+	if BPID in (&PMR_EI_lst.) then output All_Target_Prices_Premier;
+	else if BPID in (&NON_PMR_EI_lst.) then output All_Target_Prices_NonPremier;
+	else if BPID in (&CCF_lst.) then output All_Target_Prices_CCF;
 
-	if BPID in (&PMR_3_Exist_EI_lst.) then output All_Target_Prices_pmr_exist;
-	else if BPID in (&PMR_3_New_EI_lst.) then output All_Target_Prices_pmr_new;
-
-	if BPID in (&PMR_3_EI_lst.) then output All_Target_Prices_pmr;
-	else if BPID in (&CCB_3_EI_lst.) then output All_Target_Prices_ccb;
-	else if BPID in (&CCF_3_EI_lst.) then output All_Target_Prices_ccf;
-	else if BPID in (&GHS_3_EI_lst.) then output All_Target_Prices_ghs;
-	else if BPID in (&HAL_3_EI_lst.) then output All_Target_Prices_hal;
-	else if BPID in (&HSS_3_EI_lst.) then output All_Target_Prices_hss;
-	else if BPID in (&ICS_3_EI_lst.) then output All_Target_Prices_ics;
-	else if BPID in (&MUSC_3_EI_lst.) then output All_Target_Prices_musc;
-	else if BPID in (&USPI_3_EI_lst.) then output All_Target_Prices_uspi;
-	else if BPID in (&WSP_3_EI_lst.) then output All_Target_Prices_wsp;
-	
 run;
 
-%MACRO EXPRT(name);
-	proc export
-		data=All_Target_Prices_&name.
-		outfile="R:\data\HIPAA\BPCIA_BPCI Advanced\08 - Target Price Data\Baseline Target Prices_&name..csv"
-		dbms=CSV 
-		replace;
+%MACRO EXPORT;
+%if &mode.=main %then %do;
+	/*
+	proc export data= All_Target_Prices
+	            outfile= "R:\data\HIPAA\BPCIA_BPCI Advanced\08 - Target Price Data\Target Prices.csv"
+	            dbms=csv replace; 
 	run;
-%MEND;
-%EXPRT(1);
-%EXPRT(pmr_exist);
-%EXPRT(pmr_new);
-%EXPRT(pmr);
-%EXPRT(ccb);
-%EXPRT(ccf);
-%EXPRT(ghs);
-%EXPRT(hal);
-%EXPRT(hss);
-%EXPRT(ics);
-%EXPRT(musc);
-%EXPRT(uspi);
-%EXPRT(wsp);
+	*/
+	proc export data= All_Target_Prices_1
+	            outfile= "R:\data\HIPAA\BPCIA_BPCI Advanced\08 - Target Price Data\Target Prices_1.csv"
+	            dbms=csv replace; 
+	run;
+	proc export data= All_Target_Prices_Premier
+	            outfile= "R:\data\HIPAA\BPCIA_BPCI Advanced\08 - Target Price Data\Target Prices_PMR.csv"
+	            dbms=csv replace; 
+	run;
+	proc export data= All_Target_Prices_NonPremier
+	            outfile= "R:\data\HIPAA\BPCIA_BPCI Advanced\08 - Target Price Data\Target Prices_oth.csv"
+	            dbms=csv replace; 
+	run;
+	proc export data= All_Target_Prices_Dev
+	            outfile= "R:\data\HIPAA\BPCIA_BPCI Advanced\08 - Target Price Data\Target Prices_Dev.csv"
+	            dbms=csv replace; 
+	run;
+
+	proc export data= All_Target_Prices_CCF
+	            outfile= "R:\data\HIPAA\BPCIA_BPCI Advanced\08 - Target Price Data\Target Prices_CCF.csv"
+	            dbms=csv replace; 
+	run;
+%end;
+%else %if &mode.=base %then %do;
+	/*
+	proc export data= All_Target_Prices
+	            outfile= "R:\data\HIPAA\BPCIA_BPCI Advanced\08 - Target Price Data\Baseline Target Prices.csv"
+	            dbms=csv replace; 
+	run;
+	*/
+	proc export data= All_Target_Prices_1
+	            outfile= "R:\data\HIPAA\BPCIA_BPCI Advanced\08 - Target Price Data\Baseline Target Prices_1.csv"
+	            dbms=csv replace; 
+	run;
+	proc export data= All_Target_Prices_Premier
+	            outfile= "R:\data\HIPAA\BPCIA_BPCI Advanced\08 - Target Price Data\Baseline Target Prices_PMR.csv"
+	            dbms=csv replace; 
+	run;
+	proc export data= All_Target_Prices_NonPremier
+	            outfile= "R:\data\HIPAA\BPCIA_BPCI Advanced\08 - Target Price Data\Baseline Target Prices_oth.csv"
+	            dbms=csv replace; 
+	run;
+	proc export data= All_Target_Prices_Dev
+	            outfile= "R:\data\HIPAA\BPCIA_BPCI Advanced\08 - Target Price Data\Target Prices_Dev.csv"
+	            dbms=csv replace; 
+	run;
+	proc export data= All_Target_Prices_CCF
+	            outfile= "R:\data\HIPAA\BPCIA_BPCI Advanced\08 - Target Price Data\Baseline Target Prices_CCF.csv"
+	            dbms=csv replace; 
+	run;
+%end;
+%else %if &mode.=recon %then %do;
+	/*
+	proc export data= All_Target_Prices
+	            outfile= "R:\data\HIPAA\BPCIA_BPCI Advanced\08 - Target Price Data\Recon Target Prices.csv"
+	            dbms=csv replace; 
+	run;
+	*/
+	proc export data= All_Target_Prices_1
+	            outfile= "R:\data\HIPAA\BPCIA_BPCI Advanced\08 - Target Price Data\Recon Target Prices_1.csv"
+	            dbms=csv replace; 
+	run;
+	proc export data= All_Target_Prices_Premier
+	            outfile= "R:\data\HIPAA\BPCIA_BPCI Advanced\08 - Target Price Data\Recon Target Prices_PMR.csv"
+	            dbms=csv replace; 
+	run;
+	proc export data= All_Target_Prices_NonPremier
+	            outfile= "R:\data\HIPAA\BPCIA_BPCI Advanced\08 - Target Price Data\Recon Target Prices_oth.csv"
+	            dbms=csv replace; 
+	run;
+	proc export data= All_Target_Prices_Dev
+	            outfile= "R:\data\HIPAA\BPCIA_BPCI Advanced\08 - Target Price Data\Target Prices_Dev.csv"
+	            dbms=csv replace; 
+	run;
+	proc export data= All_Target_Prices_CCF
+	            outfile= "R:\data\HIPAA\BPCIA_BPCI Advanced\08 - Target Price Data\Recon Target Prices_CCF.csv"
+	            dbms=csv replace; 
+	run;
+%end;
+%mend EXPORT;
+
+%EXPORT;
+
 
 
 proc printto;run;
