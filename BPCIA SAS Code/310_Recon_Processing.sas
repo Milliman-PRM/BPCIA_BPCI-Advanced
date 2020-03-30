@@ -51,11 +51,12 @@ libname cjrref "H:\Nonclient\Medicare Bundled Payment Reference\Program - CJR\SA
 %let exportDir = R:\data\HIPAA\BPCIA_BPCI Advanced\13 - Reconciliation Output\Recon - &label.;
 
 
-%macro ReconDashboard(id);
-
+%macro ReconDashboard(id,reconref);
+%if &reconref = 1 %then %do;
 data TP_Components;
 	set tp.TP_Components_all (rename=(EPI_COUNT=EPI_COUNT_Char));
-	format ccn_join $6.;
+	format ccn_join $6. epi_period_short $100.;
+	epi_period_short = "PP1";
 	ccn_join = ASSOC_ACH_CCN;
 	if ccn_join = '' then ccn_join = CCN_TIN;
 	if length(compress(ccn_join)) = 5 then ccn_join = '0' || ccn_join;
@@ -143,10 +144,39 @@ data recon_pre2;
 	if '01JAN2023'd le POST_DSCH_END_DT le '30JUN2023'd then epi_period_short = "PP9";
 	if '01JUL2023'd le POST_DSCH_END_DT le '31DEC2023'd then epi_period_short = "PP10";
 
+	format MEASURE_YEAR $10.;
+	MEASURE_YEAR = 'MY1 & MY2';
+
 	format DRG_APC $4.;
 	DRG_APC = ANCHOR_CODE;
 	if ANCHOR_TYPE_UPPER='OP' then DRG_APC = ANCHOR_APC;
 	if length(DRG_APC)=2 then DRG_APC = "0"||DRG_APC;
+run;
+
+data chk_&label._&id._V2;
+set out2.chk_&label._&id.;
+	format timeframe_filter epi_period_short $100.;
+	if '01OCT2018'd le POST_DSCH_END_DT le '30JUN2019'd then timeframe_filter = "Performance Period 1";
+	if '01JUL2019'd le POST_DSCH_END_DT le '31DEC2019'd then timeframe_filter = "Performance Period 2";
+	if '01JAN2020'd le POST_DSCH_END_DT le '30JUN2020'd then timeframe_filter = "Performance Period 3";
+	if '01JUL2020'd le POST_DSCH_END_DT le '31DEC2020'd then timeframe_filter = "Performance Period 4";
+	if '01JAN2021'd le POST_DSCH_END_DT le '30JUN2021'd then timeframe_filter = "Performance Period 5";
+	if '01JUL2021'd le POST_DSCH_END_DT le '31DEC2021'd then timeframe_filter = "Performance Period 6";
+	if '01JAN2022'd le POST_DSCH_END_DT le '30JUN2022'd then timeframe_filter = "Performance Period 7";
+	if '01JUL2022'd le POST_DSCH_END_DT le '31DEC2022'd then timeframe_filter = "Performance Period 8";
+	if '01JAN2023'd le POST_DSCH_END_DT le '30JUN2023'd then timeframe_filter = "Performance Period 9";
+	if '01JUL2023'd le POST_DSCH_END_DT le '31DEC2023'd then timeframe_filter = "Performance Period 10";
+
+	if '01OCT2018'd le POST_DSCH_END_DT le '30JUN2019'd then epi_period_short = "PP1";
+	if '01JUL2019'd le POST_DSCH_END_DT le '31DEC2019'd then epi_period_short = "PP2";
+	if '01JAN2020'd le POST_DSCH_END_DT le '30JUN2020'd then epi_period_short = "PP3";
+	if '01JUL2020'd le POST_DSCH_END_DT le '31DEC2020'd then epi_period_short = "PP4";
+	if '01JAN2021'd le POST_DSCH_END_DT le '30JUN2021'd then epi_period_short = "PP5";
+	if '01JUL2021'd le POST_DSCH_END_DT le '31DEC2021'd then epi_period_short = "PP6";
+	if '01JAN2022'd le POST_DSCH_END_DT le '30JUN2022'd then epi_period_short = "PP7";
+	if '01JUL2022'd le POST_DSCH_END_DT le '31DEC2022'd then epi_period_short = "PP8";
+	if '01JAN2023'd le POST_DSCH_END_DT le '30JUN2023'd then epi_period_short = "PP9";
+	if '01JUL2023'd le POST_DSCH_END_DT le '31DEC2023'd then epi_period_short = "PP10";
 run;
 
 proc sql;
@@ -154,9 +184,36 @@ proc sql;
 	select a.*
 		,b.total_allowed as Milliman_STD_ALLOWED
 		,(b.total_diff*(-1)) as CMS_MILLIMAN_STD_DIFF
-	from recon_pre2 as a left join out2.chk_&label._&id. as b
-	on a.EPI_ID_MILLIMAN = b.EPI_ID_MILLIMAN;
+	from recon_pre2 as a left join chk_&label._&id._V2 as b
+	on a.EPI_ID_MILLIMAN = b.EPI_ID_MILLIMAN
+	and a.epi_period_short = b.epi_period_short;
 quit;
+
+data tp_&label._&id._V2;
+set out2.tp_&label._&id.;
+	format timeframe_filter epi_period_short $100.;
+	if '01OCT2018'd le POST_DSCH_END_DT le '30JUN2019'd then timeframe_filter = "Performance Period 1";
+	if '01JUL2019'd le POST_DSCH_END_DT le '31DEC2019'd then timeframe_filter = "Performance Period 2";
+	if '01JAN2020'd le POST_DSCH_END_DT le '30JUN2020'd then timeframe_filter = "Performance Period 3";
+	if '01JUL2020'd le POST_DSCH_END_DT le '31DEC2020'd then timeframe_filter = "Performance Period 4";
+	if '01JAN2021'd le POST_DSCH_END_DT le '30JUN2021'd then timeframe_filter = "Performance Period 5";
+	if '01JUL2021'd le POST_DSCH_END_DT le '31DEC2021'd then timeframe_filter = "Performance Period 6";
+	if '01JAN2022'd le POST_DSCH_END_DT le '30JUN2022'd then timeframe_filter = "Performance Period 7";
+	if '01JUL2022'd le POST_DSCH_END_DT le '31DEC2022'd then timeframe_filter = "Performance Period 8";
+	if '01JAN2023'd le POST_DSCH_END_DT le '30JUN2023'd then timeframe_filter = "Performance Period 9";
+	if '01JUL2023'd le POST_DSCH_END_DT le '31DEC2023'd then timeframe_filter = "Performance Period 10";
+
+	if '01OCT2018'd le POST_DSCH_END_DT le '30JUN2019'd then epi_period_short = "PP1";
+	if '01JUL2019'd le POST_DSCH_END_DT le '31DEC2019'd then epi_period_short = "PP2";
+	if '01JAN2020'd le POST_DSCH_END_DT le '30JUN2020'd then epi_period_short = "PP3";
+	if '01JUL2020'd le POST_DSCH_END_DT le '31DEC2020'd then epi_period_short = "PP4";
+	if '01JAN2021'd le POST_DSCH_END_DT le '30JUN2021'd then epi_period_short = "PP5";
+	if '01JUL2021'd le POST_DSCH_END_DT le '31DEC2021'd then epi_period_short = "PP6";
+	if '01JAN2022'd le POST_DSCH_END_DT le '30JUN2022'd then epi_period_short = "PP7";
+	if '01JUL2022'd le POST_DSCH_END_DT le '31DEC2022'd then epi_period_short = "PP8";
+	if '01JAN2023'd le POST_DSCH_END_DT le '30JUN2023'd then epi_period_short = "PP9";
+	if '01JUL2023'd le POST_DSCH_END_DT le '31DEC2023'd then epi_period_short = "PP10";
+run;
 
 proc sql;
 	create table recon_pre4 as
@@ -164,8 +221,9 @@ proc sql;
 		,b.TP_Adj as Milliman_Target_Price
 		,b.Adjusted_TP_Real as Milliman_Target_Price_Real
 		,b.EPI_STD_PMT_FCTR_WIN_1_99_Real as CMS_STD_ALLOWED_Real
-	from recon_pre3 as a left join out2.tp_&label._&id. as b
-	on a.EPI_ID_MILLIMAN = b.EPI_ID_MILLIMAN;
+	from recon_pre3 as a left join tp_&label._&id._V2 as b
+	on a.EPI_ID_MILLIMAN = b.EPI_ID_MILLIMAN
+	and a.epi_period_short = b.epi_period_short;
 quit;
 
 proc sql;
@@ -179,7 +237,8 @@ proc sql;
 			and a.EPISODE_GROUP_NAME = b.EPI_CAT
 			and a.anchor_type_upper = b.EPI_TYPE
 			and a.ANCHOR_CCN = b.ccn_join
-			and b.epi_start <= a.ANCHOR_END_DT <= b.epi_end;
+			and b.epi_start <= a.ANCHOR_END_DT <= b.epi_end
+			and a.epi_period_short = b.epi_period_short;
 quit;
 	
 data Recon_cost_&id._0 (drop = prfnpi);
@@ -194,17 +253,41 @@ data Recon_cost_&id._1;
 		;
 	if a then npi = prfnpi;
 	else npi = npi_a;
+format timeframe_filter epi_period_short $100.;
+	if '01OCT2018'd le POST_DSCH_END_DT le '30JUN2019'd then timeframe_filter = "Performance Period 1";
+	if '01JUL2019'd le POST_DSCH_END_DT le '31DEC2019'd then timeframe_filter = "Performance Period 2";
+	if '01JAN2020'd le POST_DSCH_END_DT le '30JUN2020'd then timeframe_filter = "Performance Period 3";
+	if '01JUL2020'd le POST_DSCH_END_DT le '31DEC2020'd then timeframe_filter = "Performance Period 4";
+	if '01JAN2021'd le POST_DSCH_END_DT le '30JUN2021'd then timeframe_filter = "Performance Period 5";
+	if '01JUL2021'd le POST_DSCH_END_DT le '31DEC2021'd then timeframe_filter = "Performance Period 6";
+	if '01JAN2022'd le POST_DSCH_END_DT le '30JUN2022'd then timeframe_filter = "Performance Period 7";
+	if '01JUL2022'd le POST_DSCH_END_DT le '31DEC2022'd then timeframe_filter = "Performance Period 8";
+	if '01JAN2023'd le POST_DSCH_END_DT le '30JUN2023'd then timeframe_filter = "Performance Period 9";
+	if '01JUL2023'd le POST_DSCH_END_DT le '31DEC2023'd then timeframe_filter = "Performance Period 10";
+
+	if '01OCT2018'd le POST_DSCH_END_DT le '30JUN2019'd then epi_period_short = "PP1";
+	if '01JUL2019'd le POST_DSCH_END_DT le '31DEC2019'd then epi_period_short = "PP2";
+	if '01JAN2020'd le POST_DSCH_END_DT le '30JUN2020'd then epi_period_short = "PP3";
+	if '01JUL2020'd le POST_DSCH_END_DT le '31DEC2020'd then epi_period_short = "PP4";
+	if '01JAN2021'd le POST_DSCH_END_DT le '30JUN2021'd then epi_period_short = "PP5";
+	if '01JUL2021'd le POST_DSCH_END_DT le '31DEC2021'd then epi_period_short = "PP6";
+	if '01JAN2022'd le POST_DSCH_END_DT le '30JUN2022'd then epi_period_short = "PP7";
+	if '01JUL2022'd le POST_DSCH_END_DT le '31DEC2022'd then epi_period_short = "PP8";
+	if '01JAN2023'd le POST_DSCH_END_DT le '30JUN2023'd then epi_period_short = "PP9";
+	if '01JUL2023'd le POST_DSCH_END_DT le '31DEC2023'd then epi_period_short = "PP10";
 run;
 
 proc sql;
 	create table Recon_cost_recon_&id. as
 	select	distinct
 			npi
+		, epi_period_short
 		,	EPI_ID_MILLIMAN
 		,	sum(allowed) as provider_sum 
 	from	Recon_cost_&id._1
 	group by
 			npi
+		, epi_period_short
 		,	EPI_ID_MILLIMAN
 ;
 quit;
@@ -222,6 +305,7 @@ proc sql;
 			on	a.EPI_ID_MILLIMAN=b.EPI_ID_MILLIMAN
 				and
 				a.ANCHOR_OP_NPI=b.npi
+				and a.epi_period_short = b.epi_period_short
 ;
 quit;
 
@@ -238,6 +322,7 @@ proc sql;
 			on	a.EPI_ID_MILLIMAN=b.EPI_ID_MILLIMAN
 				and
 				a.ANCHOR_AT_NPI=b.npi
+				and a.epi_period_short = b.epi_period_short
 ;
 quit;
 
@@ -282,7 +367,30 @@ data recon_pre8;
 run;
 
 data perf_epis;
-	set out.epi_&Perf_label._&id. (keep=EPI_ID_MILLIMAN);
+	set out.epi_&Perf_label._&id. (keep=EPI_ID_MILLIMAN POST_DSCH_END_DT);
+
+	format timeframe_filter epi_period_short $100.;
+	if '01OCT2018'd le POST_DSCH_END_DT le '30JUN2019'd then timeframe_filter = "Performance Period 1";
+	if '01JUL2019'd le POST_DSCH_END_DT le '31DEC2019'd then timeframe_filter = "Performance Period 2";
+	if '01JAN2020'd le POST_DSCH_END_DT le '30JUN2020'd then timeframe_filter = "Performance Period 3";
+	if '01JUL2020'd le POST_DSCH_END_DT le '31DEC2020'd then timeframe_filter = "Performance Period 4";
+	if '01JAN2021'd le POST_DSCH_END_DT le '30JUN2021'd then timeframe_filter = "Performance Period 5";
+	if '01JUL2021'd le POST_DSCH_END_DT le '31DEC2021'd then timeframe_filter = "Performance Period 6";
+	if '01JAN2022'd le POST_DSCH_END_DT le '30JUN2022'd then timeframe_filter = "Performance Period 7";
+	if '01JUL2022'd le POST_DSCH_END_DT le '31DEC2022'd then timeframe_filter = "Performance Period 8";
+	if '01JAN2023'd le POST_DSCH_END_DT le '30JUN2023'd then timeframe_filter = "Performance Period 9";
+	if '01JUL2023'd le POST_DSCH_END_DT le '31DEC2023'd then timeframe_filter = "Performance Period 10";
+
+	if '01OCT2018'd le POST_DSCH_END_DT le '30JUN2019'd then epi_period_short = "PP1";
+	if '01JUL2019'd le POST_DSCH_END_DT le '31DEC2019'd then epi_period_short = "PP2";
+	if '01JAN2020'd le POST_DSCH_END_DT le '30JUN2020'd then epi_period_short = "PP3";
+	if '01JUL2020'd le POST_DSCH_END_DT le '31DEC2020'd then epi_period_short = "PP4";
+	if '01JAN2021'd le POST_DSCH_END_DT le '30JUN2021'd then epi_period_short = "PP5";
+	if '01JUL2021'd le POST_DSCH_END_DT le '31DEC2021'd then epi_period_short = "PP6";
+	if '01JAN2022'd le POST_DSCH_END_DT le '30JUN2022'd then epi_period_short = "PP7";
+	if '01JUL2022'd le POST_DSCH_END_DT le '31DEC2022'd then epi_period_short = "PP8";
+	if '01JAN2023'd le POST_DSCH_END_DT le '30JUN2023'd then epi_period_short = "PP9";
+	if '01JUL2023'd le POST_DSCH_END_DT le '31DEC2023'd then epi_period_short = "PP10";
 	Perf_Epi='Yes';
 run;
 
@@ -290,20 +398,21 @@ proc sql;
 	create table recon_pre9 as
 	select a.*, coalesce(b.Perf_Epi,'No') as Epi_Perf_Data
 	from recon_pre8 as a left join perf_epis as b
-	on a.EPI_ID_MILLIMAN = b.EPI_ID_MILLIMAN;
+	on a.EPI_ID_MILLIMAN = b.EPI_ID_MILLIMAN
+	and a.epi_period_short = b.epi_period_short;
 quit;
 
 proc sql;
 	create table ccn_cms_epis as
-	select INITIATOR_BPID, EPI_CAT, EPI_TYPE, ccn_join, sum(EPI_COUNT) as CCN_CMS_EPI_COUNT
+	select epi_period_short, INITIATOR_BPID, EPI_CAT, EPI_TYPE, ccn_join, sum(EPI_COUNT) as CCN_CMS_EPI_COUNT
 	from TP_Components
-	where time_period not in ('Baseline','10/01/2019 - 12/31/2019')
-	group by INITIATOR_BPID, EPI_CAT, EPI_TYPE, ccn_join;
+	where time_period not in ('Baseline - MY 1&2','10/01/2019 - 12/31/2019')
+	group by epi_period_short, INITIATOR_BPID, EPI_CAT, EPI_TYPE, ccn_join;
 quit;
 
 proc sql;
 	create table recon_CCN_pre as
-	select BPID, ANCHOR_CCN, anchor_type_upper, EPISODE_GROUP_NAME,
+	select epi_period_short, BPID, ANCHOR_CCN, anchor_type_upper, EPISODE_GROUP_NAME,
 		count(distinct EPI_ID_MILLIMAN) as CCN_Milliman_EPI_Count,
 		sum(CMS_STD_ALLOWED_Real) as CCN_CMS_ALLOWED_REAL,
 		sum(Milliman_STD_ALLOWED_Real) as CCN_Milliman_ALLOWED_REAL,
@@ -317,7 +426,7 @@ proc sql;
 		avg(Prelim_PCMA) as CCN_AVG_Prelim_PCMA,
 		avg(Final_PCMA) as CCN_AVG_Final_PCMA
 	from recon_pre9
-	group by BPID, ANCHOR_CCN, anchor_type_upper, EPISODE_GROUP_NAME;
+	group by epi_period_short, BPID, ANCHOR_CCN, anchor_type_upper, EPISODE_GROUP_NAME;
 quit;
 
 proc sql;
@@ -327,7 +436,8 @@ proc sql;
 	on a.BPID = b.INITIATOR_BPID
 		and a.EPISODE_GROUP_NAME = b.EPI_CAT
 		and a.anchor_type_upper = b.EPI_TYPE
-		and a.ANCHOR_CCN = b.ccn_join;
+		and a.ANCHOR_CCN = b.ccn_join
+		and a.epi_period_short = B.epi_period_short;
 quit;
 
 proc sql;
@@ -337,20 +447,21 @@ proc sql;
 	on a.BPID=b.BPID
 		and a.ANCHOR_CCN=b.ANCHOR_CCN
 		and a.anchor_type_upper=b.anchor_type_upper
-		and a.EPISODE_GROUP_NAME=b.EPISODE_GROUP_NAME;
+		and a.EPISODE_GROUP_NAME=b.EPISODE_GROUP_NAME
+				and a.epi_period_short = B.epi_period_short;
 quit;
 
 proc sql;
 	create table clin_cms_epis as
-	select INITIATOR_BPID, EPI_CAT, EPI_TYPE, sum(EPI_COUNT) as CLIN_CMS_EPI_COUNT
+	select epi_period_short, INITIATOR_BPID, EPI_CAT, EPI_TYPE, sum(EPI_COUNT) as CLIN_CMS_EPI_COUNT
 	from TP_Components
-	where time_period not in ('Baseline','10/01/2019 - 12/31/2019')
-	group by INITIATOR_BPID, EPI_CAT, EPI_TYPE;
+	where time_period not in ('Baseline - MY 1&2','10/01/2019 - 12/31/2019')
+	group by epi_period_short, INITIATOR_BPID, EPI_CAT, EPI_TYPE;
 quit;
 
 proc sql;
 	create table recon_clin_pre as
-	select BPID, anchor_type_upper, EPISODE_GROUP_NAME,
+	select epi_period_short, BPID, anchor_type_upper, EPISODE_GROUP_NAME,
 		count(distinct EPI_ID_MILLIMAN) as CLIN_Milliman_EPI_Count,
 		sum(CMS_STD_ALLOWED_Real) as CLIN_CMS_ALLOWED_REAL,
 		sum(Milliman_STD_ALLOWED_Real) as CLIN_Milliman_ALLOWED_REAL,
@@ -364,7 +475,7 @@ proc sql;
 		avg(Prelim_PCMA) as CLIN_AVG_Prelim_PCMA,
 		avg(Final_PCMA) as CLIN_AVG_Final_PCMA
 	from recon_pre9
-	group by BPID, anchor_type_upper, EPISODE_GROUP_NAME;
+	group by epi_period_short, BPID, anchor_type_upper, EPISODE_GROUP_NAME;
 quit;
 
 proc sql;
@@ -373,7 +484,8 @@ proc sql;
 	from recon_clin_pre as a left join clin_cms_epis as b
 	on a.BPID = b.INITIATOR_BPID
 		and a.EPISODE_GROUP_NAME = b.EPI_CAT
-		and a.anchor_type_upper = b.EPI_TYPE;
+		and a.anchor_type_upper = b.EPI_TYPE
+		and a.epi_period_short = B.epi_period_short;
 quit;
 
 proc sql;
@@ -382,15 +494,16 @@ proc sql;
 	from recon_pre10 as a left join recon_clin as b
 	on a.BPID=b.BPID
 		and a.anchor_type_upper=b.anchor_type_upper
-		and a.EPISODE_GROUP_NAME=b.EPISODE_GROUP_NAME;
+		and a.EPISODE_GROUP_NAME=b.EPISODE_GROUP_NAME
+		and a.epi_period_short = B.epi_period_short;
 quit;
 
 proc sql;
 	create table cms_all_epis_pre as
-	select INITIATOR_BPID, 'All Episodes' as EPI_CAT, sum(EPI_COUNT) as ALLEPI_CMS_EPI_COUNT
+	select epi_period_short, INITIATOR_BPID, 'All Episodes' as EPI_CAT, sum(EPI_COUNT) as ALLEPI_CMS_EPI_COUNT
 	from TP_Components
-	where time_period not in ('Baseline','10/01/2019 - 12/31/2019')
-	group by INITIATOR_BPID;
+	where time_period not in ('Baseline - MY 1&2','10/01/2019 - 12/31/2019')
+	group by epi_period_short, INITIATOR_BPID;
 quit;
 /*
 data cms_all_epis;
@@ -403,7 +516,8 @@ proc sql;
 	create table recon_pre11 as
 	select a.*, b.ALLEPI_CMS_EPI_COUNT
 	from recon_pre11_pre as a left join cms_all_epis_pre as b
-	on a.BPID = b.INITIATOR_BPID;
+	on a.BPID = b.INITIATOR_BPID
+	and a.epi_period_short = b.epi_period_short;
 quit;
 /*
 proc sql;
@@ -443,7 +557,7 @@ quit;
 
 proc sql;
 	create table recon_bpid_pre as
-	select BPID,
+	select epi_period_short, BPID,
 		sum(Milliman_STD_ALLOWED_Real) as BPID_Milliman_ALLOWED_REAL,
 		sum(Milliman_TARGET_PRICE_REAL) as BPID_Milliman_TP_REAL,
 		sum(CMS_STD_ALLOWED_Real) as BPID_CMS_ALLOWED_REAL,
@@ -459,14 +573,15 @@ proc sql;
 		max(case when SRS_Reduction_Agreement_Signed='Y' then 1 else 0 end) as SRS_Reduction_Signed_num,
 		avg(Potential_Reduction_Amount) as CMS_Potential_Reduction_Amt
 	from recon_pre12
-	group by BPID;
+	group by epi_period_short, BPID;
 quit;
 
 proc sql;
 	create table recon_bpid as
 	select a.*, b.*
 	from recon_pre12 as a left join recon_bpid_pre as b
-	on a.BPID=b.BPID;
+	on a.BPID=b.BPID
+	and a.epi_period_short = b.epi_period_short;
 quit;
 
 proc sql;
@@ -529,6 +644,7 @@ quit;
 proc sql;
 create table recon_pre16b as
 	select a.*
+			,(Case when stop_loss_stop_gain = 'Y' Then 'Yes' Else 'No' END) AS stop_loss_stop_gain_v2
 		  ,case when b.mdc  = "" then "Not Available"
 		  		else strip(c.mdc_short_name )||"-"||strip(b.mr_line_desc)
 				end as MDC_Description
@@ -542,7 +658,7 @@ quit;
 
 data recon_pre20;
 	set recon_pre16b;
-
+	drop stop_loss_stop_gain;
 	Milliman_Adjusted_Recon_Amount = Milliman_Recon_Amount ;
 	if Milliman_Recon_Amount > 0 then Milliman_Adjusted_Recon_Amount = Milliman_Recon_Amount*.9 ;
 	DIFF_Adjusted_Recon_Amount = Milliman_Adjusted_Recon_Amount - CMS_Adjusted_Recon_Amount ;
@@ -587,15 +703,16 @@ data recon_pre20;
 		else Episode_Initiator_Use=strip(EI_facility_name)||" ("||strip(BPID)||")";
 	drop Episode_Initiator;
 
-	format join_variable_recon $32.;
-		join_variable_recon = strip(EPI_ID_Milliman);
+	format join_variable_recon $132.;
+		join_variable_recon = strip(Measure_year)||"_"||strip(EPI_ID_Milliman);
 run;
 
 data recon;
 	set recon_pre20;
+	drop stop_loss_stop_gain_V2;
 	if abs(Adj_Total_Recon_Amount) >= _20pct_Total_Perf_Target_Amount then Multiplier = _20pct_Total_Perf_Target_Amount / abs(Adj_Total_Recon_Amount);
 	else Multiplier = 1;
-
+	stop_loss_stop_gain = stop_loss_stop_gain_V2;
 	if CMS_Recon_Amount > 0 then Adjust_Recon = CLIN_CMS_NPRA*.9;
 	else Adjust_Recon = CLIN_CMS_NPRA;
 
@@ -633,16 +750,24 @@ data out.Recon_&label._&id.;
 		Milliman_CMS_Cost_Match='-';
 	end;
 run;
-
+%end;
 data Epi_Join_&label._&id.;
-	format join_variable_recon $32. PERFORMANCE_PERIOD $3.;
-	set out.Recon_&label._&id. (in=b)
-		out.epi_detail_&Perf_label._&id. (in=a)
-		out.epi_detail_ybase_&id. (in=c)
+	format join_variable_recon $132. PERFORMANCE_PERIOD $3.;
+	set %if &reconref. = 1 %then %do; 
+			out.Recon_&label._&id. (in=b)
+			out.epi_detail_&Perf_label._&id. (in=a)
+			out.epi_detail_ybase_&id. (in=c)
+		%end;
+		%else %if &reconref. = 0 %then %do; 
+			out.epi_detail_&Perf_label._&id. (in=a)
+			out.epi_detail_ybase_&id. (in=c)
+		%end;
 		;
 
 	recon_episode=0;
-	if b then recon_episode=1;
+	%if &reconref. = 1 %then %do; 
+		if b then recon_episode=1;
+	%end;
 
 	perf_episode=0;
 	if a or c then do;
@@ -651,7 +776,7 @@ data Epi_Join_&label._&id.;
 
 		perf_episode=1;
 
-		join_variable_recon = strip(EPI_ID_Milliman);
+		join_variable_recon = strip(Measure_year)||"_"||strip(EPI_ID_Milliman);
 	end;
 
 	if timeframe_filter  = "Performance Period 1" then epi_period_short = "PP1";
@@ -668,16 +793,16 @@ data Epi_Join_&label._&id.;
 	*/
 	else epi_period_short = "";
 
-	keep EPI_ID_Milliman BPID Anchor_Fac_Code_Name ANCHOR_CODE operating_name attending_name client_type Episode_Initiator_Use clinical_episode_abbr timeframe_filter epi_period_short PERFORMANCE_PERIOD 
+	keep measure_year EPI_ID_Milliman BPID Anchor_Fac_Code_Name ANCHOR_CODE operating_name attending_name client_type Episode_Initiator_Use clinical_episode_abbr timeframe_filter epi_period_short PERFORMANCE_PERIOD 
 			join_variable_recon recon_episode perf_episode 
 			EI_system_name BPID_ClinicalEp MDC_Description death_flag Episode_End_YearMo PATIENT_NAME Bene_SK;
 run;
 
 proc sql;
 	create table recon_epi_check as
-	select EPI_ID_Milliman, max(recon_episode) as recon_episode, max(perf_episode) as perf_episode 
+	select MEASURE_YEAR, EPI_ID_Milliman, max(recon_episode) as recon_episode, max(perf_episode) as perf_episode 
 	from Epi_Join_&label._&id.
-	group by epi_id_milliman;
+	group by MEASURE_YEAR, epi_id_milliman;
 quit;
 
 data recon_epi_check2;
@@ -692,11 +817,12 @@ proc sql;
 	create table out.Epi_Join_&label._&id. as
 	select b.*, a.*
 	from Epi_Join_&label._&id. as a left join recon_epi_check2 as b
-	on a.epi_id_milliman=b.epi_id_milliman;
+	on a.epi_id_milliman=b.epi_id_milliman
+	and a.MEASURE_YEAR = b.MEASURE_YEAR;
 quit;
 	
 proc sort nodupkey data=out.Epi_Join_&label._&id.; 
-	by EPI_ID_Milliman;
+	by MEASURE_YEAR EPI_ID_Milliman;
 run;
 
 ****************************************************************;
@@ -708,102 +834,161 @@ quit;
 
 %mend ReconDashboard;
 
+*%ReconDashboard(1167_0000,1);
 /*
-%ReconDashboard(1148,0000);
-%ReconDashboard(1167,0000);
-%ReconDashboard(1343,0000);
-%ReconDashboard(1368,0000);
-%ReconDashboard(2379,0000);
-%ReconDashboard(2587,0000);
-%ReconDashboard(2607,0000);
-%ReconDashboard(5479,0002);
+%ReconDashboard(1148,0000,1);
+%ReconDashboard(1167,0000,1);
+%ReconDashboard(1343,0000,1);
+%ReconDashboard(1368,0000,1);
+%ReconDashboard(2379,0000,1);
+%ReconDashboard(2587,0000,1);
+%ReconDashboard(2607,0000,1);
+%ReconDashboard(5479,0002,1);
 */
-*%ReconDashboard(1125_0000);
-%ReconDashboard(1148_0000);
-%ReconDashboard(1167_0000);
-%ReconDashboard(1209_0000);
-%ReconDashboard(1343_0000);
-%ReconDashboard(1368_0000);
-%ReconDashboard(1374_0004);
-%ReconDashboard(1374_0008);
-%ReconDashboard(1374_0009);
-%ReconDashboard(1686_0002);
-%ReconDashboard(1688_0002);
-%ReconDashboard(1696_0002);
-%ReconDashboard(1710_0002);
-%ReconDashboard(1958_0000);
-%ReconDashboard(2070_0000);
-%ReconDashboard(2374_0000);
-%ReconDashboard(2376_0000);
-%ReconDashboard(2378_0000);
-%ReconDashboard(2379_0000);
-%ReconDashboard(1075_0000);
-%ReconDashboard(2594_0000);
-%ReconDashboard(2048_0000);
-%ReconDashboard(2049_0000);
-%ReconDashboard(2607_0000);
-%ReconDashboard(5038_0000);
-%ReconDashboard(5050_0000);
-%ReconDashboard(2587_0000);
-%ReconDashboard(2589_0000);
-%ReconDashboard(5154_0000);
-%ReconDashboard(5282_0000);
-%ReconDashboard(5037_0000);
-%ReconDashboard(5478_0002);
-%ReconDashboard(5043_0000);
-%ReconDashboard(5479_0002);
-%ReconDashboard(5480_0002);
-%ReconDashboard(5215_0003);
-%ReconDashboard(5215_0002);
-%ReconDashboard(5229_0000);
-%ReconDashboard(5263_0000);
-%ReconDashboard(5264_0000);
-%ReconDashboard(5481_0002);
-%ReconDashboard(5394_0000);
-%ReconDashboard(5395_0000);
-%ReconDashboard(5397_0002);
-%ReconDashboard(5397_0005);
-%ReconDashboard(5397_0004);
-%ReconDashboard(5397_0008);
-%ReconDashboard(5397_0003);
-%ReconDashboard(5397_0006);
-%ReconDashboard(5397_0009);
-%ReconDashboard(5397_0010);
-%ReconDashboard(5916_0002);
-%ReconDashboard(6049_0002);
-%ReconDashboard(6050_0002);
-%ReconDashboard(6051_0002);
-%ReconDashboard(6052_0002);
-%ReconDashboard(6053_0002);
-%ReconDashboard(5397_0007);
-%ReconDashboard(1102_0000);
-%ReconDashboard(1105_0000);
-%ReconDashboard(1106_0000);
-%ReconDashboard(1103_0000);
-%ReconDashboard(1104_0000);
-%ReconDashboard(5392_0004);
-%ReconDashboard(6054_0002);
-%ReconDashboard(6055_0002);
-%ReconDashboard(6056_0002);
-%ReconDashboard(6057_0002);
-%ReconDashboard(6058_0002);
-%ReconDashboard(6059_0002);
-%ReconDashboard(5746_0002);
-%ReconDashboard(1191_0002);
-%ReconDashboard(2302_0000);
-*/
-data out.All_Recon_&label. out.All_Recon_pmr_&label. out.All_Recon_oth_&label.;
+
+%ReconDashboard(2586_0002,0);
+%ReconDashboard(2586_0005,0);
+%ReconDashboard(2586_0006,0);
+%ReconDashboard(2586_0007,0);
+%ReconDashboard(2586_0010,0);
+%ReconDashboard(2586_0013,0);
+%ReconDashboard(2586_0025,0);
+%ReconDashboard(2586_0026,0);
+%ReconDashboard(2586_0028,0);
+%ReconDashboard(2586_0029,0);
+%ReconDashboard(2586_0030,0);
+%ReconDashboard(2586_0031,0);
+%ReconDashboard(2586_0032,0);
+%ReconDashboard(2586_0033,0);
+%ReconDashboard(2586_0034,0);
+%ReconDashboard(2586_0035,0);
+*%ReconDashboard(2586_0036,0);
+*%ReconDashboard(2586_0038,0);
+%ReconDashboard(2586_0039,0);
+*%ReconDashboard(2586_0040,0);
+*%ReconDashboard(2586_0041,0);
+*%ReconDashboard(2586_0042,0);
+*%ReconDashboard(2586_0043,0);
+%ReconDashboard(2586_0044,0);
+%ReconDashboard(2586_0045,0);
+%ReconDashboard(2586_0046,0);
+%ReconDashboard(1374_0004,1);
+%ReconDashboard(1374_0008,1);
+%ReconDashboard(1374_0009,1);
+%ReconDashboard(1374_0012,0);
+%ReconDashboard(1374_0013,0);
+%ReconDashboard(1374_0014,0);
+%ReconDashboard(1374_0015,0);
+%ReconDashboard(1374_0017,0);
+%ReconDashboard(1374_0018,0);
+%ReconDashboard(1191_0002,1);
+%ReconDashboard(7310_0002,0);
+%ReconDashboard(7310_0003,0);
+%ReconDashboard(7310_0004,0);
+%ReconDashboard(7310_0005,0);
+%ReconDashboard(7310_0006,0);
+%ReconDashboard(7310_0007,0);
+%ReconDashboard(7312_0002,0);
+%ReconDashboard(6054_0002,1);
+%ReconDashboard(6055_0002,1);
+%ReconDashboard(6056_0002,1);
+%ReconDashboard(6057_0002,1);
+%ReconDashboard(6058_0002,1);
+%ReconDashboard(6059_0002,1);
+%ReconDashboard(1209_0000,1);
+%ReconDashboard(1028_0000,0);
+%ReconDashboard(1075_0000,1);
+%ReconDashboard(1102_0000,1);
+%ReconDashboard(1103_0000,1);
+%ReconDashboard(1104_0000,1);
+%ReconDashboard(1105_0000,1);
+%ReconDashboard(1106_0000,1);
+%ReconDashboard(1148_0000,1);
+%ReconDashboard(1167_0000,1);
+%ReconDashboard(1343_0000,1);
+%ReconDashboard(1368_0000,1);
+%ReconDashboard(1461_0000,0);
+%ReconDashboard(1634_0000,1);
+*%ReconDashboard(1803_0000,0);
+%ReconDashboard(1958_0000,1);
+%ReconDashboard(2048_0000,1);
+%ReconDashboard(2049_0000,1);
+%ReconDashboard(2070_0000,1);
+%ReconDashboard(2214_0000,0);
+%ReconDashboard(2215_0000,0);
+%ReconDashboard(2216_0000,0);
+%ReconDashboard(2302_0000,1);
+%ReconDashboard(2317_0000,0);
+%ReconDashboard(2374_0000,1);
+%ReconDashboard(2376_0000,1);
+%ReconDashboard(2378_0000,1);
+%ReconDashboard(2379_0000,1);
+%ReconDashboard(2451_0000,0);
+%ReconDashboard(2452_0000,0);
+%ReconDashboard(2461_0000,0);
+%ReconDashboard(2468_0000,0);
+%ReconDashboard(2587_0000,1);
+%ReconDashboard(2589_0000,1);
+%ReconDashboard(2594_0000,1);
+%ReconDashboard(2607_0000,1);
+%ReconDashboard(5037_0000,1);
+%ReconDashboard(5038_0000,1);
+%ReconDashboard(5043_0000,1);
+%ReconDashboard(5050_0000,1);
+%ReconDashboard(5154_0000,1);
+%ReconDashboard(5215_0002,1);
+%ReconDashboard(5215_0003,1);
+%ReconDashboard(5229_0000,1);
+%ReconDashboard(5263_0000,1);
+%ReconDashboard(5264_0000,1);
+%ReconDashboard(5282_0000,1);
+%ReconDashboard(5392_0004,1);
+%ReconDashboard(5394_0000,1);
+%ReconDashboard(5395_0000,1);
+%ReconDashboard(5397_0002,1);
+%ReconDashboard(5397_0003,1);
+%ReconDashboard(5397_0004,1);
+%ReconDashboard(5397_0005,1);
+%ReconDashboard(5397_0006,1);
+%ReconDashboard(5397_0007,1);
+%ReconDashboard(5397_0008,1);
+%ReconDashboard(5397_0009,1);
+%ReconDashboard(5397_0010,1);
+%ReconDashboard(5478_0002,1);
+%ReconDashboard(5479_0002,1);
+%ReconDashboard(5480_0002,1);
+%ReconDashboard(5481_0002,1);
+%ReconDashboard(5746_0002,1);
+%ReconDashboard(1686_0002,1);
+%ReconDashboard(1688_0002,1);
+%ReconDashboard(1696_0002,1);
+%ReconDashboard(1710_0002,1);
+%ReconDashboard(2941_0002,0);
+%ReconDashboard(2956_0002,0);
+%ReconDashboard(6049_0002,1);
+%ReconDashboard(6050_0002,1);
+%ReconDashboard(6051_0002,1);
+%ReconDashboard(6052_0002,1);
+%ReconDashboard(6053_0002,1);
+%ReconDashboard(2974_0003,0);
+%ReconDashboard(2974_0007,0);
+
+
+
+data out.All_Recon_&label. out.All_Recon_pmr_&label. out.All_Recon_oth_&label. out.All_Recon_ccf_&label.;
 	set out.Recon_&label._: ;
 	output out.All_Recon_&label.;
 	if BPID in (&PMR_EI_lst.) then output out.All_Recon_pmr_&label.;
 	else if BPID in (&NON_PMR_EI_lst.) then output out.All_Recon_oth_&label.;
+	else if BPID in (&CCF_lst.) then output out.All_Recon_ccf_&label.;
 run;
 
-data out.All_Epi_Join_&label. out.All_Epi_Join_pmr_&label. out.All_Epi_Join_oth_&label.;
+data out.All_Epi_Join_&label. out.All_Epi_Join_pmr_&label. out.All_Epi_Join_oth_&label. out.All_Epi_Join_ccf_&label.;
 	set out.Epi_Join_&label._: ;
 	output out.All_Epi_Join_&label.;
 	if BPID in (&PMR_EI_lst.) then output out.All_Epi_Join_pmr_&label.;
 	else if BPID in (&NON_PMR_EI_lst.) then output out.All_Epi_Join_oth_&label.;
+	else if BPID in (&CCF_lst.) then output out.All_Epi_Join_ccf_&label.;
 run;
 
 %sas_2_csv(out.All_Recon_&label.,Recon.csv);
@@ -812,8 +997,10 @@ run;
 %sas_2_csv(out.All_Epi_Join_pmr_&label.,Epi_Detail_Recon_Join_pmr.csv);
 %sas_2_csv(out.All_Recon_oth_&label.,Recon_oth.csv);
 %sas_2_csv(out.All_Epi_Join_oth_&label.,Epi_Detail_Recon_Join_oth.csv);
+%sas_2_csv(out.All_Recon_ccf_&label.,Recon_ccf.csv);
+%sas_2_csv(out.All_Epi_Join_ccf_&label.,Epi_Detail_Recon_Join_ccf.csv);
 
-
+/*
 ******************* Create Demo Output *************************;
 proc format; value $masked_bpid
 '1148-0000'='1111-0000'
@@ -843,29 +1030,15 @@ data out3.Recon_&bpid1._&bpid2.;
 	BPID_ClinicalEp = strip(BPID)||" - "||strip(clinical_episode_abbr);
 	BPID_ClinicalEp_ccn = strip(BPID)||" - "||strip(clinical_episode_abbr)||" - "||strip(anchor_ccn);
 
-	join_variable_recon = strip(EPI_ID_Milliman);
+	join_variable_recon = strip(Measure_year)||"_"||strip(EPI_ID_Milliman);
 
 	format ANCHOR_BEG_DT0 ANCHOR_END_DT0 DOD0 BENE_DOB0 mmddyy10. ; 
 	ANCHOR_BEG_DT0 = ANCHOR_BEG_DT ; 
 	ANCHOR_END_DT0 = ANCHOR_END_DT ; 
 	DOD0 = DOD ; 
 	BENE_DOB0 = BENE_DOB ; 
-	/*
-	CCN0 = CCN ;
-	Anchor_Fac_Code_Name0 = Anchor_Fac_Code_Name ; 
 
-	if  ccn = &ccn1.  then do; ccn = '111111'; Anchor_Fac_Code_Name = 'Facility 1 (CCN 111111)'; CCN_system = "Health System 1" ; end; 
-	if  ccn = &ccn2.  then do; ccn = '222222'; Anchor_Fac_Code_Name = 'Facility 2 (CCN 222222)';CCN_system = "Health System 2" ;  end;
-	if  ccn = &ccn3.  then do; ccn = '333333'; Anchor_Fac_Code_Name = 'Facility 3 (CCN 333333)'; CCN_system = "Health System 3" ; end;
-	if  ccn = &ccn4.  then do; ccn = '444444'; Anchor_Fac_Code_Name = 'Facility 4 (CCN 444444)';CCN_system = "Health System 4" ;  end;; 
-	if  ccn = &ccn5.  then do; ccn = '555555'; Anchor_Fac_Code_Name = 'Facility 5 (CCN 555555)'; CCN_system = "Health System 5" ; end;
-	if recon_year = 'Year 3' then DIFF_FINAL_INITIAL_NPRA = . ; 
-	else DIFF_FINAL_INITIAL_NPRA = DIFF_FINAL_INITIAL_NPRA ;
-	BENE_HIC_NUM = "123456789"; *20170822 Update: mask HIC num;
-	COMP_MEASURE_RESULT = "9.999";
-	HCAHPS_MEASURE_RESULT = "99.99";
-*/
- anchor_beg_dt = intnx('year',intnx('day', ANCHOR_BEG_DT, floor(ranuni(7)*60)),10,'sameday');	
+anchor_beg_dt = intnx('year',intnx('day', ANCHOR_BEG_DT, floor(ranuni(7)*60)),10,'sameday');	
  increment = anchor_beg_dt - ANCHOR_BEG_DT0;
 
   	%macro date(date);
@@ -877,7 +1050,7 @@ data out3.Recon_&bpid1._&bpid2.;
 run;
 
 data Epi_Join_&bpid1._&bpid2.;
-	format join_variable_recon $32. PERFORMANCE_PERIOD $3.;
+	format join_variable_recon $132. PERFORMANCE_PERIOD $3.;
 	set out3.Recon_&bpid1._&bpid2. (in=b)
 		out.epi_detail_&Perf_label._&bpid1._&bpid2. (in=a)
 		out.epi_detail_ybase_&bpid1._&bpid2. (in=c)
@@ -904,24 +1077,24 @@ data Epi_Join_&bpid1._&bpid2.;
 		BPID_ClinicalEp = strip(BPID)||" - "||strip(clinical_episode_abbr);
 		BPID_ClinicalEp_ccn = strip(BPID)||" - "||strip(clinical_episode_abbr)||" - "||strip(anchor_ccn);
 
-		join_variable_recon = strip(EPI_ID_Milliman);
+		join_variable_recon = strip(Measure_year)||"_"||strip(EPI_ID_Milliman);
 	end;
 
 	if timeframe_filter  = "Performance Period 1" then epi_period_short = "PP1";
 	else if timeframe_filter  = "Performance Period 2" then epi_period_short = "PP2";
-	/*
-	else if timeframe_filter  = "Performance Period 3" then epi_period_short = "PP3";
-	else if timeframe_filter  = "Performance Period 4" then epi_period_short = "PP4";
-	else if timeframe_filter  = "Performance Period 5" then epi_period_short = "PP5";
-	else if timeframe_filter  = "Performance Period 6" then epi_period_short = "PP6";
-	else if timeframe_filter  = "Performance Period 7" then epi_period_short = "PP7";
-	else if timeframe_filter  = "Performance Period 8" then epi_period_short = "PP8";
-	else if timeframe_filter  = "Performance Period 9" then epi_period_short = "PP9";
-	else if timeframe_filter  = "Performance Period 10" then epi_period_short = "PP10";
-	*/
+	
+	*else if timeframe_filter  = "Performance Period 3" then epi_period_short = "PP3";
+	*else if timeframe_filter  = "Performance Period 4" then epi_period_short = "PP4";
+	*else if timeframe_filter  = "Performance Period 5" then epi_period_short = "PP5";
+	*else if timeframe_filter  = "Performance Period 6" then epi_period_short = "PP6";
+	*else if timeframe_filter  = "Performance Period 7" then epi_period_short = "PP7";
+	*else if timeframe_filter  = "Performance Period 8" then epi_period_short = "PP8";
+	*else if timeframe_filter  = "Performance Period 9" then epi_period_short = "PP9";
+	*else if timeframe_filter  = "Performance Period 10" then epi_period_short = "PP10";
+	
 	else epi_period_short = "";
 
-	keep EPI_ID_Milliman BPID Anchor_Fac_Code_Name ANCHOR_CODE operating_name attending_name client_type Episode_Initiator_Use clinical_episode_abbr timeframe_filter epi_period_short PERFORMANCE_PERIOD 
+	keep measure_year EPI_ID_Milliman BPID Anchor_Fac_Code_Name ANCHOR_CODE operating_name attending_name client_type Episode_Initiator_Use clinical_episode_abbr timeframe_filter epi_period_short PERFORMANCE_PERIOD 
 			join_variable_recon recon_episode perf_episode
 			EI_system_name BPID_ClinicalEp MDC_Description death_flag Episode_End_YearMo PATIENT_NAME Bene_SK;
 run;
@@ -972,7 +1145,7 @@ run;
 
 %sas_2_csv(out3.All_Recon_Demo,Recon_Demo.csv);
 %sas_2_csv(out3.All_Epi_Join_Demo,Epi_Detail_Recon_Join_Demo.csv);
-
+*/
 proc printto;run;
 %let _edtm=%sysfunc(datetime());
 %let _runtm=%sysevalf(%sysfunc(putn(&_edtm - &_sdtm, 12.))/60.0);
