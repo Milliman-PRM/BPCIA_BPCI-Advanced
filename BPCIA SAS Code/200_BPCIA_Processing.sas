@@ -279,7 +279,7 @@ data epi0_pre;
 
 	format Measure_year2 $4.;
 	if measure_year = 'MY1 & MY2' then Measure_year2 = 'MY12'; 
-	else if measure_year = 'MY3' then Measure_year2 = 'MY3'
+	else if measure_year = 'MY3' then Measure_year2 = 'MY3';
 	BPID = "&BPID1." || "-" || "&BPID2.";
 	ConvenerID = tranwrd("&id2.","_","-");
 	EPI_ID_MILLIMAN = BPID || "-&vers.-"||Measure_Year2||"-"||compress(EPISODE_ID);
@@ -493,7 +493,7 @@ data ip1 ;
 
 	format Measure_year2 $4.;
 	if measure_year = 'MY1 & MY2' then Measure_year2 = 'MY12'; 
-	else if measure_year = 'MY3' then Measure_year2 = 'MY3'
+	else if measure_year = 'MY3' then Measure_year2 = 'MY3';
 	BPID = "&BPID1." || "-" || "&BPID2.";
 	ConvenerID = tranwrd("&id2.","_","-");
 	EPI_ID_MILLIMAN = BPID || "-&vers.-"||Measure_Year2||"-"||compress(EPISODE_ID);
@@ -681,7 +681,7 @@ data snf ;
 
 	format Measure_year2 $4.;
 	if measure_year = 'MY1 & MY2' then Measure_year2 = 'MY12'; 
-	else if measure_year = 'MY3' then Measure_year2 = 'MY3'
+	else if measure_year = 'MY3' then Measure_year2 = 'MY3';
 	BPID = "&BPID1." || "-" || "&BPID2.";
 	ConvenerID = tranwrd("&id2.","_","-");
 	EPI_ID_MILLIMAN = BPID || "-&vers.-"||Measure_Year2||"-"||compress(EPISODE_ID);
@@ -799,7 +799,7 @@ data hha1  ;
 
 	format Measure_year2 $4.;
 	if measure_year = 'MY1 & MY2' then Measure_year2 = 'MY12'; 
-	else if measure_year = 'MY3' then Measure_year2 = 'MY3'
+	else if measure_year = 'MY3' then Measure_year2 = 'MY3';
 	BPID = "&BPID1." || "-" || "&BPID2.";
 	ConvenerID = tranwrd("&id2.","_","-");
 	EPI_ID_MILLIMAN = BPID || "-&vers.-"||Measure_Year2||"-"||compress(EPISODE_ID);
@@ -904,7 +904,7 @@ data op ;
 
 	format Measure_year2 $4.;
 	if measure_year = 'MY1 & MY2' then Measure_year2 = 'MY12'; 
-	else if measure_year = 'MY3' then Measure_year2 = 'MY3'
+	else if measure_year = 'MY3' then Measure_year2 = 'MY3';
 	BPID = "&BPID1." || "-" || "&BPID2.";
 	ConvenerID = tranwrd("&id2.","_","-");
 	EPI_ID_MILLIMAN = BPID || "-&vers.-"||Measure_Year2||"-"||compress(EPISODE_ID);
@@ -1066,7 +1066,7 @@ data bcarrier1 ;
 
 	format Measure_year2 $4.;
 	if measure_year = 'MY1 & MY2' then Measure_year2 = 'MY12'; 
-	else if measure_year = 'MY3' then Measure_year2 = 'MY3'
+	else if measure_year = 'MY3' then Measure_year2 = 'MY3';
 	BPID = "&BPID1." || "-" || "&BPID2.";
 	ConvenerID = tranwrd("&id2.","_","-");
 	EPI_ID_MILLIMAN = BPID || "-&vers.-"||Measure_Year2||"-"||compress(EPISODE_ID);
@@ -1201,7 +1201,7 @@ data dme ;
 
 	format Measure_year2 $4.;
 	if measure_year = 'MY1 & MY2' then Measure_year2 = 'MY12'; 
-	else if measure_year = 'MY3' then Measure_year2 = 'MY3'
+	else if measure_year = 'MY3' then Measure_year2 = 'MY3';
 	BPID = "&BPID1." || "-" || "&BPID2.";
 	ConvenerID = tranwrd("&id2.","_","-");
 	EPI_ID_MILLIMAN = BPID || "-&vers.-"||Measure_Year2||"-"||compress(EPISODE_ID);
@@ -1275,7 +1275,7 @@ data hs ;
 
 	format Measure_year2 $4.;
 	if measure_year = 'MY1 & MY2' then Measure_year2 = 'MY12'; 
-	else if measure_year = 'MY3' then Measure_year2 = 'MY3'
+	else if measure_year = 'MY3' then Measure_year2 = 'MY3';
 	BPID = "&BPID1." || "-" || "&BPID2.";
 	ConvenerID = tranwrd("&id2.","_","-");
 	EPI_ID_MILLIMAN = BPID || "-&vers.-"||Measure_Year2||"-"||compress(EPISODE_ID);
