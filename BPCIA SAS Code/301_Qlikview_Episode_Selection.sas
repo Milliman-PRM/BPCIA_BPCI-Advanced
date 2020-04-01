@@ -44,58 +44,42 @@ Calculation of Monthly Reports Datasets
 
 
 data all_epi_pre_ybase;
+       /* set out.epi_detail_ybase_5746_0002; */		
         set out.epi_detail_ybase_&id.;
 		if MEASURE_YEAR = 'MY1 & MY2' THEN MY = 2;
 		if MEASURE_YEAR = 'MY3' THEN MY = 1;
 	run;
 
-
-		/* sorts data */
-	proc sort nodupkey data=all_epi_pre_ybase out=all_epi_pre_ybase_sort;
+proc sort data=all_epi_pre_ybase ;
 	by BENE_SK clinical_episode anchor_beg_dt anchor_end_dt MY;
 	run;
 
-	/* ranks */
-		proc rank data=all_epi_pre_ybase_sort out=all_epi_pre_ybase_sort_rank;
+proc sort nodupkey data=all_epi_pre_ybase out=out.epi_ID_to_use_&id. (keep=BENE_SK clinical_episode anchor_beg_dt anchor_end_dt MEASURE_YEAR EPI_ID_MILLIMAN);
 	by BENE_SK clinical_episode anchor_beg_dt anchor_end_dt;
-	var MY;
-	ranks MY_Rank;
 	run;
 
-data epi_combos_use;
-set all_epi_pre_ybase_sort_rank;
-EPI_ID_MILLIMAN_TO_USE = EPI_ID_MILLIMAN;
-if MY_RANK = 1;
-run;
-
 proc sql;
-create table  epi_combos_use_out AS
-select distinct B.timeframe_filter, EPI_ID_MILLIMAN_TO_USE
-from epi_combos_use A
-	INNER JOIN all_epi_pre_ybase_sort_rank B
-		ON A.BENE_SK = B.BENE_SK
+create table out.timeframe_filter_&id. as
+select distinct b.EPI_ID_MILLIMAN, a.EPI_ID_MILLIMAN as EPI_ID_MILLIMAN_original, a.timeframe_filter
+from all_epi_pre_ybase as a
+left join
+out.epi_ID_to_use_&id. as b
+on A.BENE_SK = B.BENE_SK
 		AND A.clinical_episode = B.clinical_episode
 		AND A.anchor_beg_dt = B.anchor_beg_dt
 		AND A.anchor_end_dt = B.anchor_end_dt
-		;
-		quit;
+;
+quit;
 
-data out.epi_ID_to_use_&id.;
-        set epi_combos_use_out;
-	run;
-
-
-******** PART 2: PULL EPISODES FOR FINAL OUTPUT FROM RESPECTIVE FILES ****************************************************;
-*Pulls relevant episodes from the main source file based on the relevant flags and matching episode IDs;
-
+	
 %macro epi_picker(file);
 
 proc sql;
 create table all_epi_ybase as
 select a.*
-from  out.&file._ybase_&id. A
-	inner join epi_combos_use B
-		on A.EPI_ID_MILLIMAN = B.EPI_ID_MILLIMAN_TO_USE
+from  out.&file._ybase_&id. AS A
+	inner join out.epi_ID_to_use_&id. AS B
+		on A.EPI_ID_MILLIMAN = B.EPI_ID_MILLIMAN
 		;
 		quit;
 
@@ -105,6 +89,16 @@ run;
 
 %mend epi_picker;
 
+%macro epi_picker_V2(file);
+
+proc sql;
+create table out.A_&file._ybase_&id. AS 
+select *
+from out.&file._ybase_&id. (obs=0);
+quit;
+
+
+%mend epi_picker_V2;
 *All tables, excluding time period tables and tables that use performance data only;
 
 %epi_picker(epi_detail);
@@ -116,7 +110,7 @@ run;
 %epi_picker(util);
 %epi_picker(perf);
 %epi_picker(phys_summ);
-*%epi_picker(bpid_member);
+%epi_picker_V2(bpid_member);
 
 data tp_stack;
 set out2.tp_ybase_&id. out2.tp_ybase_&id._MY3;
@@ -125,16 +119,16 @@ run;
 proc sql;
 create table all_epi_ybase as
 select a.*
-from  tp_stack A
-	inner join epi_combos_use B
-		on A.EPI_ID_MILLIMAN = B.EPI_ID_MILLIMAN_TO_USE
+from  tp_stack AS A
+	inner join epi_ID_to_use_&id. AS B
+		on A.EPI_ID_MILLIMAN = B.EPI_ID_MILLIMAN
 		;
 		quit;
 
 data out.A_tp_&id.;
 set all_epi_ybase out2.tp_&label._&id.:;
 run;
-%mend;
+%mend selection;
 
 **********************************************************************************************************;
 * RUN FOR ALL FACILITIES, INCLUDING THOSE WITH NO PERFORMANCE EPISODES;
