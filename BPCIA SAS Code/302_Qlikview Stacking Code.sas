@@ -65,7 +65,7 @@ libname bench "R:\client work\CMS_PAC_Bundle_Processing\Benchmark Releases\v.201
 %macro stack_output(file);
 
 	data out.all_&file.;
-		set out.&file._:;
+		set out.A_&file._ybase: out.&file._&label.:;
 		%if &file = ccn_enc %then %do;
 			fac_counter = _N_;
 		%end;
@@ -97,6 +97,16 @@ libname bench "R:\client work\CMS_PAC_Bundle_Processing\Benchmark Releases\v.201
 %stack_output(exclusions);
 %stack_output(comp);
 %stack_output(bpid_member);
+
+%macro stack_output_timefilter(file);
+
+data out.all_&file.;
+		set out.&file.:(keep=EPI_ID_MILLIMAN timeframe_filter)  out.epi_detail_&label.:(keep=EPI_ID_MILLIMAN timeframe_filter);
+	run;
+
+%mend stack_output;
+
+%stack_output_timefilter(timeframe_filter);
 
 data benchmarks_pmr;
 	set bench.benchmarks_bpcia_pmr_18;
@@ -170,6 +180,28 @@ run;
 				out.&file._&file2._&bpid6._0000
 				out.&file._&file2._&bpid7._0000
 				out.&file._&file2._&bpid8._0002
+			;
+			%end;
+			%else %do ;
+			%if &file = timeframe_filter %then %do;
+				out.&file._&bpid1._0000 (keep=EPI_ID_MILLIMAN timeframe_filter)
+				out.&file._&bpid2._0000 (keep=EPI_ID_MILLIMAN timeframe_filter)
+				out.&file._&bpid3._0000 (keep=EPI_ID_MILLIMAN timeframe_filter)
+				out.&file._&bpid4._0000 (keep=EPI_ID_MILLIMAN timeframe_filter)
+				out.&file._&bpid5._0000 (keep=EPI_ID_MILLIMAN timeframe_filter)
+				out.&file._&bpid6._0000 (keep=EPI_ID_MILLIMAN timeframe_filter)
+				out.&file._&bpid7._0000 (keep=EPI_ID_MILLIMAN timeframe_filter)
+				out.&file._&bpid8._0002 (keep=EPI_ID_MILLIMAN timeframe_filter)
+				out.epi_detail_&file2._&bpid1._0000(keep=EPI_ID_MILLIMAN timeframe_filter)
+				out.epi_detail_&file2._&bpid2._0000(keep=EPI_ID_MILLIMAN timeframe_filter)
+				out.epi_detail_&file2._&bpid3._0000(keep=EPI_ID_MILLIMAN timeframe_filter)
+				out.epi_detail_&file2._&bpid4._0000(keep=EPI_ID_MILLIMAN timeframe_filter)
+				out.epi_detail_&file2._&bpid5._0000(keep=EPI_ID_MILLIMAN timeframe_filter)
+				out.epi_detail_&file2._&bpid6._0000(keep=EPI_ID_MILLIMAN timeframe_filter)
+				out.epi_detail_&file2._&bpid7._0000(keep=EPI_ID_MILLIMAN timeframe_filter)
+				out.epi_detail_&file2._&bpid8._0002(keep=EPI_ID_MILLIMAN timeframe_filter)
+	run;
+	
 			;
 			%end;
 			%else %do;
@@ -247,6 +279,82 @@ run;
 	%date(DOD);
 	%date(BENE_DOB);
 	%date(epi_end_date);
+
+	%date(T0_IP_IDX_STARTDATE);
+%date(T0_IP_IDX_ENDDATE);
+%date(T1_IP_A_FAC_STARTDATE);
+%date(T1_IP_A_FAC_ENDDATE);
+%date(T1_IP_O_FAC_STARTDATE);
+%date(T1_IP_O_FAC_ENDDATE);
+%date(T1_LTAC_STARTDATE);
+%date(T1_LTAC_ENDDATE);
+%date(T1_IRF_STARTDATE);
+%date(T1_IRF_ENDDATE);
+%date(T1_HH_STARTDATE);
+%date(T1_HH_ENDDATE);
+%date(T1_SNF1_STARTDATE);
+%date(T1_SNF1_ENDDATE);
+%date(T1_SNF2_STARTDATE);
+%date(T1_SNF2_ENDDATE);
+%date(T2_IP_A_FAC_STARTDATE);
+%date(T2_IP_A_FAC_ENDDATE);
+%date(T2_IP_O_FAC_STARTDATE);
+%date(T2_IP_O_FAC_ENDDATE);
+%date(T2_LTAC_STARTDATE);
+%date(T2_LTAC_ENDDATE);
+%date(T2_IRF_STARTDATE);
+%date(T2_IRF_ENDDATE);
+%date(T2_HH_STARTDATE);
+%date(T2_HH_ENDDATE);
+%date(T2_SNF1_STARTDATE);
+%date(T2_SNF1_ENDDATE);
+%date(T2_SNF2_STARTDATE);
+%date(T2_SNF2_ENDDATE);
+%date(T3_IP_A_FAC_STARTDATE);
+%date(T3_IP_A_FAC_ENDDATE);
+%date(T3_IP_O_FAC_STARTDATE);
+%date(T3_IP_O_FAC_ENDDATE);
+%date(T3_LTAC_STARTDATE);
+%date(T3_LTAC_ENDDATE);
+%date(T3_IRF_STARTDATE);
+%date(T3_IRF_ENDDATE);
+%date(T3_HH_STARTDATE);
+%date(T3_HH_ENDDATE);
+%date(T3_SNF1_STARTDATE);
+%date(T3_SNF1_ENDDATE);
+%date(T3_SNF2_STARTDATE);
+%date(T3_SNF2_ENDDATE);
+%date(T4_IP_A_FAC_STARTDATE);
+%date(T4_IP_A_FAC_ENDDATE);
+%date(T4_IP_O_FAC_STARTDATE);
+%date(T4_IP_O_FAC_ENDDATE);
+%date(T4_LTAC_STARTDATE);
+%date(T4_LTAC_ENDDATE);
+%date(T4_IRF_STARTDATE);
+%date(T4_IRF_ENDDATE);
+%date(T4_HH_STARTDATE);
+%date(T4_HH_ENDDATE);
+%date(T4_SNF_STARTDATE);
+%date(T4_SNF_ENDDATE);
+%date(T4_ER_S_STARTDATE);
+%date(T4_ER_S_ENDDATE);
+%date(T4_ER_R_STARTDATE);
+%date(T4_ER_R_ENDDATE);
+%date(T4_HOSPICE_STARTDATE);
+%date(T4_HOSPICE_ENDDATE);
+%date(T12_IP_A_FAC_STARTDATE);
+%date(T12_IP_A_FAC_ENDDATE);
+%date(T12_IP_O_FAC_STARTDATE);
+%date(T12_IP_O_FAC_ENDDATE);
+%date(T12_LTAC_STARTDATE);
+%date(T12_LTAC_ENDDATE);
+%date(T12_IRF_STARTDATE);
+%date(T12_IRF_ENDDATE);
+%date(T12_HH_STARTDATE);
+%date(T12_HH_ENDDATE);
+%date(T12_SNF_STARTDATE);
+%date(T12_SNF_ENDDATE);
+
 
 	%end;
 	%if &file = pjourney %then %do;
@@ -412,6 +520,7 @@ format &date.0  mmddyy10.;
  %stack_output_demo(phys_summ,&label.); 
 %stack_output_demo(comp,&label.);
 %stack_output_demo(bpid_member,&label.);
+%stack_output_demo(timeframe_filter,&label.);
 
 *ONLY RUN EXCLUSIONS FOR MAIN DEMOS, NOT BASELINE;
 %if &mode.^=base %then %do ;
