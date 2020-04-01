@@ -101,8 +101,8 @@ libname bench "R:\client work\CMS_PAC_Bundle_Processing\Benchmark Releases\v.201
 %macro stack_output_timefilter(file);
 
 data out.all_&file.;
-		set out.&file.:;
-	run
+		set out.&file.:(keep=EPI_ID_MILLIMAN timeframe_filter)  out.epi_detail_&label.:(keep=EPI_ID_MILLIMAN timeframe_filter);
+	run;
 
 %mend stack_output;
 
@@ -184,14 +184,24 @@ run;
 			%end;
 			%else %do ;
 			%if &file = timeframe_filter %then %do;
-				out.&file._&bpid1._0000
-				out.&file._&bpid2._0000
-				out.&file._&bpid3._0000
-				out.&file._&bpid4._0000
-				out.&file._&bpid5._0000
-				out.&file._&bpid6._0000
-				out.&file._&bpid7._0000
-				out.&file._&bpid8._0002
+				out.&file._&bpid1._0000 (keep=EPI_ID_MILLIMAN timeframe_filter)
+				out.&file._&bpid2._0000 (keep=EPI_ID_MILLIMAN timeframe_filter)
+				out.&file._&bpid3._0000 (keep=EPI_ID_MILLIMAN timeframe_filter)
+				out.&file._&bpid4._0000 (keep=EPI_ID_MILLIMAN timeframe_filter)
+				out.&file._&bpid5._0000 (keep=EPI_ID_MILLIMAN timeframe_filter)
+				out.&file._&bpid6._0000 (keep=EPI_ID_MILLIMAN timeframe_filter)
+				out.&file._&bpid7._0000 (keep=EPI_ID_MILLIMAN timeframe_filter)
+				out.&file._&bpid8._0002 (keep=EPI_ID_MILLIMAN timeframe_filter)
+				out.epi_detail_&file2._&bpid1._0000(keep=EPI_ID_MILLIMAN timeframe_filter)
+				out.epi_detail_&file2._&bpid2._0000(keep=EPI_ID_MILLIMAN timeframe_filter)
+				out.epi_detail_&file2._&bpid3._0000(keep=EPI_ID_MILLIMAN timeframe_filter)
+				out.epi_detail_&file2._&bpid4._0000(keep=EPI_ID_MILLIMAN timeframe_filter)
+				out.epi_detail_&file2._&bpid5._0000(keep=EPI_ID_MILLIMAN timeframe_filter)
+				out.epi_detail_&file2._&bpid6._0000(keep=EPI_ID_MILLIMAN timeframe_filter)
+				out.epi_detail_&file2._&bpid7._0000(keep=EPI_ID_MILLIMAN timeframe_filter)
+				out.epi_detail_&file2._&bpid8._0002(keep=EPI_ID_MILLIMAN timeframe_filter)
+	run;
+	
 			;
 			%end;
 			%else %do;
