@@ -51,16 +51,16 @@ data all_epi_pre_ybase;
 	run;
 
 proc sort data=all_epi_pre_ybase ;
-	by BENE_SK clinical_episode anchor_beg_dt anchor_end_dt MY;
+	by BPID BENE_SK clinical_episode anchor_beg_dt anchor_end_dt MY;
 	run;
 
-proc sort nodupkey data=all_epi_pre_ybase out=out.epi_ID_to_use_&id. (keep=BENE_SK clinical_episode anchor_beg_dt anchor_end_dt MEASURE_YEAR EPI_ID_MILLIMAN);
-	by BENE_SK clinical_episode anchor_beg_dt anchor_end_dt;
+proc sort nodupkey data=all_epi_pre_ybase out=out.epi_ID_to_use_&id. (keep=BPID BENE_SK clinical_episode anchor_beg_dt anchor_end_dt MEASURE_YEAR EPI_ID_MILLIMAN);
+	by BPID BENE_SK clinical_episode anchor_beg_dt anchor_end_dt;
 	run;
 
 proc sql;
 create table out.timeframe_filter_&id. as
-select distinct b.EPI_ID_MILLIMAN, a.EPI_ID_MILLIMAN as EPI_ID_MILLIMAN_original, a.timeframe_filter
+select distinct a.BPID, b.EPI_ID_MILLIMAN, a.EPI_ID_MILLIMAN as EPI_ID_MILLIMAN_original, a.timeframe_filter
 from all_epi_pre_ybase as a
 left join
 out.epi_ID_to_use_&id. as b
@@ -88,39 +88,39 @@ set all_epi_ybase;
 run;
 
 %mend epi_picker;
-
-%macro epi_picker_V2(file);
-
-proc sql;
-create table out.A_&file._ybase_&id. AS 
-select *
-from out.&file._ybase_&id. (obs=0);
-quit;
-
-
-%mend epi_picker_V2;
+/**/
+/*%macro epi_picker_V2(file);*/
+/**/
+/*proc sql;*/
+/*create table out.A_&file._ybase_&id. AS */
+/*select **/
+/*from out.&file._ybase_&id. (obs=0);*/
+/*quit;*/
+/**/
+/**/
+/*%mend epi_picker_V2;*/
 *All tables, excluding time period tables and tables that use performance data only;
 
 %epi_picker(epi_detail);
 %epi_picker(pjourney);
 %epi_picker(pjourneyagg);
-%epi_picker(pat_detail);
 %epi_picker(prov_detail);
-%epi_picker(comp);
 %epi_picker(util);
 %epi_picker(perf);
 %epi_picker(phys_summ);
-%epi_picker_V2(bpid_member);
+%epi_picker(pat_detail);
+%epi_picker(comp);
+*%epi_picker_V2(bpid_member);
 
 data tp_stack;
-set out2.tp_ybase_&id. out2.tp_ybase_&id._MY3;
+set out2.tp_ybase_&id.: ;
 run;
  
 proc sql;
 create table all_epi_ybase as
 select a.*
 from  tp_stack AS A
-	inner join epi_ID_to_use_&id. AS B
+	inner join out.epi_ID_to_use_&id. AS B
 		on A.EPI_ID_MILLIMAN = B.EPI_ID_MILLIMAN
 		;
 		quit;
@@ -151,13 +151,13 @@ run;
 %selection(2586,0033,1);
 %selection(2586,0034,1);
 %selection(2586,0035,1);
-%selection(2586,0036,1);
-%selection(2586,0038,1);
+*%selection(2586,0036,1);
+*%selection(2586,0038,1);
 %selection(2586,0039,1);
-%selection(2586,0040,1);
-%selection(2586,0041,1);
-%selection(2586,0042,1);
-%selection(2586,0043,1);
+*%selection(2586,0040,1);
+*%selection(2586,0041,1);
+*%selection(2586,0042,1);
+*%selection(2586,0043,1);
 %selection(2586,0044,1);
 %selection(2586,0045,1);
 %selection(2586,0046,1);
@@ -197,7 +197,7 @@ run;
 %selection(1368,0000,0);
 %selection(1461,0000,1);
 %selection(1634,0000,1);
-%selection(1803,0000,1);
+*%selection(1803,0000,1);
 %selection(1958,0000,0);
 %selection(2048,0000,0);
 %selection(2049,0000,0);
