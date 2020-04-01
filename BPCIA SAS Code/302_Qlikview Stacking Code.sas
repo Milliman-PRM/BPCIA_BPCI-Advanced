@@ -65,7 +65,7 @@ libname bench "R:\client work\CMS_PAC_Bundle_Processing\Benchmark Releases\v.201
 %macro stack_output(file);
 
 	data out.all_&file.;
-		set out.1_&file._ybase: out.&file._&label.:;
+		set out.A_&file._ybase: out.&file._&label.:;
 		%if &file = ccn_enc %then %do;
 			fac_counter = _N_;
 		%end;
@@ -97,6 +97,16 @@ libname bench "R:\client work\CMS_PAC_Bundle_Processing\Benchmark Releases\v.201
 %stack_output(exclusions);
 %stack_output(comp);
 %stack_output(bpid_member);
+
+%macro stack_output_timefilter(file);
+
+data out.all_&file.;
+		set out.&file.:;
+	run
+
+%mend stack_output;
+
+%stack_output_timefilter(timeframe_filter);
 
 data benchmarks_pmr;
 	set bench.benchmarks_bpcia_pmr_18;
@@ -170,6 +180,18 @@ run;
 				out.&file._&file2._&bpid6._0000
 				out.&file._&file2._&bpid7._0000
 				out.&file._&file2._&bpid8._0002
+			;
+			%end;
+			%else %do ;
+			%if &file = timeframe_filter %then %do;
+				out.&file._&bpid1._0000
+				out.&file._&bpid2._0000
+				out.&file._&bpid3._0000
+				out.&file._&bpid4._0000
+				out.&file._&bpid5._0000
+				out.&file._&bpid6._0000
+				out.&file._&bpid7._0000
+				out.&file._&bpid8._0002
 			;
 			%end;
 			%else %do;
@@ -488,6 +510,7 @@ format &date.0  mmddyy10.;
  %stack_output_demo(phys_summ,&label.); 
 %stack_output_demo(comp,&label.);
 %stack_output_demo(bpid_member,&label.);
+%stack_output_demo(timeframe_filter,&label.);
 
 *ONLY RUN EXCLUSIONS FOR MAIN DEMOS, NOT BASELINE;
 %if &mode.^=base %then %do ;
