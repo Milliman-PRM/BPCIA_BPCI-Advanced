@@ -51,16 +51,16 @@ data all_epi_pre_ybase;
 	run;
 
 proc sort data=all_epi_pre_ybase ;
-	by BENE_SK clinical_episode anchor_beg_dt anchor_end_dt MY;
+	by BPID BENE_SK clinical_episode anchor_beg_dt anchor_end_dt MY;
 	run;
 
-proc sort nodupkey data=all_epi_pre_ybase out=out.epi_ID_to_use_&id. (keep=BENE_SK clinical_episode anchor_beg_dt anchor_end_dt MEASURE_YEAR EPI_ID_MILLIMAN);
-	by BENE_SK clinical_episode anchor_beg_dt anchor_end_dt;
+proc sort nodupkey data=all_epi_pre_ybase out=out.epi_ID_to_use_&id. (keep=BPID BENE_SK clinical_episode anchor_beg_dt anchor_end_dt MEASURE_YEAR EPI_ID_MILLIMAN);
+	by BPID BENE_SK clinical_episode anchor_beg_dt anchor_end_dt;
 	run;
 
 proc sql;
 create table out.timeframe_filter_&id. as
-select distinct b.EPI_ID_MILLIMAN, a.EPI_ID_MILLIMAN as EPI_ID_MILLIMAN_original, a.timeframe_filter
+select distinct a.BPID, b.EPI_ID_MILLIMAN, a.EPI_ID_MILLIMAN as EPI_ID_MILLIMAN_original, a.timeframe_filter
 from all_epi_pre_ybase as a
 left join
 out.epi_ID_to_use_&id. as b
@@ -88,39 +88,39 @@ set all_epi_ybase;
 run;
 
 %mend epi_picker;
-
-%macro epi_picker_V2(file);
-
-proc sql;
-create table out.A_&file._ybase_&id. AS 
-select *
-from out.&file._ybase_&id. (obs=0);
-quit;
-
-
-%mend epi_picker_V2;
+/**/
+/*%macro epi_picker_V2(file);*/
+/**/
+/*proc sql;*/
+/*create table out.A_&file._ybase_&id. AS */
+/*select **/
+/*from out.&file._ybase_&id. (obs=0);*/
+/*quit;*/
+/**/
+/**/
+/*%mend epi_picker_V2;*/
 *All tables, excluding time period tables and tables that use performance data only;
 
 %epi_picker(epi_detail);
 %epi_picker(pjourney);
 %epi_picker(pjourneyagg);
-%epi_picker(pat_detail);
 %epi_picker(prov_detail);
-%epi_picker(comp);
 %epi_picker(util);
 %epi_picker(perf);
 %epi_picker(phys_summ);
-%epi_picker_V2(bpid_member);
+%epi_picker(pat_detail);
+%epi_picker(comp);
+*%epi_picker_V2(bpid_member);
 
 data tp_stack;
-set out2.tp_ybase_&id. out2.tp_ybase_&id._MY3;
+set out2.tp_ybase_&id.: ;
 run;
  
 proc sql;
 create table all_epi_ybase as
 select a.*
 from  tp_stack AS A
-	inner join epi_ID_to_use_&id. AS B
+	inner join out.epi_ID_to_use_&id. AS B
 		on A.EPI_ID_MILLIMAN = B.EPI_ID_MILLIMAN
 		;
 		quit;
@@ -135,129 +135,132 @@ run;
 
 *%selection(5746,0002,0);
 
-%selection(2586,0002,1);
-%selection(2586,0005,1);
-%selection(2586,0006,1);
-%selection(2586,0007,1);
-%selection(2586,0010,1);
-%selection(2586,0013,1);
-%selection(2586,0025,1);
-%selection(2586,0026,1);
-%selection(2586,0028,1);
-%selection(2586,0029,1);
-%selection(2586,0030,1);
-%selection(2586,0031,1);
-%selection(2586,0032,1);
-%selection(2586,0033,1);
-%selection(2586,0034,1);
-%selection(2586,0035,1);
-%selection(2586,0036,1);
-%selection(2586,0038,1);
-%selection(2586,0039,1);
-%selection(2586,0040,1);
-%selection(2586,0041,1);
-%selection(2586,0042,1);
-%selection(2586,0043,1);
-%selection(2586,0044,1);
-%selection(2586,0045,1);
-%selection(2586,0046,1);
-%selection(1374,0004,0);
-%selection(1374,0008,0);
-%selection(1374,0009,0);
-%selection(1374,0012,1);
-%selection(1374,0013,1);
-%selection(1374,0014,1);
-%selection(1374,0015,1);
-%selection(1374,0017,1);
-%selection(1374,0018,1);
-%selection(1191,0002,0);
-%selection(7310,0002,1);
-%selection(7310,0003,1);
-%selection(7310,0004,1);
-%selection(7310,0005,1);
-%selection(7310,0006,1);
-%selection(7310,0007,1);
-%selection(7312,0002,1);
-%selection(6054,0002,0);
-%selection(6055,0002,0);
-%selection(6056,0002,0);
-%selection(6057,0002,0);
-%selection(6058,0002,0);
-%selection(6059,0002,0);
-%selection(1209,0000,0);
-%selection(1028,0000,1);
-%selection(1075,0000,0);
-%selection(1102,0000,0);
-%selection(1103,0000,0);
-%selection(1104,0000,0);
-%selection(1105,0000,0);
-%selection(1106,0000,0);
-%selection(1148,0000,0);
-%selection(1167,0000,0);
-%selection(1368,0000,0);
-%selection(1461,0000,1);
-%selection(1634,0000,1);
-%selection(1803,0000,1);
-%selection(1958,0000,0);
-%selection(2048,0000,0);
-%selection(2049,0000,0);
-%selection(2070,0000,0);
-%selection(2214,0000,1);
-%selection(2215,0000,1);
-%selection(2216,0000,1);
-%selection(2302,0000,0);
-%selection(2317,0000,1);
-%selection(2374,0000,0);
-%selection(2376,0000,0);
-%selection(2378,0000,0);
-%selection(2379,0000,0);
-%selection(2451,0000,1);
-%selection(2452,0000,1);
-%selection(2461,0000,1);
-%selection(2468,0000,1);
-%selection(2587,0000,0);
-%selection(2589,0000,0);
-%selection(2594,0000,0);
-%selection(2607,0000,0);
-%selection(5037,0000,0);
-%selection(5038,0000,0);
-%selection(5043,0000,0);
-%selection(5050,0000,0);
-%selection(5154,0000,0);
-%selection(5215,0002,0);
-%selection(5215,0003,0);
-%selection(5263,0000,0);
-%selection(5264,0000,0);
-%selection(5282,0000,0);
-%selection(5392,0004,0);
-%selection(5394,0000,0);
-%selection(5397,0002,0);
-%selection(5397,0003,0);
-%selection(5397,0004,0);
-%selection(5397,0005,0);
-%selection(5397,0006,0);
-%selection(5397,0007,0);
-%selection(5397,0008,0);
-%selection(5397,0009,0);
-%selection(5397,0010,0);
-%selection(5478,0002,0);
-%selection(5479,0002,0);
-%selection(5480,0002,0);
-%selection(5481,0002,0);
-%selection(5746,0002,0);
-%selection(1686,0002,0);
-%selection(1688,0002,0);
-%selection(1696,0002,0);
-%selection(1710,0002,0);
-%selection(2941,0002,1);
-%selection(2956,0002,1);
-%selection(6049,0002,0);
-%selection(6050,0002,0);
-%selection(6051,0002,0);
-%selection(6052,0002,0);
-%selection(6053,0002,0);
-%selection(2974,0003,1);
-%selection(2974,0007,1);
+%Selection(2586,0002,1);
+%Selection(2586,0005,1);
+%Selection(2586,0006,1);
+%Selection(2586,0007,1);
+%Selection(2586,0010,1);
+%Selection(2586,0013,1);
+%Selection(2586,0025,1);
+%Selection(2586,0026,1);
+%Selection(2586,0028,1);
+%Selection(2586,0029,1);
+%Selection(2586,0030,1);
+%Selection(2586,0031,1);
+%Selection(2586,0032,1);
+%Selection(2586,0033,1);
+%Selection(2586,0034,1);
+%Selection(2586,0035,1);
+*%Selection(2586,0036,1);
+*%Selection(2586,0038,1);
+%Selection(2586,0039,1);
+*%Selection(2586,0040,1);
+*%Selection(2586,0041,1);
+*%Selection(2586,0042,1);
+*%Selection(2586,0043,1);
+%Selection(2586,0044,1);
+%Selection(2586,0045,1);
+%Selection(2586,0046,1);
+%Selection(1374,0004,0);
+%Selection(1374,0008,0);
+%Selection(1374,0009,0);
+%Selection(1374,0012,1);
+%Selection(1374,0013,1);
+%Selection(1374,0014,1);
+%Selection(1374,0015,1);
+%Selection(1374,0017,1);
+%Selection(1374,0018,1);
+%Selection(1191,0002,0);
+%Selection(7310,0002,1);
+%Selection(7310,0003,1);
+%Selection(7310,0004,1);
+%Selection(7310,0005,1);
+%Selection(7310,0006,1);
+%Selection(7310,0007,1);
+%Selection(7312,0002,1);
+%Selection(6054,0002,0);
+%Selection(6055,0002,0);
+%Selection(6056,0002,0);
+%Selection(6057,0002,0);
+%Selection(6058,0002,0);
+%Selection(6059,0002,0);
+%Selection(1209,0000,0);
+%Selection(1028,0000,1);
+%Selection(1075,0000,0);
+%Selection(1102,0000,0);
+%Selection(1103,0000,0);
+%Selection(1104,0000,0);
+%Selection(1105,0000,0);
+%Selection(1106,0000,0);
+%Selection(1148,0000,0);
+%Selection(1167,0000,0);
+%Selection(1343,0000,0);
+%Selection(1368,0000,0);
+%Selection(1461,0000,1);
+%Selection(1634,0000,0);
+*%Selection(1803,0000,1);
+%Selection(1958,0000,0);
+%Selection(2048,0000,0);
+%Selection(2049,0000,0);
+%Selection(2070,0000,0);
+%Selection(2214,0000,1);
+%Selection(2215,0000,1);
+%Selection(2216,0000,1);
+%Selection(2302,0000,0);
+%Selection(2317,0000,1);
+%Selection(2374,0000,0);
+%Selection(2376,0000,0);
+%Selection(2378,0000,0);
+%Selection(2379,0000,0);
+%Selection(2451,0000,1);
+%Selection(2452,0000,1);
+%Selection(2461,0000,1);
+%Selection(2468,0000,1);
+%Selection(2587,0000,0);
+%Selection(2589,0000,0);
+%Selection(2594,0000,0);
+%Selection(2607,0000,0);
+%Selection(5037,0000,0);
+%Selection(5038,0000,0);
+%Selection(5043,0000,0);
+%Selection(5050,0000,0);
+%Selection(5154,0000,0);
+%Selection(5215,0002,0);
+%Selection(5215,0003,0);
+%Selection(5229,0000,0);
+%Selection(5263,0000,0);
+%Selection(5264,0000,0);
+%Selection(5282,0000,0);
+%Selection(5392,0004,0);
+%Selection(5394,0000,0);
+%Selection(5395,0000,0);
+%Selection(5397,0002,0);
+%Selection(5397,0003,0);
+%Selection(5397,0004,0);
+%Selection(5397,0005,0);
+%Selection(5397,0006,0);
+%Selection(5397,0007,0);
+%Selection(5397,0008,0);
+%Selection(5397,0009,0);
+%Selection(5397,0010,0);
+%Selection(5478,0002,0);
+%Selection(5479,0002,0);
+%Selection(5480,0002,0);
+%Selection(5481,0002,0);
+%Selection(5746,0002,0);
+%Selection(1686,0002,0);
+%Selection(1688,0002,0);
+%Selection(1696,0002,0);
+%Selection(1710,0002,0);
+%Selection(2941,0002,1);
+%Selection(2956,0002,1);
+%Selection(6049,0002,0);
+%Selection(6050,0002,0);
+%Selection(6051,0002,0);
+%Selection(6052,0002,0);
+%Selection(6053,0002,0);
+%Selection(2974,0003,1);
+%Selection(2974,0007,1);
 
 
 

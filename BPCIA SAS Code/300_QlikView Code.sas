@@ -26,14 +26,14 @@ SET UP
 
 ****** USER INPUTS ******************************************************************************************;
 * TURN ON FOR BASELINE / TURN OFF FOR PERFORMANCE *****;
-%let label = ybase; *Update with change in period;
-%let prevlabel = ybase;
-%let reporting_period=201806;*Change for every Update*; 
+/*%let label = ybase; *Update with change in period;*/
+/*%let prevlabel = ybase;*/
+/*%let reporting_period=201806;*Change for every Update*; */
 
 * TURN ON FOR PERFORMANCE / TURN OFF FOR BASELINE *****;
-/*%let label = y202002; *Update with change in period;*/
-/*%let prevlabel = y202001; *Update with the prior period;*/
-/*%let reporting_period=202003;*Change for every Update*; */
+%let label = y202002; *Update with change in period;
+%let prevlabel = y202001; *Update with the prior period;
+%let reporting_period=202003;*Change for every Update*; 
 
 * UPDATE WITH EVERY PERF UPDATE *****;
 %let transmit_date = '07FEB2020'd;*Change for every Update*; 
@@ -1242,7 +1242,7 @@ proc sql;
 	from episode_ccns3 as a
 	left join ref.ccns_codemap as b
 	on a.provider_ccn_use = b.ccn
-	order by key measure_year;
+	order by key, measure_year;
 quit;
 
 /*transpose data from long to wide*/
@@ -1334,14 +1334,14 @@ create table Episode_Detail_7 as
 			,case when month(b.POST_DSCH_END_DT) < 10 then strip(put(year(b.POST_DSCH_END_DT),4.)||" M0"||strip(put(month(b.POST_DSCH_END_DT),2.)))
 			 else strip(put(year(b.POST_DSCH_END_DT),4.)||" M"||strip(put(month(b.POST_DSCH_END_DT),2.))) 
 			 end as Episode_End_YearMo
-			%if &label = ybase %then %do;
-			,"Unknown" as PATIENT_NAME format = $255. length=255
-			%end;
-			%else %do;
+/*			%if &label = ybase %then %do;*/
+/*			,"Unknown" as PATIENT_NAME format = $255. length=255*/
+/*			%end;*/
+/*			%else %do;*/
 			,case when b.BENE_SRNM_NAME in ("","~") then "Unknown"
 			else propcase(STRIP(b.BENE_SRNM_NAME)||", "||STRIP(b.BENE_GVN_NAME)) 
 			end as PATIENT_NAME format = $255. length=255
-			%end;
+/*			%end;*/
 			,b.CNT_ATTR_PGP
 			,b.BPID || "_" || b.BENE_SK as BPID_Member
 			,a.clinical_episode_abbr as episode_description
@@ -1762,7 +1762,7 @@ create table ccn_enc10 as
 				  when type in ('OP_ER') then strip(propcase(b.Provider_Last_Name__Legal_Name_))||", "||strip(propcase(b.Provider_First_Name))||" ("||strip(put(a.at_npi,best12.))||")" 
 			   end as ER_Physician
 		from ccn_enc8 as a
-		left join ref.npi_data as b
+		left join ref.npi_data_v2 as b
 			on strip(put(a.at_npi,best12.))=b.npi
 ;
 quit ; 
@@ -1832,7 +1832,7 @@ proc sql ;
 				  when type in ('OP_ER') then strip(propcase(b.Provider_Last_Name__Legal_Name_))||", "||strip(propcase(b.Provider_First_Name))||" ("||strip(put(a.at_npi,best12.))||")" 
 			   end as ER_Physician
 		from ccn_enc10b as a
-		left join ref.npi_data as b
+		left join ref.npi_data_v2 as b
 			on strip(put(a.at_npi,best12.))=b.npi;
 
 quit;
@@ -2076,7 +2076,7 @@ proc sql ;
 					end as prov_timeframe_all	
 			  ,a.edac_flag
 	from npi_level_b as a
-	left join ref.npi_data as b
+	left join ref.npi_data_v2 as b
 	on a.PRFNPI_A=b.npi
 	;
 quit;
@@ -4655,7 +4655,7 @@ create table exclusions1 as
 /*			then 1 else 0 end as DROPFLAG_OTHER*/
 		,case
 			when a.DROPFLAG_CJR = 1 then 1 /*facility level exclusion*/
-			/*when a.DROPFLAG_ACO_MSSP_OVERLAP = 1 then 2 *//*facility level exclusion*/
+			when a.DROPFLAG_ACO_MSSP_OVERLAP = 1 then 2 /*facility level exclusion*/
 			when a.DROPFLAG_ACO_CEC_OVERLAP = 1 then 3 /*facility level exclusion*/
 			when a.DROPFLAG_ACO_NEXTGEN_OVERLAP = 1 then 4 /*facility level exclusion*/
 			when a.DROPFLAG_ACO_VERMONTAP_OVERLAP = 1 then 5 /*facility level exclusion*/
@@ -4678,7 +4678,7 @@ create table exclusions1 as
             end as dropreason
 		,case
 			when a.DROPFLAG_CJR = 1 then "CJR hospital with MJRLE MS-DRG" /*facility level exclusion*/
-			/*when a.DROPFLAG_ACO_MSSP_OVERLAP = 1 then "Beneficiary aligned with Medicare Shared Savings Program Track 3 (ACO)"*/ /*facility level exclusion*/
+			when a.DROPFLAG_ACO_MSSP_OVERLAP = 1 then "Beneficiary aligned with Medicare Shared Savings Program Track 3 (ACO)" /*facility level exclusion*/
 			when a.DROPFLAG_ACO_CEC_OVERLAP = 1 then "Beneficiary aligned with Comprehensive ESRD Care (ACO)" /*facility level exclusion*/
 			when a.DROPFLAG_ACO_NEXTGEN_OVERLAP = 1 then "Beneficiary aligned with Next Generation (ACO)" /*facility level exclusion*/
 			when a.DROPFLAG_ACO_VERMONTAP_OVERLAP = 1 then "Beneficiary aligned with Vermont All Payer (ACO)" /*facility level exclusion*/
@@ -5081,7 +5081,6 @@ dev runs
 %Dashboard(6053,0002,1);
 %Dashboard(2974,0003,1);
 %Dashboard(2974,0007,1);
-
 
 
 *DEMO/DEV ONLY;

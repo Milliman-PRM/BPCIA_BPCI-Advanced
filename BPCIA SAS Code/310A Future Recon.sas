@@ -1,9 +1,13 @@
+%let _sdtm=%sysfunc(datetime());
+
 %let label = y202002; *Recon label;
 %let Prev_label = y202001; *Previous Recon label;
 %let Perf_label = y202002; *Most recent performance label;
 %let Recon_label = pp1Initial; *Most recent performance label;
 %let transmit_date = '07FEB2020'd;*Change for every Update*; 
 
+proc printto;run;
+proc printto log="H:\BPCIA_BPCI Advanced\50 - BPCI Advanced Ongoing Reporting - 2020\Work Papers\SAS\logs\310A - Qlikview Code_&label._&sysdate..log" print=print new;
 
 %let main = H:\Nonclient\Medicare Bundled Payment Reference\Program - BPCIA\SAS Code;
 %include "&main.\000 - Formats - BPCIA.sas";
@@ -18,7 +22,7 @@ libname out "&dataDir.\07 - Processed Data";
 libname out2 "&dataDir.\07 - Processed Data\Recon";
 libname out3 "&dataDir.\07 - Processed Data\Demo";
 libname tp "&dataDir.\08 - Target Price Data";
-libname recon "&dataDir.\09 - Reconciliation Reports\PP1 Initial\Other\Stacked Files";
+*libname recon "&dataDir.\09 - Reconciliation Reports\PP1 Initial\Other\Stacked Files";
 
 libname ref "H:\Nonclient\Medicare Bundled Payment Reference\General\SAS Datasets" ;
 libname bpciaref 'H:\Nonclient\Medicare Bundled Payment Reference\Program - BPCIA\SAS Datasets';
@@ -26,7 +30,11 @@ libname cjrref "H:\Nonclient\Medicare Bundled Payment Reference\Program - CJR\SA
 
 %let exportDir = R:\data\HIPAA\BPCIA_BPCI Advanced\13 - Reconciliation Output\Recon - &Recon_label.;
 
-%macro FutureRecon(id);
+%macro FutureRecon(id,reconref);
+
+data tp_&label._&id. ;
+	set out.tp_&label._&id.:(Drop=Census_Pre);
+run;
 
 proc sql;
 create table future_recon1A_pre as 
@@ -34,7 +42,7 @@ create table future_recon1A_pre as
 		  ,b.BPCI_Episode_Idx
 		  ,case when (&transmit_date. - A.POST_DSCH_END_DT) >= 60 then "Yes" else "No" end as COMP_EP_FLAG 
  /* from out.tp_y202001_1148_0000 AS A */   
- from out.tp_&label._&id.  AS A 
+ from tp_&label._&id.  AS A 
 	left join bpciaref.BPCIA_DRG_Mapping as b
 	on a.ANCHOR_CODE = b.code
 where has_tp = 'Yes' 
@@ -225,7 +233,7 @@ from recon.reconciliation_report
 ;
 quit;
 */
-
+%if &reconref. = 1 %then %do;
 proc sql;
 create table recon_distinct as
 select distinct
@@ -235,7 +243,8 @@ clinical_episode_abbr,
 CLIN_CMS_TP_REAL,
 CLIN_CMS_ALLOWED_REAL,
 CLIN_CMS_EPI_COUNT,
-CLIN_CMS_NPRA,
+CLIN_CMS_NPRA
+/*
 Stop_Loss_Stop_Gain,
 BPID_CMS_ALLOWED_REAL,
 BPID_CMS_TP_REAL,
@@ -243,11 +252,38 @@ CMS_RECON_Amount,
 CMS_adjusted_recon_amount,
 StopLoss_StopGain,
 Capped_adj_recon_Amt
+*/
  from out.recon_&recon_label._&id.
 /* from out.recon_pp1initial_1148_0000 */
 ;
 quit;
 
+proc sql;
+create table recon_distinct2 as
+select distinct
+BPID,
+epi_period_short,
+Stop_Loss_Stop_Gain,
+BPID_CMS_ALLOWED_REAL,
+BPID_CMS_TP_REAL,
+CMS_RECON_Amount, 
+CMS_adjusted_recon_amount,
+StopLoss_StopGain,
+Capped_adj_recon_Amt,
+ALLEPI_CMS_EPI_COUNT
+ from out.recon_&recon_label._&id.
+/* from out.recon_pp1initial_1148_0000 */
+;
+quit;
+%end;
+%else %do;
+data recon_distinct;
+	set _NULL_;
+run;
+data recon_distinct2;
+	set _NULL_;
+run;
+%end;
 
 	proc sql;
 	create table future_recon7_multiplier as
@@ -273,35 +309,77 @@ TRUED_UP_COST, TRUEDUP_TP,	TRUED_UP_NPRA,	RECON_AMT,	ADJ_RECON*Multiplier AS ADJ
 Recon_AMT_QA10*MULTIPLIER_Q10 AS Recon_AMT_QA10,	Recon_AMT_QA8*MULTIPLIER_Q8 AS Recon_AMT_QA8,	Recon_AMT_QA6*MULTIPLIER_Q6 AS Recon_AMT_QA6,	
 Recon_AMT_QA4*MULTIPLIER_Q4 AS Recon_AMT_QA4,	Recon_AMT_QA2*MULTIPLIER_Q2 AS Recon_AMT_QA2 ,	Recon_AMT_QA0*MULTIPLIER_Q0 AS Recon_AMT_QA0, ALLEPI_TrueUp, ALLEPI_TP,
 SORT_NUMBER_BPID, SORT_NUMBER, Multiplier,
-(CASE WHEN Multiplier = 1 THEN 'No' ELSE 'Yes' END) AS TRUEDUP_STOP,
-(CASE WHEN C.Stop_loss_Stop_gain IS NOT NULL and C.Stop_loss_Stop_gain = 'Y' THEN 'Yes' ELSE 'No' END)  AS RECON_TRUEDUP_STOP,
-(CASE WHEN D.Stop_loss_Stop_gain IS NOT NULL and D.Stop_loss_Stop_gain = 'Y' THEN 'Yes'  ELSE 'No' END)  AS CMS_CURRENT_STOP,
-CLIN_CMS_TP_REAL,
-CLIN_CMS_ALLOWED_REAL,
-CLIN_CMS_EPI_COUNT,
-CLIN_CMS_NPRA,
-BPID_CMS_ALLOWED_REAL,
-BPID_CMS_TP_REAL,
-CMS_RECON_Amount, 
-CMS_adjusted_recon_amount,
-StopLoss_StopGain,
-Capped_adj_recon_Amt
+(CASE WHEN min(B.Multiplier,MULTIPLIER_Q10,MULTIPLIER_Q8,MULTIPLIER_Q6,MULTIPLIER_Q4,MULTIPLIER_Q2,MULTIPLIER_Q0) ^= 1 THEN 'Yes' ELSE 'No' END) AS RECON_TRUEDUP_STOP,
+(CASE WHEN (ALLEPI_TP*.2) <= abs(ALLEPI_ADJ_RECON) THEN 'Yes' ELSE 'No' END)  AS TRUEDUP_STOP,
+%if &reconref. = 1 %then %do;
+(CASE WHEN E.Stop_loss_Stop_gain IS NOT NULL and E.Stop_loss_Stop_gain = 'Yes' THEN 'Yes'  ELSE 'No' END)  AS CMS_CURRENT_STOP,
+E.BPID_CMS_ALLOWED_REAL,
+E.BPID_CMS_TP_REAL,
+E.CMS_RECON_Amount, 
+E.CMS_adjusted_recon_amount,
+E.StopLoss_StopGain,
+E.Capped_adj_recon_Amt,
+E.ALLEPI_CMS_EPI_COUNT,
+D.CLIN_CMS_TP_REAL,
+D.CLIN_CMS_ALLOWED_REAL,
+D.CLIN_CMS_EPI_COUNT,
+D.CLIN_CMS_NPRA
+%end;
+%else %do;
+'-' as CMS_CURRENT_STOP,
+. as BPID_CMS_ALLOWED_REAL,
+. as BPID_CMS_TP_REAL,
+. as CMS_RECON_Amount, 
+. as CMS_adjusted_recon_amount,
+. as StopLoss_StopGain,
+. as Capped_adj_recon_Amt,
+. as ALLEPI_CMS_EPI_COUNT,
+. as CLIN_CMS_TP_REAL,
+. as CLIN_CMS_ALLOWED_REAL,
+. as CLIN_CMS_EPI_COUNT,
+. as CLIN_CMS_NPRA
+%end;
 	FROM future_recon7	A
 		INNER JOIN future_recon7_multiplier B
 			ON A.BPID = B.BPID
 			AND A.epi_period_short = B.epi_period_short
 			AND A.clinical_episode_abbr = B.clinical_episode_abbr
-		LEFT OUTER JOIN recon.reconciliation_report C
+		LEFT OUTER JOIN tp.recon_reports_all C
 			ON A.BPID = C.Convener_ID
-		LEFT OUTER JOIN recon_distinct  D
-				ON A.BPID = D.BPID
-			AND A.epi_period_short = D.epi_period_short	
-			AND A.clinical_episode_abbr= D.clinical_episode_abbr	
+		%if &reconref. = 1 %then %do;
+			LEFT OUTER JOIN recon_distinct  D
+					ON A.BPID = D.BPID
+				AND A.epi_period_short = D.epi_period_short	
+				AND A.clinical_episode_abbr= D.clinical_episode_abbr	
+			LEFT OUTER JOIN recon_distinct2  E
+					ON A.BPID = E.BPID
+				AND A.epi_period_short = E.epi_period_short	
+		%end;
 			;
 			quit;
 
+
+data future_recon9;
+set future_recon8;
+	if CLINICAL_EPISODE_ABBR = 'All Episodes' then do;
+		CLIN_CMS_TP_REAL = BPID_CMS_TP_REAL;
+		CLIN_CMS_ALLOWED_REAL = BPID_CMS_ALLOWED_REAL;
+		CLIN_CMS_EPI_COUNT = ALLEPI_CMS_EPI_COUNT;
+		CLIN_CMS_NPRA = CMS_Recon_Amount;
+		CLIN_CMS_RECON_AMT = CMS_ADJUSTED_RECON_AMOUNT;
+	end;
+
+	if CMS_RECON_Amount>0 then CLIN_CMS_RECON_AMT = CLIN_CMS_NPRA*0.9;
+	else CLIN_CMS_RECON_AMT = CLIN_CMS_NPRA;
+
+	FR_JOIN = BPID||"_"||epi_period_short;
+run;
+
 data out.TP_Var_&label._&id.;
-	set future_recon8;
+	format CMS_CURRENT_STOP $3.;
+	set future_recon9;
+	if CMS_CURRENT_STOP = 'N' then CMS_CURRENT_STOP = 'No';
+	if CMS_CURRENT_STOP = 'Y' then CMS_CURRENT_STOP = 'Yes';
 run;
 
 *delete work datasets*;
@@ -311,90 +389,149 @@ quit;
 
 %mend FutureRecon;
 
+*%FutureRecon(5746_0002,1);
 
-%FutureRecon(1148_0000);
-%FutureRecon(1167_0000);
-%FutureRecon(1209_0000);
-%FutureRecon(1343_0000);
-%FutureRecon(1368_0000);
-%FutureRecon(1374_0004);
-%FutureRecon(1374_0008);
-%FutureRecon(1374_0009);
-%FutureRecon(1686_0002);
-%FutureRecon(1688_0002);
-%FutureRecon(1696_0002);
-%FutureRecon(1710_0002);
-%FutureRecon(1958_0000);
-%FutureRecon(2070_0000);
-%FutureRecon(2374_0000);
-%FutureRecon(2376_0000);
-%FutureRecon(2378_0000);
-%FutureRecon(2379_0000);
-%FutureRecon(1075_0000);
-%FutureRecon(2594_0000);
-%FutureRecon(2048_0000);
-%FutureRecon(2049_0000);
-%FutureRecon(2607_0000);
-%FutureRecon(5038_0000);
-%FutureRecon(5050_0000);
-%FutureRecon(2587_0000);
-%FutureRecon(2589_0000);
-%FutureRecon(5154_0000);
-%FutureRecon(5282_0000);
-%FutureRecon(5037_0000);
-%FutureRecon(5478_0002);
-%FutureRecon(5043_0000);
-%FutureRecon(5479_0002);
-%FutureRecon(5480_0002);
-%FutureRecon(5215_0003);
-%FutureRecon(5215_0002);
-%FutureRecon(5229_0000);
-%FutureRecon(5263_0000);
-%FutureRecon(5264_0000);
-%FutureRecon(5481_0002);
-%FutureRecon(5394_0000);
-%FutureRecon(5395_0000);
-%FutureRecon(5397_0002);
-%FutureRecon(5397_0005);
-%FutureRecon(5397_0004);
-%FutureRecon(5397_0008);
-%FutureRecon(5397_0003);
-%FutureRecon(5397_0006);
-%FutureRecon(5397_0009);
-%FutureRecon(5397_0010);
-%FutureRecon(5916_0002);
-%FutureRecon(6049_0002);
-%FutureRecon(6050_0002);
-%FutureRecon(6051_0002);
-%FutureRecon(6052_0002);
-%FutureRecon(6053_0002);
-%FutureRecon(5397_0007);
-%FutureRecon(1102_0000);
-%FutureRecon(1105_0000);
-%FutureRecon(1106_0000);
-%FutureRecon(1103_0000);
-%FutureRecon(1104_0000);
-%FutureRecon(5392_0004);
-%FutureRecon(6054_0002);
-%FutureRecon(6055_0002);
-%FutureRecon(6056_0002);
-%FutureRecon(6057_0002);
-%FutureRecon(6058_0002);
-%FutureRecon(6059_0002);
-%FutureRecon(5746_0002);
-%FutureRecon(1191_0002);
-%FutureRecon(2302_0000);
 
-data out.TP_Var_&label. out.TP_Var_pmr_&label. out.TP_Var_oth_&label.;
+%FutureRecon(2586_0002,0);
+%FutureRecon(2586_0005,0);
+%FutureRecon(2586_0006,0);
+%FutureRecon(2586_0007,0);
+%FutureRecon(2586_0010,0);
+%FutureRecon(2586_0013,0);
+%FutureRecon(2586_0025,0);
+%FutureRecon(2586_0026,0);
+%FutureRecon(2586_0028,0);
+%FutureRecon(2586_0029,0);
+%FutureRecon(2586_0030,0);
+%FutureRecon(2586_0031,0);
+%FutureRecon(2586_0032,0);
+%FutureRecon(2586_0033,0);
+%FutureRecon(2586_0034,0);
+%FutureRecon(2586_0035,0);
+*%FutureRecon(2586_0036,0);
+*%FutureRecon(2586_0038,0);
+%FutureRecon(2586_0039,0);
+*%FutureRecon(2586_0040,0);
+*%FutureRecon(2586_0041,0);
+*%FutureRecon(2586_0042,0);
+*%FutureRecon(2586_0043,0);
+%FutureRecon(2586_0044,0);
+%FutureRecon(2586_0045,0);
+%FutureRecon(2586_0046,0);
+%FutureRecon(1374_0004,1);
+%FutureRecon(1374_0008,1);
+%FutureRecon(1374_0009,1);
+%FutureRecon(1374_0012,0);
+%FutureRecon(1374_0013,0);
+%FutureRecon(1374_0014,0);
+%FutureRecon(1374_0015,0);
+%FutureRecon(1374_0017,0);
+%FutureRecon(1374_0018,0);
+%FutureRecon(1191_0002,1);
+%FutureRecon(7310_0002,0);
+%FutureRecon(7310_0003,0);
+%FutureRecon(7310_0004,0);
+%FutureRecon(7310_0005,0);
+%FutureRecon(7310_0006,0);
+%FutureRecon(7310_0007,0);
+%FutureRecon(7312_0002,0);
+%FutureRecon(6054_0002,1);
+%FutureRecon(6055_0002,1);
+%FutureRecon(6056_0002,1);
+%FutureRecon(6057_0002,1);
+%FutureRecon(6058_0002,1);
+%FutureRecon(6059_0002,1);
+%FutureRecon(1209_0000,1);
+%FutureRecon(1028_0000,0);
+%FutureRecon(1075_0000,1);
+%FutureRecon(1102_0000,1);
+%FutureRecon(1103_0000,1);
+%FutureRecon(1104_0000,1);
+%FutureRecon(1105_0000,1);
+%FutureRecon(1106_0000,1);
+%FutureRecon(1148_0000,1);
+%FutureRecon(1167_0000,1);
+%FutureRecon(1343_0000,1);
+%FutureRecon(1368_0000,1);
+%FutureRecon(1461_0000,0);
+%FutureRecon(1634_0000,1);
+*%FutureRecon(1803_0000,0);
+%FutureRecon(1958_0000,1);
+%FutureRecon(2048_0000,1);
+%FutureRecon(2049_0000,1);
+%FutureRecon(2070_0000,1);
+%FutureRecon(2214_0000,0);
+%FutureRecon(2215_0000,0);
+%FutureRecon(2216_0000,0);
+%FutureRecon(2302_0000,1);
+%FutureRecon(2317_0000,0);
+%FutureRecon(2374_0000,1);
+%FutureRecon(2376_0000,1);
+%FutureRecon(2378_0000,1);
+%FutureRecon(2379_0000,1);
+%FutureRecon(2451_0000,0);
+%FutureRecon(2452_0000,0);
+%FutureRecon(2461_0000,0);
+%FutureRecon(2468_0000,0);
+%FutureRecon(2587_0000,1);
+%FutureRecon(2589_0000,1);
+%FutureRecon(2594_0000,1);
+%FutureRecon(2607_0000,1);
+%FutureRecon(5037_0000,1);
+%FutureRecon(5038_0000,1);
+%FutureRecon(5043_0000,1);
+%FutureRecon(5050_0000,1);
+%FutureRecon(5154_0000,1);
+%FutureRecon(5215_0002,1);
+%FutureRecon(5215_0003,1);
+%FutureRecon(5229_0000,1);
+%FutureRecon(5263_0000,1);
+%FutureRecon(5264_0000,1);
+%FutureRecon(5282_0000,1);
+%FutureRecon(5392_0004,1);
+%FutureRecon(5394_0000,1);
+%FutureRecon(5395_0000,1);
+%FutureRecon(5397_0002,1);
+%FutureRecon(5397_0003,1);
+%FutureRecon(5397_0004,1);
+%FutureRecon(5397_0005,1);
+%FutureRecon(5397_0006,1);
+%FutureRecon(5397_0007,1);
+%FutureRecon(5397_0008,1);
+%FutureRecon(5397_0009,1);
+%FutureRecon(5397_0010,1);
+%FutureRecon(5478_0002,1);
+%FutureRecon(5479_0002,1);
+%FutureRecon(5480_0002,1);
+%FutureRecon(5481_0002,1);
+%FutureRecon(5746_0002,1);
+%FutureRecon(1686_0002,1);
+%FutureRecon(1688_0002,1);
+%FutureRecon(1696_0002,1);
+%FutureRecon(1710_0002,1);
+%FutureRecon(2941_0002,0);
+%FutureRecon(2956_0002,0);
+%FutureRecon(6049_0002,1);
+%FutureRecon(6050_0002,1);
+%FutureRecon(6051_0002,1);
+%FutureRecon(6052_0002,1);
+%FutureRecon(6053_0002,1);
+%FutureRecon(2974_0003,0);
+%FutureRecon(2974_0007,0);
+
+
+data out.TP_Var_&label. out.TP_Var_pmr_&label. out.TP_Var_oth_&label. out.TP_Var_ccf_&label.;
 	set out.TP_Var_&label._: ;
 	output out.TP_Var_&label.;
 	if BPID in (&PMR_EI_lst.) then output out.TP_Var_pmr_&label.;
 	else if BPID in (&NON_PMR_EI_lst.) then output out.TP_Var_oth_&label.;
+	else if BPID in (&CCF_lst.) then output out.TP_Var_ccf_&label.;
 run;
 
 %sas_2_csv(out.TP_Var_&label.,TP_Variability.csv);
 %sas_2_csv(out.TP_Var_pmr_&label.,TP_Variability_pmr.csv);
 %sas_2_csv(out.TP_Var_oth_&label.,TP_Variability_oth.csv);
+%sas_2_csv(out.TP_Var_ccf_&label.,TP_Variability_ccf.csv);
 
 
 
@@ -412,7 +549,7 @@ proc format; value $masked_bpid
 '5479-0002'='8888-0000'
 other='';
 run;
-
+/*
 ********************
 ********************
 Calculation of Adjusted Target Prices
@@ -448,3 +585,10 @@ run;
 
 
 %sas_2_csv(All_TP_Var_Demo,TP_Variability_Demo.csv);
+*/
+
+proc printto;run;
+%let _edtm=%sysfunc(datetime());
+%let _runtm=%sysevalf(%sysfunc(putn(&_edtm - &_sdtm, 12.))/60.0);
+%put It took &_runtm minutes to run the program;
+

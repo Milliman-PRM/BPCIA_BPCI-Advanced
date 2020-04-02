@@ -219,7 +219,7 @@ data out.idx_&label._&bpid1._&bpid2.;
 	where type='IP_Idx' and EPISODE_GROUP_NAME in ('Double joint replacement of the lower extremity','Major joint replacement of the lower extremity');
 	%end;
 	keep 
-		EPISODE_ID EPI_ID_MILLIMAN BENE_SK IP_STAY_ID STAY_ADMSN_DT TRANSFER_STAY AT_NPI OP_NPI BENE_AGE ANCHOR_BEG_DT STUS_CD ;
+		MEASURE_YEAR EPISODE_ID EPI_ID_MILLIMAN BENE_SK IP_STAY_ID STAY_ADMSN_DT TRANSFER_STAY AT_NPI OP_NPI BENE_AGE ANCHOR_BEG_DT STUS_CD ;
 	rename STUS_CD=i_STUS_CD;
 run;
 
@@ -249,6 +249,7 @@ proc sql;
 	and a.IP_STAY_ID = b.IP_STAY_ID 
 	and a.STAY_ADMSN_DT=b.STAY_ADMSN_DT 
 	and a.EPI_ID_MILLIMAN=b.EPI_ID_MILLIMAN
+	and A.measure_year = b.measure_year
 ;
 quit;
 
@@ -298,6 +299,7 @@ proc sql;
 	from out.ip_&label._&bpid1._&bpid2. as a
 	left join idx_adm2 as b
 	on a.EPI_ID_MILLIMAN = b.EPI_ID_MILLIMAN
+	and A.measure_year = b.measure_year
 ;
 quit;
 
@@ -308,10 +310,11 @@ proc sql;
 		select distinct a.EPI_ID_MILLIMAN, a.episode_id,
 			b.BENE_SK,  b.IP_STAY_ID,  b.STAY_ADMSN_DT,
 			a.THA_TKA_NUM, a.REV_NUM, a.PHA_NUM, a.RES_NUM, a.REM_NUM, a.MC_EXCL, a.NEO_EXCL, a.FRACTURE_COMPLICATION, 
-			a.INCLUDE, a.ANCHOR_BEG_DT,  a.i_STUS_CD, b.type, b.dos, b.provider  
+			a.INCLUDE, a.ANCHOR_BEG_DT,  a.i_STUS_CD, b.type, b.dos, b.provider, A.measure_year  
 			from cc1 as a
 			left join cc2 as b
 			on a.EPI_ID_MILLIMAN = b.EPI_ID_MILLIMAN
+			and A.measure_year = b.measure_year
 /*			where type not in ('IP_Idx'); */
 
 	;
@@ -325,7 +328,7 @@ proc sort data=dxpx; by EPI_ID_MILLIMAN BENE_SK IP_STAY_ID STAY_ADMSN_DT; run;
 data cc4;
 	merge
 		cc3 (in=a)
-		dxpx (in=b keep=EPI_ID_MILLIMAN BENE_SK IP_STAY_ID STAY_ADMSN_DT Radm_rehab -- PJI_RB);
+		dxpx (in=b keep=MEASURE_YEAR EPI_ID_MILLIMAN BENE_SK IP_STAY_ID STAY_ADMSN_DT Radm_rehab -- PJI_RB);
 	by EPI_ID_MILLIMAN BENE_SK IP_STAY_ID STAY_ADMSN_DT;
 	if a;
 
@@ -397,14 +400,14 @@ proc sql;
 	from cc4 as a
 	left join data1_&label._&bpid1._&bpid2. as b
 	on a.epi_id_milliman = b.epi_id_milliman
-
+	and A.MEASURE_YEAR = B.MEASURE_YEAR
 ;
 quit;
 
 
 ** Summarize detailed list of complications by episode - any complications on readmissions are assigned to the index admission by admission date**;
 proc summary nway missing data=cc4a;
-	class  EPI_ID_MILLIMAN EPISODE_ID PROVIDER STAY_ADMSN_DT INCLUDE;
+	class  MEASURE_YEAR EPI_ID_MILLIMAN EPISODE_ID PROVIDER STAY_ADMSN_DT INCLUDE;
 	var STAY_ADMSN_DT CC_INF_idx -- CC_SEP_idx CC_INF -- CC_SEP CC_death;
 	output out = cc5 (drop=_type_ _freq_) min= STAY_ADMSN_DT max=;
 run;
@@ -450,11 +453,11 @@ data out.cc_det_&label._&bpid1._&bpid2.;
 	if complication ne '' then output; complication = '';
 
 
-	keep EPI_ID_MILLIMAN PROVIDER STAY_ADMSN_DT complication;
+	keep MEASURE_YEAR EPI_ID_MILLIMAN PROVIDER STAY_ADMSN_DT complication;
 run;
 *Output a total list of all episodes and whether they are eligible for the index chort (cc_denom) and if they have a complication (cc_numer);
 proc summary nway missing data=cc4a;
-	class EPI_ID_MILLIMAN;
+	class MEASURE_YEAR EPI_ID_MILLIMAN;
 	output out = out.cc_sum_&label._&bpid1._&bpid2. (drop=_type_ _freq_)
 		min(include)=cc_denom
 		max(cc2)=cc_numer;

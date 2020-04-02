@@ -11,8 +11,8 @@ libname out "&dataDir.\07 - Processed Data";
 *DEV;
 /*libname out "&dataDir.\07 - Processed Data\Development";*/
 
-libname out2 "R:\data\HIPAA\BPCIA_BPCI Advanced\07 - Processed Data\Past files for checking\20200129";
-libname check "R:\data\HIPAA\BPCIA_BPCI Advanced\07 - Processed Data\Past files for checking\20200226";
+libname out2 "R:\data\HIPAA\BPCIA_BPCI Advanced\07 - Processed Data\Past files for checking\20200226";
+libname check "R:\data\HIPAA\BPCIA_BPCI Advanced\07 - Processed Data\Past files for checking\20200402";
 
 
 %include "H:\_HealthLibrary\SAS\000 - General SAS Macros.sas";
