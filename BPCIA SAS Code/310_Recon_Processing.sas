@@ -758,11 +758,11 @@ data Epi_Join_&label._&id.;
 	set %if &reconref. = 1 %then %do; 
 			out.Recon_&label._&id. (in=b)
 			out.epi_detail_&Perf_label._&id. (in=a)
-			out.epi_detail_ybase_&id. (in=c)
+			out.a_epi_detail_ybase_&id. (in=c)
 		%end;
 		%else %if &reconref. = 0 %then %do; 
 			out.epi_detail_&Perf_label._&id. (in=a)
-			out.epi_detail_ybase_&id. (in=c)
+			out.a_epi_detail_ybase_&id. (in=c)
 		%end;
 		;
 
