@@ -489,8 +489,15 @@ run;
 *%create_demo(1148-0000,1167-0000,1343-0000,1368-0000,2379-0000,2587-0000,2607-0000,5479-0002);  
 
 
+*********************************************;
+***** STACKING *****;
 		data out.TP_Components_pmr_comb out.TP_Components_oth_comb out.TP_Components_ccf_comb out.TP_Components_dev_comb;
-			set out.TP_Components_all out.TP_Components_my3_all;
+			set out.TP_Components_all(IN=A) out.TP_Components_my3_all(IN=B);
+
+			*format Timeframe_Flag ;
+			if a then Timeframe_Flag = 0;
+			else if b then Timeframe_Flag = 1;
+
 			if initiator_bpid in (&PMR_EI_lst.) then output out.TP_Components_pmr_comb;
 			else if initiator_bpid in (&NON_PMR_EI_lst.) then output out.TP_Components_oth_comb;
 			else if initiator_bpid in (&CCF_lst.) then output out.TP_Components_ccf_comb;

@@ -12,7 +12,6 @@ proc printto;run;
 ***** USER INPUTS ******************************************************************************************;
 %let mode = main; *main = main interface, base = baseline interface;
 
-
 ****** REFERENCE PROGRAMS ***********************************************************************************;
 %include "H:\_HealthLibrary\SAS\000 - General SAS Macros.sas";
 %include "H:\_HealthLibrary\SAS\000 - General SAS Macros_64bit.sas";
@@ -114,6 +113,9 @@ data PAT_Factors;
 	if Clinical_Episode = "Disorders Of Liver Except Malignancy, Cirrhosis Or Alcoholic Hepatitis" then
 		Clinical_Episode = "Disorders of liver except malignancy, cirrhosis or alcoholic hepatitis" ;
 
+	if Clinical_Episode = "Transcathether aortic valve replacement" then
+		Clinical_Episode = "Endovascular Cardiac Valve Replacement" ;
+
 	output;
 	if anchor_type='ms' then do;
 		anchor_type='ip'; output;
@@ -141,6 +143,9 @@ data PAT_Factors_baseline;
 	if Clinical_Episode = "Disorders Of Liver Except Malignancy, Cirrhosis Or Alcoholic Hepatitis" then
 		Clinical_Episode = "Disorders of liver except malignancy, cirrhosis or alcoholic hepatitis" ;
 
+	if Clinical_Episode = "Transcathether aortic valve replacement" then
+		Clinical_Episode = "Endovascular Cardiac Valve Replacement" ;
+
 	output;
 	if anchor_type='ms' then do;
 		anchor_type='ip'; output;
@@ -157,6 +162,9 @@ data TP_Components;
 
 	if EPI_CAT = "Disorders Of Liver Except Malignancy, Cirrhosis Or Alcoholic Hepatitis" then
 		EPI_CAT = "Disorders of liver except malignancy, cirrhosis or alcoholic hepatitis" ;
+
+	if EPI_CAT = "Transcathether aortic valve replacement" then
+		EPI_CAT = "Endovascular Cardiac Valve Replacement" ;
 
 run; 
 
@@ -177,6 +185,9 @@ data TP_Risk_Adj_Parameters;
 
 	if Clinical_Episode_Category = "Disorders Of Liver Except Malignancy, Cirrhosis Or Alcoholic Hepatitis" then
 		Clinical_Episode_Category = "Disorders of liver except malignancy, cirrhosis or alcoholic hepatitis" ;
+
+	if Clinical_Episode_Category = "Transcathether aortic valve replacement" then
+		Clinical_Episode_Category = "Endovascular Cardiac Valve Replacement" ;
 run;
 
 proc sort nodupkey data=TP_Risk_Adj_Parameters out=TP_Risk_Adj_Parameters_forBase;
@@ -188,11 +199,14 @@ data TP_Risk_Adj_Parameters_baseline;
 
 	if Clinical_Episode_Category = "Disorders Of Liver Except Malignancy, Cirrhosis Or Alcoholic Hepatitis" then
 		Clinical_Episode_Category = "Disorders of liver except malignancy, cirrhosis or alcoholic hepatitis" ;
+
+	if Clinical_Episode_Category = "Transcathether aortic valve replacement" then
+		Clinical_Episode_Category = "Endovascular Cardiac Valve Replacement" ;
 run;
 
 %MACRO TP(label);
 
-%MACRO RunHosp(id1,id2,bpid1,bpid2,prov);
+%MACRO RunHosp(id1,id2,bpid1,bpid2,prov,reconref);
 
 data temp0;
 	format BPID $9. EPI_ID_MILLIMAN $32. ;
@@ -209,6 +223,10 @@ data temp0;
 	HCC55=0;
 	DISABLED_HCC54=0;
 	DISABLED_HCC55=0;
+
+	%if &reconref. = 1 %then %do;
+		drop TKA_FLAG;
+	%end;
 
 	drop EPI_DROPPED_FLAG TARGET_PRICE TARGET_PRICE_REAL;
 run;
@@ -233,7 +251,7 @@ run;
 %if %substr(&label.,1,5)  ^= ybase %then %do;
 	proc sql;
 		create table temp1a_pre as
-		select a.*, b.Major_Teaching_Hospital as ACADEMIC, b.Urban as URBAN_RURAL, b.SAFETY_NET, b.BED_SIZE, b.CENSUS_Division as CENSUS_Pre
+		select a.*, b.Major_Teaching_Hospital as ACADEMIC, b.Urban as URBAN_RURAL, b.SAFETY_NET, b.BED_SIZE as BED_SIZE_join, b.CENSUS_Division as CENSUS_Pre
 		from temp1_prea as a left join Peer_Group as b
 		on a.anc_ccn = b.ccn_join
 			and b.epi_start <= a.ANCHOR_END_DT <= b.epi_end;
@@ -423,7 +441,7 @@ proc sql;
 			b.EPI_DROPPED_FLAG,
 			b.TIME_PERIOD
 		from temp3a as a 
-			left join TP_Components as b
+			left join TP_Components_forBase as b
 				on a.BPID = b.INITIATOR_BPID
 				and a.EPISODE_GROUP_NAME = b.EPI_CAT
 				and a.anchor_type_upper = b.EPI_TYPE
@@ -1090,7 +1108,7 @@ run;
 proc sql;
 	create table temp2b as
 	select a.*, b.*
-	from temp1b as a left join TP_Risk_Adj_Parameters_baseline as b
+	from temp1b as a left join TP_Risk_Adj_Parameters_forbase as b
 	on a.EPISODE_GROUP_NAME = b.Clinical_Episode_Category
 		and a.anchor_type_upper = b.Clinical_Episode_Type;
 		/*and b.epi_start <= a.ANCHOR_END_DT <= b.epi_end;*/
@@ -1882,7 +1900,7 @@ quit;
 proc sql;
 	create table disaster2 as
 	select distinct a.*, 
-	 b.Disaster_Number as NATURAL_DISASTER_MONTHLY_NUM
+	 b.Disaster_Number as NATURAL_DISASTER_MONTHLY_NUM1
 	from disaster as a left join cjrref.disasterarealist_Milliman as b
 	on sum(b.incident_start_date,-29) <= a.anchor_beg_dt <= sum(b.incident_end_date,29)
 	and a.state = b.state
@@ -1890,9 +1908,27 @@ proc sql;
 		;
 quit;
 
+data COVID;
+	set cjrref.disasterarealist_Millimancvd;
+	where county='';
+	incident_end_date = mdy(12,31,2999);
+run;
+
+proc sql;
+	create table disaster3 as
+	select distinct a.*, 
+	 b.Disaster_Number as NATURAL_DISASTER_MONTHLY_NUM2
+	from disaster2 as a left join COVID as b
+	on sum(b.incident_start_date,-29) <= a.anchor_beg_dt <= sum(b.incident_end_date,29)
+	and a.state = b.state
+		;
+quit;
+
 data t4;
-	set disaster2;
+	set disaster3;
 	format NATURAL_DISASTER_MONTHLY $3.;
+
+	NATURAL_DISASTER_MONTHLY_NUM = max(NATURAL_DISASTER_MONTHLY_NUM1,NATURAL_DISASTER_MONTHLY_NUM2);
 
 	if NATURAL_DISASTER_MONTHLY_NUM>0 then do;
 		NATURAL_DISASTER_MONTHLY='Yes';
@@ -1948,7 +1984,7 @@ data out.tp_&label._&bpid1._&bpid2._MY3;
 	Adjusted_TP_Real = TP_Adj * PAYMENT_RATIO;
 
 	%if %substr(&label.,1,5)  = ybase %then %do;
-		if EPI_SPEND_Original ^= 0 then EPI_STD_PMT_FCTR_WIN_1_99 = EPI_STD_PMT_FCTR_WIN_1_99_orig * EPI_SPEND / EPI_SPEND_Original;
+		if EPI_SPEND_Original not in (0,.) then EPI_STD_PMT_FCTR_WIN_1_99 = EPI_STD_PMT_FCTR_WIN_1_99_orig * EPI_SPEND / EPI_SPEND_Original;
 		else EPI_STD_PMT_FCTR_WIN_1_99=EPI_STD_PMT_FCTR_WIN_1_99_orig;
 		EPI_STD_PMT_FCTR_WIN_1_99_Real = EPI_STD_PMT_FCTR_WIN_1_99 * PAYMENT_RATIO;
 	%end;
@@ -1979,8 +2015,8 @@ run;
 
 data out2.tp_&label._&bpid1._&bpid2._MY3;
 	set out.tp_&label._&bpid1._&bpid2._MY3 (rename=(ORIGDS=ORIGDS_orig LTI=LTI_orig FRACTURE_FLAG=FRACTURE_FLAG_orig ANY_DUAL=ANY_DUAL_orig KNEE_ARTHRO_FLAG=KNEE_ARTHRO_FLAG_orig PRIOR_HOSP_W_NON_PAC_IP_FLAG_90=PRIOR_HOSP_W_NON_PAC_IP_FLAG_ori PRIOR_PAC_FLAG=PRIOR_PAC_FLAG_orig
-											HCC18=HCC18_orig HCC19=HCC19_orig HCC40=HCC40_orig HCC58=HCC58_orig HCC84=HCC84_orig HCC85=HCC85_orig HCC86=HCC86_orig HCC88=HCC88_orig HCC96=HCC96_orig HCC108=HCC108_orig HCC111=HCC111_orig));
-	format ORIGDS LTI FRACTURE_FLAG ANY_DUAL KNEE_ARTHRO_FLAG PRIOR_HOSP_W_NON_PAC_IP_FLAG_90 
+											HCC18=HCC18_orig HCC19=HCC19_orig HCC40=HCC40_orig HCC58=HCC58_orig HCC84=HCC84_orig HCC85=HCC85_orig HCC86=HCC86_orig HCC88=HCC88_orig HCC96=HCC96_orig HCC108=HCC108_orig HCC111=HCC111_orig %if &reconref. = 1 %then %do; PRIOR_HOSP_W_ANY_IP_FLAG_90=PRIOR_HOSP_W_ANY_IP_FLAG_90_orig %end;));
+	format ORIGDS LTI FRACTURE_FLAG ANY_DUAL KNEE_ARTHRO_FLAG TKA_FLAG PRIOR_HOSP_W_NON_PAC_IP_FLAG_90 PRIOR_HOSP_W_ANY_IP_FLAG_90
 			 HCC18 HCC19 HCC40 HCC58 HCC84 HCC85 HCC86 HCC88 HCC96 HCC108 HCC111 $3. HCC_COUNT $6. ;
 
 	if ORIGDS_orig=1 then ORIGDS='Yes'; else ORIGDS='No';
@@ -1988,8 +2024,18 @@ data out2.tp_&label._&bpid1._&bpid2._MY3;
 	if FRACTURE_FLAG_orig=1 then FRACTURE_FLAG='Yes'; else FRACTURE_FLAG='No';
 	if ANY_DUAL_orig=1 then ANY_DUAL='Yes'; else ANY_DUAL='No';
 	if KNEE_ARTHRO_FLAG_orig=1 then KNEE_ARTHRO_FLAG='Yes'; else KNEE_ARTHRO_FLAG='No';
+	*if KNEE_ARTHRO_FLAG_orig=1 then TKA_FLAG='Yes'; *else TKA_FLAG = 'No';
+	TKA_FLAG = KNEE_ARTHRO_FLAG;
 	if PRIOR_HOSP_W_NON_PAC_IP_FLAG_ori=1 then PRIOR_HOSP_W_NON_PAC_IP_FLAG_90='Yes'; else PRIOR_HOSP_W_NON_PAC_IP_FLAG_90='No';
 	if PRIOR_PAC_FLAG_orig=1 then PRIOR_PAC_FLAG='Yes'; else PRIOR_PAC_FLAG='No';
+
+	%if &reconref. = 1 %then %do;
+		if PRIOR_HOSP_W_ANY_IP_FLAG_90_orig = 1 then PRIOR_HOSP_W_ANY_IP_FLAG_90 = 'Yes';
+		else PRIOR_HOSP_W_ANY_IP_FLAG_90 = 'No';
+	%end;
+	%else %do;
+		PRIOR_HOSP_W_ANY_IP_FLAG_90 = PRIOR_HOSP_W_NON_PAC_IP_FLAG_90;
+	%end;
 
 	if HCC_CNT=0 then HCC_COUNT='0';
 	else if HCC_CNT<=3 then HCC_COUNT='1 to 3';
@@ -2010,11 +2056,11 @@ data out2.tp_&label._&bpid1._&bpid2._MY3;
 
 
 	keep BPID EPI_ID_MILLIMAN EPISODE_ID EPISODE_INITIATOR EPISODE_GROUP_NAME ANCHOR_TYPE ANCHOR_CODE ANCHOR_CCN
-		 DRG_CODE PERF_APC ORIGDS LTI FRACTURE_FLAG ANY_DUAL KNEE_ARTHRO_FLAG KNEE_ARTHRO_FRACTURE_FLAG PRIOR_HOSP_W_NON_PAC_IP_FLAG_90 PRIOR_PAC_FLAG
+		 DRG_CODE PERF_APC ORIGDS LTI FRACTURE_FLAG ANY_DUAL KNEE_ARTHRO_FLAG KNEE_ARTHRO_FRACTURE_FLAG PRIOR_HOSP_W_NON_PAC_IP_FLAG_90 PRIOR_PAC_FLAG PRIOR_HOSP_W_ANY_IP_FLAG_90
 		 EPI_STD_PMT_FCTR_WIN_1_99_Real Adjusted_TP_Real Discount_Real PGP_Offset_Amt_Real PAT_Amt_Real 
 		 PAT PAT_Adj PCMA PCMA_Adj PGP_ACH_PCMA PGP_PCMA_Adj CASE_MIX PGP_ACH_Ratio PGP_Offset PGP_Offset_Adj PAYMENT_RATIO 
 		 HAS_TP PERFORMANCE_PERIOD
-		 HCC_COUNT HCC18 HCC19 HCC40 HCC58 HCC84 HCC85 HCC86 HCC88 HCC96 HCC108 HCC111
+		 HCC_COUNT HCC18 HCC19 HCC40 HCC58 HCC84 HCC85 HCC86 HCC88 HCC96 HCC108 HCC111 NATURAL_DISASTER_MONTHLY TKA_FLAG
 		;
 run;
 
@@ -2022,6 +2068,11 @@ run;
 %mend;
 
 *****For Development*****;
+*%runhosp(5746_0001,5746_0001,5746,0002,100007,1);
+*%runhosp(1374_0001,1374_0001,1374,0009,420086,1);
+*%runhosp(1374_0001,1374_0001,1374,0012,420038,1);
+*%runhosp(2586_0001,2586_0001,2586,0002,360027,0);
+
 /*
 %runhosp(1148_0000,1148_0000,1148,0000,310008);
 %runhosp(1167_0000,1167_0000,1167,0000,390173);
@@ -2033,136 +2084,120 @@ run;
 %runhosp(1931_0001,5479_0001,5479,0002,310051);
 */
 
-%runhosp(2586_0001,2586_0001,2586,0002,360027);
-%runhosp(2586_0001,2586_0001,2586,0005,360082);
-%runhosp(2586_0001,2586_0001,2586,0006,360077);
-%runhosp(2586_0001,2586_0001,2586,0007,360230);
-%runhosp(2586_0001,2586_0001,2586,0010,360143);
-%runhosp(2586_0001,2586_0001,2586,0013,360180);
-%runhosp(2586_0001,2586_0001,2586,0025,360364);
-%runhosp(2586_0001,2586_0001,2586,0026,100289);
-%runhosp(2586_0001,2586_0001,2586,0028,360087);
-%runhosp(2586_0001,2586_0001,2586,0029,360091);
-%runhosp(2586_0001,2586_0001,2586,0030,360144);
-%runhosp(2586_0001,2586_0001,2586,0031,360010);
-%runhosp(2586_0001,2586_0001,2586,0032,100105);
-%runhosp(2586_0001,2586_0001,2586,0033,100044);
-%runhosp(2586_0001,2586_0001,2586,0034,650003177);
-%runhosp(2586_0001,2586_0001,2586,0035,340714585);
-*%runhosp(2586_0001,2586_0001,2586,0036,341855775);
-*%runhosp(2586_0001,2586_0001,2586,0038,);
-%runhosp(2586_0001,2586_0001,2586,0039,341843403);
-*%runhosp(2586_0001,2586_0001,2586,0040,113837554);
-*%runhosp(2586_0001,2586_0001,2586,0041,);
-*%runhosp(2586_0001,2586_0001,2586,0042,800410599);
-*%runhosp(2586_0001,2586_0001,2586,0043,);
-%runhosp(2586_0001,2586_0001,2586,0044,650029298);
-%runhosp(2586_0001,2586_0001,2586,0045,650556041);
-%runhosp(2586_0001,2586_0001,2586,0046,264215547);
-%runhosp(1374_0001,1374_0001,1374,0004,420078);
-%runhosp(1374_0001,1374_0001,1374,0008,420018);
-%runhosp(1374_0001,1374_0001,1374,0009,420086);
-%runhosp(1374_0001,1374_0001,1374,0012,420038);
-%runhosp(1374_0001,1374_0001,1374,0013,420033);
-%runhosp(1374_0001,1374_0001,1374,0014,420037);
-%runhosp(1374_0001,1374_0001,1374,0015,420009);
-%runhosp(1374_0001,1374_0001,1374,0017,420015);
-%runhosp(1374_0001,1374_0001,1374,0018,420106);
-%runhosp(1191_0001,1191_0001,1191,0002,61440790);
-%runhosp(7310_0001,7310_0001,7310,0002,070010);
-%runhosp(7310_0001,7310_0001,7310,0003,070018);
-%runhosp(7310_0001,7310_0001,7310,0004,070007);
-%runhosp(7310_0001,7310_0001,7310,0005,410013);
-%runhosp(7310_0001,7310_0001,7310,0006,070022);
-%runhosp(7310_0001,7310_0001,7310,0007,070019);
-%runhosp(7312_0001,7312_0001,7312,0002,521725543);
-%runhosp(6054_0001,6054_0001,6054,0002,330019);
-%runhosp(6055_0001,6055_0001,6055,0002,330194);
-%runhosp(6056_0001,6056_0001,6056,0002,330201);
-%runhosp(6057_0001,6057_0001,6057,0002,330221);
-%runhosp(6058_0001,6058_0001,6058,0002,330233);
-%runhosp(6059_0001,6059_0001,6059,0002,330397);
-%runhosp(1209_0000,1209_0000,1209,0000,420004);
-%runhosp(1028_0000,1028_0000,1028,0000,100008);
-%runhosp(1075_0000,1075_0000,1075,0000,360133);
-%runhosp(1102_0000,1102_0000,1102,0000,390001);
-%runhosp(1103_0000,1103_0000,1103,0000,390004);
-%runhosp(1104_0000,1104_0000,1104,0000,390048);
-%runhosp(1105_0000,1105_0000,1105,0000,390006);
-%runhosp(1106_0000,1106_0000,1106,0000,390270);
-%runhosp(1148_0000,1148_0000,1148,0000,310008);
-%runhosp(1167_0000,1167_0000,1167,0000,390173);
-%runhosp(1368_0000,1368_0000,1368,0000,390049);
-%runhosp(1461_0000,1461_0000,1461,0000,100296);
-%runhosp(1634_0000,1634_0000,1634,0000,310012);
-*%runhosp(1803_0000,1803_0000,1803,0000,070017);
-%runhosp(1958_0000,1958_0000,1958,0000,390183);
-%runhosp(2048_0000,2048_0000,2048,0000,360079);
-%runhosp(2049_0000,2049_0000,2049,0000,360239);
-%runhosp(2070_0000,2070_0000,2070,0000,100084);
-%runhosp(2214_0000,2214_0000,2214,0000,100285);
-%runhosp(2215_0000,2215_0000,2215,0000,100230);
-%runhosp(2216_0000,2216_0000,2216,0000,100154);
-%runhosp(2302_0000,2302_0000,2302,0000,110074);
-%runhosp(2317_0000,2317_0000,2317,0000,390330);
-%runhosp(2374_0000,2374_0000,2374,0000,390326);
-%runhosp(2376_0000,2376_0000,2376,0000,390035);
-%runhosp(2378_0000,2378_0000,2378,0000,390197);
-%runhosp(2379_0000,2379_0000,2379,0000,310060);
-%runhosp(2451_0000,2451_0000,2451,0000,340173);
-%runhosp(2452_0000,2452_0000,2452,0000,340069);
-%runhosp(2461_0000,2461_0000,2461,0000,100314);
-%runhosp(2468_0000,2468_0000,2468,0000,190111);
-%runhosp(2587_0000,2587_0000,2587,0000,310014);
-%runhosp(2589_0000,2589_0000,2589,0000,360132);
-%runhosp(2594_0000,2594_0000,2594,0000,070035);
-%runhosp(2607_0000,2607_0000,2607,0000,223700669);
-%runhosp(5037_0000,5037_0000,5037,0000,360360);
-%runhosp(5038_0000,5038_0000,5038,0000,080007);
-%runhosp(5043_0000,5043_0000,5043,0000,100002);
-%runhosp(5050_0000,5050_0000,5050,0000,390194);
-%runhosp(5154_0000,5154_0000,5154,0000,330005);
-%runhosp(5215_0001,5215_0001,5215,0002,310044);
-%runhosp(5215_0001,5215_0001,5215,0003,310092);
-%runhosp(5263_0000,5263_0000,5263,0000,100281);
-%runhosp(5264_0000,5264_0000,5264,0000,100038);
-%runhosp(5282_0000,5282_0000,5282,0000,360155);
-%runhosp(5392_0001,5392_0001,5392,0004,110184);
-%runhosp(5394_0000,5394_0000,5394,0000,390267);
-%runhosp(5397_0001,5397_0001,5397,0002,360137);
-%runhosp(5397_0001,5397_0001,5397,0003,360359);
-%runhosp(5397_0001,5397_0001,5397,0004,360041);
-%runhosp(5397_0001,5397_0001,5397,0005,360145);
-%runhosp(5397_0001,5397_0001,5397,0006,360192);
-%runhosp(5397_0001,5397_0001,5397,0007,360075);
-%runhosp(5397_0001,5397_0001,5397,0008,360078);
-%runhosp(5397_0001,5397_0001,5397,0009,360002);
-%runhosp(5397_0001,5397_0001,5397,0010,360123);
-%runhosp(5478_0001,5478_0001,5478,0002,310015);
-%runhosp(5479_0001,5479_0001,5479,0002,310051);
-%runhosp(5480_0001,5480_0001,5480,0002,310017);
-%runhosp(5481_0001,5481_0001,5481,0002,310028);
-%runhosp(5746_0001,5746_0001,5746,0002,100007);
-%runhosp(1686_0001,1686_0001,1686,0002,752661095);
-%runhosp(1688_0001,1688_0001,1688,0002,310588183);
-%runhosp(1696_0001,1696_0001,1696,0002,571141121);
-%runhosp(1710_0001,1710_0001,1710,0002,560963485);
-%runhosp(2941_0001,2941_0001,2941,0002,670067);
-%runhosp(2956_0001,2956_0001,2956,0002,450853);
-%runhosp(6049_0001,6049_0001,6049,0002,450880);
-%runhosp(6050_0001,6050_0001,6050,0002,450874);
-%runhosp(6051_0001,6051_0001,6051,0002,030112);
-%runhosp(6052_0001,6052_0001,6052,0002,670076);
-%runhosp(6053_0001,6053_0001,6053,0002,450883);
-%runhosp(2974_0001,2974_0001,2974,0003,251716306);
-%runhosp(2974_0001,2974_0001,2974,0007,232730785);
+%runhosp(2586_0001,2586_0001,2586,0002,360027,0);
+%runhosp(2586_0001,2586_0001,2586,0005,360082,0);
+%runhosp(2586_0001,2586_0001,2586,0006,360077,0);
+%runhosp(2586_0001,2586_0001,2586,0007,360230,0);
+%runhosp(2586_0001,2586_0001,2586,0010,360143,0);
+%runhosp(2586_0001,2586_0001,2586,0013,360180,0);
+%runhosp(2586_0001,2586_0001,2586,0025,360364,0);
+%runhosp(2586_0001,2586_0001,2586,0026,100289,0);
+%runhosp(2586_0001,2586_0001,2586,0028,360087,0);
+%runhosp(2586_0001,2586_0001,2586,0029,360091,0);
+%runhosp(2586_0001,2586_0001,2586,0030,360144,0);
+%runhosp(2586_0001,2586_0001,2586,0031,360010,0);
+%runhosp(2586_0001,2586_0001,2586,0032,100105,0);
+%runhosp(2586_0001,2586_0001,2586,0033,100044,0);
+%runhosp(2586_0001,2586_0001,2586,0034,650003177,0);
+%runhosp(2586_0001,2586_0001,2586,0035,340714585,0);
+*%runhosp(2586_0001,2586_0001,2586,0036,341855775,0);
+*%runhosp(2586_0001,2586_0001,2586,0038,,0);
+%runhosp(2586_0001,2586_0001,2586,0039,341843403,0);
+*%runhosp(2586_0001,2586_0001,2586,0040,113837554,0);
+*%runhosp(2586_0001,2586_0001,2586,0041,,0);
+*%runhosp(2586_0001,2586_0001,2586,0042,800410599,0);
+*%runhosp(2586_0001,2586_0001,2586,0043,,0);
+%runhosp(2586_0001,2586_0001,2586,0044,650029298,0);
+%runhosp(2586_0001,2586_0001,2586,0045,650556041,0);
+%runhosp(2586_0001,2586_0001,2586,0046,264215547,0);
+%runhosp(1374_0001,1374_0001,1374,0004,420078,1);
+%runhosp(1374_0001,1374_0001,1374,0008,420018,1);
+%runhosp(1374_0001,1374_0001,1374,0009,420086,1);
+%runhosp(1374_0001,1374_0001,1374,0012,420038,1);
+%runhosp(1374_0001,1374_0001,1374,0013,420033,1);
+%runhosp(1374_0001,1374_0001,1374,0014,420037,1);
+%runhosp(1374_0001,1374_0001,1374,0015,420009,1);
+%runhosp(1374_0001,1374_0001,1374,0017,420015,1);
+%runhosp(1374_0001,1374_0001,1374,0018,420106,1);
+%runhosp(7310_0001,7310_0001,7310,0002,070010,0);
+%runhosp(7310_0001,7310_0001,7310,0003,070018,0);
+%runhosp(7310_0001,7310_0001,7310,0004,070007,0);
+%runhosp(7310_0001,7310_0001,7310,0005,410013,0);
+%runhosp(7310_0001,7310_0001,7310,0006,070022,0);
+%runhosp(7310_0001,7310_0001,7310,0007,070019,0);
+%runhosp(7312_0001,7312_0001,7312,0002,521725543,0);
+%runhosp(6054_0001,6054_0001,6054,0002,330019,1);
+%runhosp(6055_0001,6055_0001,6055,0002,330194,1);
+%runhosp(6056_0001,6056_0001,6056,0002,330201,1);
+%runhosp(6057_0001,6057_0001,6057,0002,330221,1);
+%runhosp(6058_0001,6058_0001,6058,0002,330233,1);
+%runhosp(6059_0001,6059_0001,6059,0002,330397,1);
+%runhosp(1209_0000,1209_0000,1209,0000,420004,1);
+%runhosp(1028_0000,1028_0000,1028,0000,100008,0);
+%runhosp(1103_0000,1103_0000,1103,0000,390004,1);
+%runhosp(1167_0000,1167_0000,1167,0000,390173,1);
+%runhosp(1368_0000,1368_0000,1368,0000,390049,1);
+%runhosp(1461_0000,1461_0000,1461,0000,100296,0);
+%runhosp(1634_0000,1634_0000,1634,0000,310012,1);
+*%runhosp(1803_0000,1803_0000,1803,0000,070017,0);
+%runhosp(1958_0000,1958_0000,1958,0000,390183,1);
+%runhosp(2070_0000,2070_0000,2070,0000,100084,1);
+%runhosp(2214_0000,2214_0000,2214,0000,100285,0);
+%runhosp(2215_0000,2215_0000,2215,0000,100230,0);
+%runhosp(2216_0000,2216_0000,2216,0000,100154,0);
+%runhosp(2302_0000,2302_0000,2302,0000,110074,1);
+%runhosp(2317_0000,2317_0000,2317,0000,390330,0);
+%runhosp(2374_0000,2374_0000,2374,0000,390326,1);
+%runhosp(2376_0000,2376_0000,2376,0000,390035,1);
+%runhosp(2378_0000,2378_0000,2378,0000,390197,1);
+%runhosp(2379_0000,2379_0000,2379,0000,310060,1);
+%runhosp(2451_0000,2451_0000,2451,0000,340173,0);
+%runhosp(2452_0000,2452_0000,2452,0000,340069,0);
+%runhosp(2461_0000,2461_0000,2461,0000,100314,0);
+%runhosp(2468_0000,2468_0000,2468,0000,190111,0);
+%runhosp(2587_0000,2587_0000,2587,0000,310014,1);
+%runhosp(2594_0000,2594_0000,2594,0000,070035,1);
+%runhosp(5038_0000,5038_0000,5038,0000,080007,1);
+%runhosp(5043_0000,5043_0000,5043,0000,100002,1);
+%runhosp(5050_0000,5050_0000,5050,0000,390194,1);
+%runhosp(5154_0000,5154_0000,5154,0000,330005,1);
+%runhosp(5215_0001,5215_0001,5215,0002,310044,1);
+%runhosp(5215_0001,5215_0001,5215,0003,310092,1);
+%runhosp(5263_0000,5263_0000,5263,0000,100281,1);
+%runhosp(5264_0000,5264_0000,5264,0000,100038,1);
+%runhosp(5282_0000,5282_0000,5282,0000,360155,1);
+%runhosp(5394_0000,5394_0000,5394,0000,390267,1);
+%runhosp(5397_0001,5397_0001,5397,0002,360137,1);
+%runhosp(5397_0001,5397_0001,5397,0003,360359,1);
+%runhosp(5397_0001,5397_0001,5397,0004,360041,1);
+%runhosp(5397_0001,5397_0001,5397,0005,360145,1);
+%runhosp(5397_0001,5397_0001,5397,0006,360192,1);
+%runhosp(5397_0001,5397_0001,5397,0007,360075,1);
+%runhosp(5397_0001,5397_0001,5397,0008,360078,1);
+%runhosp(5397_0001,5397_0001,5397,0009,360002,1);
+%runhosp(5397_0001,5397_0001,5397,0010,360123,1);
+%runhosp(5478_0001,5478_0001,5478,0002,310015,1);
+%runhosp(5479_0001,5479_0001,5479,0002,310051,1);
+%runhosp(5480_0001,5480_0001,5480,0002,310017,1);
+%runhosp(5481_0001,5481_0001,5481,0002,310028,1);
+%runhosp(5746_0001,5746_0001,5746,0002,100007,1);
+%runhosp(1688_0001,1688_0001,1688,0002,310588183,1);
+%runhosp(1710_0001,1710_0001,1710,0002,560963485,1);
+%runhosp(2941_0001,2941_0001,2941,0002,670067,0);
+%runhosp(2956_0001,2956_0001,2956,0002,450853,0);
+%runhosp(6049_0001,6049_0001,6049,0002,450880,1);
+%runhosp(6051_0001,6051_0001,6051,0002,030112,1);
+%runhosp(6052_0001,6052_0001,6052,0002,670076,1);
+%runhosp(6053_0001,6053_0001,6053,0002,450883,1);
+%runhosp(2974_0001,2974_0001,2974,0003,251716306,0);
+%runhosp(2974_0001,2974_0001,2974,0007,232730785,0);
 
 %MEND TP;
 
 %TP(ybase);
 %TP(y202002);
 *%TP(pp1Initial);
-
+/*
 data All_Target_Prices;
 	format BPID EPI_ID_MILLIMAN EPISODE_ID EPISODE_INITIATOR EPISODE_GROUP_NAME ANCHOR_TYPE ANCHOR_CODE ANCHOR_CCN
 		 DRG_CODE PERF_APC ORIGDS LTI FRACTURE_FLAG ANY_DUAL KNEE_ARTHRO_FLAG KNEE_ARTHRO_FRACTURE_FLAG PRIOR_HOSP_W_NON_PAC_IP_FLAG_90 PRIOR_PAC_FLAG
@@ -2170,6 +2205,7 @@ data All_Target_Prices;
 		 PAT PAT_Adj PCMA PCMA_Adj PGP_ACH_PCMA PGP_PCMA_Adj CASE_MIX PGP_ACH_Ratio PGP_Offset PGP_Offset_Adj PAYMENT_RATIO 
 		 HAS_TP PERFORMANCE_PERIOD 
 		 HCC_COUNT HCC18 HCC19 HCC40 HCC58 HCC84 HCC85 HCC86 HCC88 HCC96 HCC108 HCC111
+		 NATURAL_DISASTER_MONTHLY TKA_FLAG
 		 ;
 	set out2.tp_: ;
 	if EPISODE_GROUP_NAME = "Disorders Of Liver Except Malignancy, Cirrhosis Or Alcoholic Hepatitis" then 
@@ -2211,7 +2247,7 @@ data All_Target_Prices_1 All_Target_Prices_Premier All_Target_Prices_NonPremier 
 	else if BPID in (&CCF_lst.) then output All_Target_Prices_CCF;
 
 run;
-
+*/
 %MACRO EXPORT;
 %if &mode.=main %then %do;
 	/*
@@ -2300,7 +2336,7 @@ run;
 %end;
 %mend EXPORT;
 
-%EXPORT;
+*%EXPORT;
 
 
 

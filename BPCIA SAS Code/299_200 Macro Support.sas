@@ -12,7 +12,7 @@ Purpose is to store longer macros that are called.
 
 proc sort data=epi0 ; by memberid ANCHOR_BEG_DT ANCHOR_TYPE ANCHOR_END_DT POST_DSCH_BEG_DT POST_DSCH_END_DT; run;
 
-%if &label. ^= ybase and &mode. ^= base %then %do;
+%if %substr(&label.,1,5)  ^= ybase and &mode. ^= base %then %do;
 	*Create variables used to determine excluded episodes.;
 	*prev_beg_date, prev_end_date, prev_id, and first_ep_mjrle track the first episodes.;
 	*counter tracks the order number episode for MJRLE episodes.;
@@ -66,6 +66,7 @@ proc sort data=epi0 ; by memberid ANCHOR_BEG_DT ANCHOR_TYPE ANCHOR_END_DT POST_D
 		select a.*, coalesce(b.epi_exclude,'.') as exclude_epi
 		from epi0_1 as a left join epi0_1 as b
 		on a.EPI_ID_MILLIMAN=b.epi_exclude;
+/*		and A.MEASURE_YEAR = B.MEASURE_YEAR;*/
 	quit;
 
 	*Output MJRLE episodes that occur within 90 days prior to another MJRLE episode to a separate file;
@@ -85,6 +86,7 @@ proc sort data=epi0 ; by memberid ANCHOR_BEG_DT ANCHOR_TYPE ANCHOR_END_DT POST_D
 		on a.memberid=b.memberid 
 			and a.POST_DSCH_END_DT >= b.ANCHOR_BEG_DT
 			and a.ANCHOR_BEG_DT <= b.ANCHOR_BEG_DT;
+/*			and A.MEASURE_YEAR = B.MEASURE_YEAR;*/
 	quit;
 
 	*Remove excluded epis from non-participating episodes;
@@ -104,6 +106,7 @@ proc sort data=epi0 ; by memberid ANCHOR_BEG_DT ANCHOR_TYPE ANCHOR_END_DT POST_D
 		on a.memberid=b.memberid 
 			and a.ANCHOR_BEG_DT <= b.POST_DSCH_END_DT
 			and a.ANCHOR_BEG_DT >= b.ANCHOR_BEG_DT;
+/*			and A.MEASURE_YEAR = B.MEASURE_YEAR;*/
 	quit;
 
 	*Remove excluded epis from non-participating;
@@ -162,6 +165,7 @@ proc sort data=epi0 ; by memberid ANCHOR_BEG_DT ANCHOR_TYPE ANCHOR_END_DT POST_D
 		select a.*, coalesce(b.epi_exclude,'.') as exclude_epi
 		from perfepi0_1 as a left join perfepi0_1 as b
 		on a.EPI_ID_MILLIMAN=b.epi_exclude;
+/*		and A.MEASURE_YEAR = B.MEASURE_YEAR;*/
 	quit;
 
 	data perfepi0_3 perfexcl_mjrle_&bpid1._&bpid2.;
@@ -186,7 +190,7 @@ proc sort data=epi0 ; by memberid ANCHOR_BEG_DT ANCHOR_TYPE ANCHOR_END_DT POST_D
 
 
 %MACRO TRANS_EXC;
-%if &label. ^= ybase and &mode. ^= base %then %do;
+%if %substr(&label.,1,5)  ^= ybase and &mode. ^= base %then %do;
 	*Only keep inpatient index admissions at an ACH;
 	data ip_idx;
 		set ip_&label._&bpid1._&bpid2.;
@@ -284,7 +288,7 @@ proc sort data=epi0 ; by memberid ANCHOR_BEG_DT ANCHOR_TYPE ANCHOR_END_DT POST_D
 
 
 %MACRO CLINEPI;
-%if &label. ^= ybase and &mode. ^= base and &mode. ^= recon %then %do;
+%if %substr(&label.,1,5)  ^= ybase and &mode. ^= base and &mode. ^= recon %then %do;
 	data clinepi1_&bpid1._&bpid2.;
 		set out.epi_ybase_&bpid1._&bpid2. (in=a)
 			out.epi_y201909_&bpid1._&bpid2. (in=b)
@@ -314,35 +318,39 @@ proc sort data=epi0 ; by memberid ANCHOR_BEG_DT ANCHOR_TYPE ANCHOR_END_DT POST_D
 		if EPISODE_GROUP_NAME = "Disorders Of Liver Except Malignancy, Cirrhosis Or Alcoholic Hepatitis" then
 		EPISODE_GROUP_NAME = "Disorders of liver except malignancy, cirrhosis or alcoholic hepatitis" ;
 
-		keep BPID ANCHOR_TYPE EPISODE_GROUP_NAME ANCHOR_CODE ANCHOR_END_DT Epis_: Total_Episodes ;
+		keep MEASURE_YEAR BPID ANCHOR_TYPE EPISODE_GROUP_NAME ANCHOR_CODE ANCHOR_END_DT Epis_: Total_Episodes ;
 	run;
 
 	proc sql;
 		create table clinepi2_&bpid1._&bpid2. as
 		select a.*, b.BPCI_Episode_Idx
-		from clinepi1_&bpid1._&bpid2. as a left join bpcia.BPCIA_DRG_Mapping as b
-		on a.ANCHOR_CODE = b.code;
+		from clinepi1_&bpid1._&bpid2. as a left join bpcia_drg_mapping_combined as b
+		on a.ANCHOR_CODE = b.code
+		And A.MEASURE_YEAR = B.MEASURE_YEAR;
 	quit;
 
 	proc sql;
 		create table clinepi3_&bpid1._&bpid2. as
 		select a.*, b.Clinical_Episode
-		from clinepi2_&bpid1._&bpid2. as a left join bpcia.BPCIA_Clinical_Episode_Names as b
-		on a.BPCI_Episode_Idx = b.BPCI_Episode_Index;
+		from clinepi2_&bpid1._&bpid2. as a left join bpcia_clin_epi_names_combined as b
+		on a.BPCI_Episode_Idx = b.BPCI_Episode_Index
+		And A.MEASURE_YEAR = B.MEASURE_YEAR;
 	quit;
 
 	proc sql;
 		create table clinepi4_&bpid1._&bpid2. as
-		select a.*, coalesce(b.PERFORMANCE_PERIOD,'No') as PERFORMANCE_PERIOD
+		select a.*, (case when B.BPID IS NOT NULL THEN 'Yes' else 'No' END) as PERFORMANCE_PERIOD
 		from clinepi3_&bpid1._&bpid2. as a left join bpcia_performance_episodes as b
-		on a.BPID=b.BPID and a.ANCHOR_TYPE=b.ANCHOR_TYPE and a.EPISODE_GROUP_NAME=b.EPISODE_GROUP_NAME;
+		on a.BPID=b.BPID and a.ANCHOR_TYPE=b.ANCHOR_TYPE and a.EPISODE_GROUP_NAME=b.EPISODE_GROUP_NAME
+		And A.MEASURE_YEAR = B.MEASURE_YEAR;
 	quit;
 
 	proc sql;
 		create table clinepi5_&bpid1._&bpid2. as
 		select a.*, b.Client, b.Health_system_name, b.Facility_or_PGP_name__to_be_used as Facility_PGP
-		from clinepi4_&bpid1._&bpid2. as a left join bpcia.BPCIA_episode_initiator_info as b
-		on a.BPID=b.BPCI_Advanced_ID_Number_2;
+		from clinepi4_&bpid1._&bpid2. as a left join bpcia_epi_initiator_combined as b
+		on a.BPID=b.BPCI_Advanced_ID_Number_2
+		;
 	quit;
 
 	proc sql;

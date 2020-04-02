@@ -23,14 +23,14 @@ quit;
 */
 ***** USER INPUTS ******************************************************************************************;
 /* turn on for baseline */
-%let mode = main; *main = main interface, base = baseline interface, recon = reconciliation;
-%let label = ybase; *Turn on for baseline data, turn off for quarterly data;
-%let vers = B; *B for baseline, P for Performance;
+/*%let mode = main; *main = main interface, base = baseline interface, recon = reconciliation;*/
+/*%let label = ybase; *Turn on for baseline data, turn off for quarterly data;*/
+/*%let vers = B; *B for baseline, P for Performance;*/
 
 /*turn on for performance */
-/*%let mode = main; *main = main interface, base = baseline interface, recon = reconciliation;*/
-/*%let label = y202002; *Turn off for baseline data, turn on for quarterly data;*/
-/*%let vers = P; *B for baseline, P for Performance;*/
+%let mode = main; *main = main interface, base = baseline interface, recon = reconciliation;
+%let label = y202002; *Turn off for baseline data, turn on for quarterly data;
+%let vers = P; *B for baseline, P for Performance;
 
 /*turn on for recon */
 *%let mode = recon; *main = main interface, base = baseline interface, recon = reconciliation;
@@ -163,6 +163,8 @@ data TP_Components;
 
 	if EPI_CAT = "Disorders Of Liver Except Malignancy, Cirrhosis Or Alcoholic Hepatitis" then
 		EPI_CAT = "Disorders of liver except malignancy, cirrhosis or alcoholic hepatitis" ;
+	if EPI_CAT = "Transcathether aortic valve replacement" then
+		EPI_CAT = "Endovascular Cardiac Valve Replacement" ;
 
 run; 
 
@@ -282,7 +284,7 @@ data epi0_pre;
 	else if measure_year = 'MY3' then Measure_year2 = 'MY3';
 	BPID = "&BPID1." || "-" || "&BPID2.";
 	ConvenerID = tranwrd("&id2.","_","-");
-	EPI_ID_MILLIMAN = BPID || "-&vers.-"||Measure_Year2||"-"||compress(EPISODE_ID);
+	EPI_ID_MILLIMAN = BPID || "-&vers.-"||compress(Measure_Year2)||"-"||compress(EPISODE_ID);
 
 	if measure_year = 'MY3' then EPISODE_GROUP_NAME = substr(EPISODE_GROUP_NAME_orig,4,length(EPISODE_GROUP_NAME_orig)-3);
 	else EPISODE_GROUP_NAME = EPISODE_GROUP_NAME_orig; 
@@ -330,8 +332,6 @@ data epi0 out.epiexc_&label._&bpid1._&bpid2. perf_epis0;
 		DROPFLAG_DEATH_DUR_ANCHOR = 0;
 	%end;
 
-	
-	DROP_EPISODE=0;
 	Epi_Pre_Data=0;
 	Epi_Post_Data=0;
 	 
@@ -344,6 +344,17 @@ data epi0 out.epiexc_&label._&bpid1._&bpid2. perf_epis0;
 		DROPFLAG_Predata=1;
 		DROP_EPISODE=1;
 	end;
+
+	if MEASURE_YEAR = 'MY3' then do;
+		DROPFLAG_ACO_MSSP_OVERLAP = 0;
+	end;
+	%if %substr(&label.,1,5)  = ybase %then %do;
+		else if MEASURE_YEAR ^= 'MY3' then do;
+			format BENE_SRNM_NAME BENE_GVN_NAME $32.;
+			BENE_SRNM_NAME ='';
+			BENE_GVN_NAME ='';
+		end;
+	%end;
 
 	%if %substr(&label.,1,5)  = ybase %then %do;
 		if length(ANCHOR_CODE)=3 then do;
@@ -399,9 +410,18 @@ data epi0 out.epiexc_&label._&bpid1._&bpid2. perf_epis0;
 		if PERFORMANCE_PERIOD = 'No' then do;
 			DROPFLAG_NON_PERF_EPI=1;
 		end;
-	%end;	
+	%end;
 
-	if DROP_EPISODE ^= 0 then output out.epiexc_&label._&bpid1._&bpid2.;
+	DROP_EPISODE2=0;
+	DROP_EPISODE2=MAX(DROPFLAG_Predata, 
+					  DROPFLAG_NOT_CONT_ENR_AB_NO_C, DROPFLAG_ESRD, DROPFLAG_OTHER_PRIMARY_PAYER, 
+					  DROPFLAG_NO_BENE_ENR_INFO, DROPFLAG_NON_ACH, DROPFLAG_LOS_GT_59, 
+					  DROPFLAG_EXCLUDED_STATE, DROPFLAG_NON_HIGHEST_J1, DROPFLAG_TRANS_W_CAH_CANCER, 
+					  DROPFLAG_CJR, DROPFLAG_RCH_DEMO, DROPFLAG_RURAL_PA, 
+					  DROPFLAG_ACO_MSSP_OVERLAP, DROPFLAG_ACO_CEC_OVERLAP, DROPFLAG_ACO_NEXTGEN_OVERLAP, 
+					  DROPFLAG_ACO_VERMONTAP_OVERLAP, DROPFLAG_DEATH_DUR_ANCHOR);
+
+	if DROP_EPISODE2 ^= 0 then output out.epiexc_&label._&bpid1._&bpid2.;
 	else if DROPFLAG_NON_PERF_EPI=1 then output perf_epis0;
 	else output epi0;
 run;
@@ -496,7 +516,7 @@ data ip1 ;
 	else if measure_year = 'MY3' then Measure_year2 = 'MY3';
 	BPID = "&BPID1." || "-" || "&BPID2.";
 	ConvenerID = tranwrd("&id2.","_","-");
-	EPI_ID_MILLIMAN = BPID || "-&vers.-"||Measure_Year2||"-"||compress(EPISODE_ID);
+	EPI_ID_MILLIMAN = BPID || "-&vers.-"||compress(Measure_Year2)||"-"||compress(EPISODE_ID);
 
 	* Use provider number to define type of IP facility claim is for *;
 	pv = substr(PROVIDER,3,4);
@@ -684,7 +704,7 @@ data snf ;
 	else if measure_year = 'MY3' then Measure_year2 = 'MY3';
 	BPID = "&BPID1." || "-" || "&BPID2.";
 	ConvenerID = tranwrd("&id2.","_","-");
-	EPI_ID_MILLIMAN = BPID || "-&vers.-"||Measure_Year2||"-"||compress(EPISODE_ID);
+	EPI_ID_MILLIMAN = BPID || "-&vers.-"||compress(Measure_Year2)||"-"||compress(EPISODE_ID);
 
 
 	costgrp = 'SNF';
@@ -802,7 +822,7 @@ data hha1  ;
 	else if measure_year = 'MY3' then Measure_year2 = 'MY3';
 	BPID = "&BPID1." || "-" || "&BPID2.";
 	ConvenerID = tranwrd("&id2.","_","-");
-	EPI_ID_MILLIMAN = BPID || "-&vers.-"||Measure_Year2||"-"||compress(EPISODE_ID);
+	EPI_ID_MILLIMAN = BPID || "-&vers.-"||compress(Measure_Year2)||"-"||compress(EPISODE_ID);
 
 	PROVIDER = put(compress(PROVIDER_NUM),$20.);
 	if length(compress(PROVIDER_NUM))=5 then PROVIDER = put('0' || compress(PROVIDER_NUM),$20.);
@@ -907,7 +927,7 @@ data op ;
 	else if measure_year = 'MY3' then Measure_year2 = 'MY3';
 	BPID = "&BPID1." || "-" || "&BPID2.";
 	ConvenerID = tranwrd("&id2.","_","-");
-	EPI_ID_MILLIMAN = BPID || "-&vers.-"||Measure_Year2||"-"||compress(EPISODE_ID);
+	EPI_ID_MILLIMAN = BPID || "-&vers.-"||compress(Measure_Year2)||"-"||compress(EPISODE_ID);
 
 	* cost group *;
 	costgrp = 'OTHER';
@@ -1069,7 +1089,7 @@ data bcarrier1 ;
 	else if measure_year = 'MY3' then Measure_year2 = 'MY3';
 	BPID = "&BPID1." || "-" || "&BPID2.";
 	ConvenerID = tranwrd("&id2.","_","-");
-	EPI_ID_MILLIMAN = BPID || "-&vers.-"||Measure_Year2||"-"||compress(EPISODE_ID);
+	EPI_ID_MILLIMAN = BPID || "-&vers.-"||compress(Measure_Year2)||"-"||compress(EPISODE_ID);
 
 
 	LINEITEM = strip(LINEITEM2);
@@ -1204,7 +1224,7 @@ data dme ;
 	else if measure_year = 'MY3' then Measure_year2 = 'MY3';
 	BPID = "&BPID1." || "-" || "&BPID2.";
 	ConvenerID = tranwrd("&id2.","_","-");
-	EPI_ID_MILLIMAN = BPID || "-&vers.-"||Measure_Year2||"-"||compress(EPISODE_ID);
+	EPI_ID_MILLIMAN = BPID || "-&vers.-"||compress(Measure_Year2)||"-"||compress(EPISODE_ID);
 
 	* cost group *;
 	costgrp = 'OTHER';
@@ -1278,7 +1298,7 @@ data hs ;
 	else if measure_year = 'MY3' then Measure_year2 = 'MY3';
 	BPID = "&BPID1." || "-" || "&BPID2.";
 	ConvenerID = tranwrd("&id2.","_","-");
-	EPI_ID_MILLIMAN = BPID || "-&vers.-"||Measure_Year2||"-"||compress(EPISODE_ID);
+	EPI_ID_MILLIMAN = BPID || "-&vers.-"||compress(Measure_Year2)||"-"||compress(EPISODE_ID);
 
 	* cost group *;
 	costgrp = 'OTHER';
@@ -1556,7 +1576,7 @@ proc sql ;
 		, b.Provider_Organization_Name__Leg as at_npi_org_nm 
 		, b.provider_first_name as at_npi_first_nm
 		, b.Provider_Last_Name__Legal_Name_ as at_npi_last_nm
-	from epi_post1 as a left join ref.npi_data as b
+	from epi_post1 as a left join ref.npi_data_v2 as b
 	on a.anchor_at_NPI = input(b.npi,best12.);
 quit;
 
@@ -1566,7 +1586,7 @@ proc sql;
 		, b.Provider_Organization_Name__Leg as op_npi_org_nm
 		, b.provider_first_name as op_npi_first_nm
 		, b.Provider_Last_Name__Legal_Name_ as op_npi_last_nm
-	from epi_post2 as a left join ref.npi_data as b
+	from epi_post2 as a left join ref.npi_data_v2 as b
 	on a.anchor_op_NPI = input(b.npi,best12.);
 quit;
 
@@ -1951,7 +1971,7 @@ quit;
  
 
 ****** Summary Output File *************************************************************************************;
-*%CLINEPI;
+%CLINEPI;
 
 
 *delete work datasets;
@@ -1976,7 +1996,6 @@ quit;
 %runhosp(2607_0000,2607_0000,2607,0000,223700669);
 %runhosp(1931_0001,5479_0001,5479,0002,310051);
 */
-
 
 %runhosp(2586_0001,2586_0001,2586,0002,360027);
 %runhosp(2586_0001,2586_0001,2586,0005,360082);
@@ -2120,7 +2139,7 @@ quit;
 	%end;
 %end;
 %mend;
-*%CLINOUT;
+%CLINOUT;
 
 
 proc printto;run;

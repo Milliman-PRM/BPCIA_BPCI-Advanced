@@ -634,9 +634,9 @@ create table recon_pre16a as
 		 , c.provider_first_name as op_npi_first_nm
 		 , c.Provider_Last_Name__Legal_Name_ as op_npi_last_nm
 	from recon_pre15 as a
-		left join ref.npi_data as b
+		left join ref.npi_data_v2 as b
 			on a.ANCHOR_AT_NPI = input(b.npi,best12.)
-		left join ref.npi_data as c
+		left join ref.npi_data_v2 as c
 			on a.ANCHOR_OP_NPI = input(c.npi,best12.)
 ;
 quit;
@@ -753,6 +753,8 @@ run;
 %end;
 data Epi_Join_&label._&id.;
 	format join_variable_recon $132. PERFORMANCE_PERIOD $3.;
+	format clinical_episode_abbr $30.;
+	format clinical_episode_abbr2 $11.;
 	set %if &reconref. = 1 %then %do; 
 			out.Recon_&label._&id. (in=b)
 			out.epi_detail_&Perf_label._&id. (in=a)
@@ -793,9 +795,11 @@ data Epi_Join_&label._&id.;
 	*/
 	else epi_period_short = "";
 
+	FR_JOIN = BPID||"_"||epi_period_short;
+
 	keep measure_year EPI_ID_Milliman BPID Anchor_Fac_Code_Name ANCHOR_CODE operating_name attending_name client_type Episode_Initiator_Use clinical_episode_abbr timeframe_filter epi_period_short PERFORMANCE_PERIOD 
 			join_variable_recon recon_episode perf_episode 
-			EI_system_name BPID_ClinicalEp MDC_Description death_flag Episode_End_YearMo PATIENT_NAME Bene_SK;
+			EI_system_name BPID_ClinicalEp MDC_Description death_flag Episode_End_YearMo PATIENT_NAME Bene_SK FR_JOIN;
 run;
 
 proc sql;
@@ -808,7 +812,6 @@ quit;
 data recon_epi_check2;
 	set recon_epi_check;
 	format IN_RECON_FLAG $3.;
-
 	IN_RECON_FLAG = 'No';
 	if recon_episode=1 and perf_episode=1 then IN_RECON_FLAG = 'Yes';
 run;
@@ -834,7 +837,7 @@ quit;
 
 %mend ReconDashboard;
 
-*%ReconDashboard(1167_0000,1);
+*%ReconDashboard(1209_0000,1);
 /*
 %ReconDashboard(1148,0000,1);
 %ReconDashboard(1167,0000,1);

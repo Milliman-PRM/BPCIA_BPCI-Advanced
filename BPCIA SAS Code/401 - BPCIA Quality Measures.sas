@@ -248,8 +248,8 @@ quit;
 	%else %if &name. = Milliman %then %do ; 
 				where BPID in (&NON_PMR_EI_lst.) ; 
 				%end;
-				%else %do ; 
-				where BPID in (&DEV_EI_lst.) ; 
+		%else %if &name. = CCF %then %do ;
+				where BPID in (&CCF_lst.) ; 
 				%end;
 		run ; 
 
@@ -272,7 +272,7 @@ quit;
 
 %Quality_Measure_full(PMR) ; 
 %Quality_Measure_full(Milliman) ; 
-/*%Quality_Measure_full(Dev) ; */
+%Quality_Measure_full(CCF) ; 
 
 %sas_2_csv(bpcia.Quality_Measure_full,BPCIA Quality Measures Full.csv) ; 
 
@@ -306,8 +306,8 @@ data bpcia.Quality_Measure_latest_&name. ;
 				%else %if &name. = Milliman %then %do ; 
 				where BPID in (&NON_PMR_EI_lst.) ; 
 				%end;
-				%else %do ; 
-				where BPID in (&DEV_EI_lst.) ; 
+		%else %if &name. = CCF %then %do ;
+				where BPID in (&CCF_lst.) ; 
 				%end; 
 		run ; 
 
@@ -317,7 +317,7 @@ data bpcia.Quality_Measure_latest_&name. ;
 
 %Quality_Measure_latest(PMR) ; 
 %Quality_Measure_latest(Milliman) ; 
-/*%Quality_Measure_latest(Dev) ; */
+%Quality_Measure_latest(CCF) ; 
 
 %sas_2_csv(bpcia.Quality_Measure_latest_date,BPCIA_Quality_Measures_Latest_Date.csv) ; 
 

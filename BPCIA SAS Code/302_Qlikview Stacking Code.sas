@@ -100,7 +100,9 @@ libname bench "R:\client work\CMS_PAC_Bundle_Processing\Benchmark Releases\v.201
 %macro stack_output_timefilter(file);
 
 data out.all_&file.;
-		set out.&file.:(keep=BPID EPI_ID_MILLIMAN timeframe_filter)  out.epi_detail_&label.:(keep=BPID EPI_ID_MILLIMAN timeframe_filter);
+
+		set out.&file.:(keep=BPID EPI_ID_MILLIMAN timeframe_filter)  out.epi_detail_&label.:(keep=BPID EPI_ID_MILLIMAN timeframe_filter);
+
 	run;
 
 %mend stack_output_timefilter;
