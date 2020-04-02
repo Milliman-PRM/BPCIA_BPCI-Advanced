@@ -94,19 +94,28 @@ libname bench "R:\client work\CMS_PAC_Bundle_Processing\Benchmark Releases\v.201
 %stack_output(perf); 
 %stack_output(phys_summ);
 %stack_output(pat_detail);
-%stack_output(exclusions);
 %stack_output(comp);
 %stack_output(bpid_member);
 
 %macro stack_output_timefilter(file);
 
 data out.all_&file.;
-		set out.&file.:(keep=EPI_ID_MILLIMAN timeframe_filter)  out.epi_detail_&label.:(keep=EPI_ID_MILLIMAN timeframe_filter);
+		set out.&file.:(keep=BPID EPI_ID_MILLIMAN timeframe_filter)  out.epi_detail_&label.:(keep=BPID EPI_ID_MILLIMAN timeframe_filter);
 	run;
 
-%mend stack_output;
+%mend stack_output_timefilter;
 
 %stack_output_timefilter(timeframe_filter);
+
+%macro stack_output_e(file);
+
+	data out.all_&file.;
+		set out.&file._&label.:;
+	run;
+
+%mend stack_output_e;
+%stack_output_e(exclusions);
+
 
 data benchmarks_pmr;
 	set bench.benchmarks_bpcia_pmr_18;
@@ -674,6 +683,7 @@ run;
 %stack_output(exclusions);
 %stack_output(comp);
 %stack_output(bpid_member);
+%stack_output(timeframe_filter);
 
 
 ******* EXPORT QVW_FILES *******;
@@ -688,6 +698,7 @@ run;
 %sas_2_csv(out.all_exclusions_&name.,exclusions.csv);
 %sas_2_csv(out.all_comp_&name.,comp.csv);
 %sas_2_csv(out.all_bpid_member_&name.,bpid_member.csv);
+%sas_2_csv(out.all_timeframe_filter_&name.,timeframe_filter.csv);
 
 %mend stacking_pre_other;
 
@@ -709,7 +720,7 @@ run;
 %stacking_pre_other(R:\data\HIPAA\BPCIA_BPCI Advanced\80 - Qlikview\Outfiles\CCF, CCF);
 
 *** DEMO RUN ***;
-%stackingdemo(R:\data\HIPAA\BPCIA_BPCI Advanced\80 - Qlikview\Outfiles,1148,1167,1343,1368,2379,2587,2607,5479);
+/*%stackingdemo(R:\data\HIPAA\BPCIA_BPCI Advanced\80 - Qlikview\Outfiles,1148,1167,1343,1368,2379,2587,2607,5479);*/
 
 *** BASELINE DEMO RUN ***;
 /*%stackingdemo(R:\data\HIPAA\BPCIA_BPCI Advanced\80 - Qlikview\Outfiles\Baseline Demo,1148,1167,1343,1368,2379,2587,2607,5479);*/
