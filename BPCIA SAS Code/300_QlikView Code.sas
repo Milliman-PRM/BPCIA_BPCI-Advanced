@@ -3120,7 +3120,7 @@ data visits3;
 	set visits3b;
 	if clinic_visit_type = "Emergency Room" then do;
 		if IP_visit_flag = 1 then clinic_visit_type = "Emergency - W/in 1 Day of Admit";
-		else clinic_visit_type = "Emergency Room - Stand Alone";
+		else clinic_visit_type = "Emergency - Stand Alone";
 	end;
 run;
 
