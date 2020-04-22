@@ -12,8 +12,8 @@ options mprint;
 /****
 Durable Medical Equipment - Detail
  *****/
-%macro DME(file, i);
-data temp_DME;
+%macro DME(file, i, MY);
+data temp_DME_&MY.;
 infile "&file." dlm="," missover dsd lrecl=1000 firstobs = 2 ;
 input
 EPISODE_ID	:
@@ -54,12 +54,18 @@ LINEDGNS : $20.
 
 run;
 
-data DME_&sub2._&BPID._&i. ;
- set temp_DME; 
+data DME_&sub2._&BPID._&i._&MY. ;
+ set temp_DME_&MY.; 
 BENE_SK = compress(BENE_SK,",");
 CLAIMNO = compress(CLAIMNO,",");
 format MEASURE_YEAR $10.;
+%if &MY. = MY12 %then %do;
 MEASURE_YEAR = 'MY1 & MY2';
+%end;
+%if &MY. = MY3 %then %do;
+MEASURE_YEAR = 'MY3';
+%end;
+
 run ;
 
 
@@ -68,9 +74,9 @@ run ;
 /****
 Home Health Agency - Detail
  *****/
-%macro HHA(file, i);
+%macro HHA(file, i, MY);
 
-data temp_HHA;
+data temp_HHA_&MY.;
 infile "&file." dlm="," missover dsd lrecl=1000 firstobs = 2 ;
 input
 EPISODE_ID :
@@ -391,20 +397,25 @@ format FROM_DT  THRU_DT mmddyy10.;
 
 run;
 
-data HHA_&sub2._&BPID._&i. ;
- set temp_HHA; 
+data HHA_&sub2._&BPID._&i._&MY. ;
+ set temp_HHA_&MY.; 
 BENE_SK = compress(BENE_SK,",");
 CLAIMNO = compress(CLAIMNO,",");
 format MEASURE_YEAR $10.;
+%if &MY. = MY12 %then %do;
 MEASURE_YEAR = 'MY1 & MY2';
+%end;
+%if &MY. = MY3 %then %do;
+MEASURE_YEAR = 'MY3';
+%end;
 run ;
 %mend HHA;
 
 /****
 Hospice
  *****/
-%macro HS(file, i);
-data temp_HS;
+%macro HS(file, i, MY);
+data temp_HS_&MY.;
 infile "&file." dlm="," missover dsd lrecl=1000 firstobs = 2 ;
 input
 EPISODE_ID:
@@ -460,20 +471,25 @@ format FROM_DT  THRU_DT mmddyy10.;
 
 run;
 
-data HS_&sub2._&BPID._&i. ;
- set temp_HS; 
+data HS_&sub2._&BPID._&i._&MY. ;
+ set temp_HS_&MY.; 
 BENE_SK = compress(BENE_SK,",");
 CLAIMNO = compress(CLAIMNO,",");
 format MEASURE_YEAR $10.;
+%if &MY. = MY12 %then %do;
 MEASURE_YEAR = 'MY1 & MY2';
+%end;
+%if &MY. = MY3 %then %do;
+MEASURE_YEAR = 'MY3';
+%end;
 run ;
 %mend HS;
 
 /****
 Inpatient -Detail 
  *****/
-%macro IP(file, i);
-data temp_IP;
+%macro IP(file, i, MY);
+data temp_IP_&MY.;
 infile "&file." dlm="," missover dsd lrecl=1000 firstobs = 2 ;
 input
 EPISODE_ID:
@@ -555,20 +571,25 @@ format STAY_ADMSN_DT STAY_DSCHRGDT STAY_FROM_DT STAY_THRU_DT mmddyy10.;
 
 run;
 
-data IP_&sub2._&BPID._&i. ;
- set temp_IP; 
+data IP_&sub2._&BPID._&i._&MY. ;
+ set temp_IP_&MY.; 
 BENE_SK = compress(BENE_SK,",");
 format MEASURE_YEAR $10.;
+%if &MY. = MY12 %then %do;
 MEASURE_YEAR = 'MY1 & MY2';
+%end;
+%if &MY. = MY3 %then %do;
+MEASURE_YEAR = 'MY3';
+%end;
 run ;
 %mend IP;
 
 /****
 Outpatient - Detail 
  *****/
-%macro OP(file, i);
+%macro OP(file, i, MY);
 
-data temp_OP;
+data temp_OP_&MY.;
 infile "&file." dlm="," missover dsd lrecl=1000 firstobs = 2 ;
 input
 EPISODE_ID :
@@ -624,21 +645,26 @@ format FROM_DT  THRU_DT REV_DT mmddyy10.;
 
 run;
 
-data OP_&sub2._&BPID._&i. ;
- set temp_OP; 
+data OP_&sub2._&BPID._&i._&MY. ;
+ set temp_OP_&MY.; 
 BENE_SK = compress(BENE_SK,",");
 CLAIMNO = compress(CLAIMNO,",");
 format MEASURE_YEAR $10.;
+%if &MY. = MY12 %then %do;
 MEASURE_YEAR = 'MY1 & MY2';
+%end;
+%if &MY. = MY3 %then %do;
+MEASURE_YEAR = 'MY3';
+%end;
 run ;
 %mend OP;
 
 /****
 Carrier (Physician/Supplier Part B) - Detail
  *****/
-%macro PB(file, i);
+%macro PB(file, i, MY);
 
-data temp_PB;
+data temp_PB_&MY.;
 infile "&file." dlm="," missover dsd lrecl=1000 firstobs = 2 ;
 input
 EPISODE_ID :
@@ -685,21 +711,26 @@ LINEDGNS : $20.
 
 run;
 
-data PB_&sub2._&BPID._&i. ;
- set temp_PB; 
+data PB_&sub2._&BPID._&i._&MY. ;
+ set temp_PB_&MY.; 
 BENE_SK = compress(BENE_SK,",");
 CLAIMNO = compress(CLAIMNO,",");
 format MEASURE_YEAR $10.;
+%if &MY. = MY12 %then %do;
 MEASURE_YEAR = 'MY1 & MY2';
+%end;
+%if &MY. = MY3 %then %do;
+MEASURE_YEAR = 'MY3';
+%end;
 run ;
 %mend PB;
 
 /****
 Skilled Nursing Facility - Detail 
  *****/
-%macro SNF(file, i);
+%macro SNF(file, i, MY);
 
-data temp_SNF;
+data temp_SNF_&MY.;
 infile "&file." dlm="," missover dsd lrecl=1000 firstobs = 2 ;
 input
 EPISODE_ID :
@@ -755,21 +786,26 @@ DGNSCD25 : $20.
 
 run;
 
-data SNF_&sub2._&BPID._&i. ;
- set temp_SNF; 
+data SNF_&sub2._&BPID._&i._&MY. ;
+ set temp_SNF_&MY.; 
 BENE_SK = compress(BENE_SK,",");
 CLAIMNO = compress(CLAIMNO,",");
 format MEASURE_YEAR $10.;
+%if &MY. = MY12 %then %do;
 MEASURE_YEAR = 'MY1 & MY2';
+%end;
+%if &MY. = MY3 %then %do;
+MEASURE_YEAR = 'MY3';
+%end;
 run ;
 %mend SNF;
 
 /****
 Clinical Episode-Level File - Applicable for Baseline Period Only
  *****/
-%macro EPI(file, i);
+%macro EPI(file, i, MY);
 
-data temp_EPI;
+data temp_EPI_&MY.;
 infile "&file." dlm="," missover dsd lrecl=1000 firstobs = 2 ;
 input
 PARENT_BPID : $9.
@@ -827,7 +863,7 @@ DROPFLAG_RCH_DEMO :
 DROPFLAG_RURAL_PA : 
 DROPFLAG_PRELIM_CJR_OVERLAP :
 DROPFLAG_PRELIM_BPCI_A_OVERLAP :
-DROPFLAG_ACO_MSSP_OVERLAP :
+%if &MY. = MY12 %then %do; DROPFLAG_ACO_MSSP_OVERLAP : %end;
 DROPFLAG_ACO_CEC_OVERLAP :
 DROPFLAG_ACO_NEXTGEN_OVERLAP :
 DROPFLAG_ACO_VERMONTAP_OVERLAP :
@@ -845,10 +881,17 @@ TOT_STD_ALLOWED_HH_NONRAP :
 ORIGDS :
 LTI :
 FRACTURE_FLAG :
-TKA_FLAG :
-TKA_FRACTURE_FLAG :
+%if &MY. = MY12 %then %do; TKA_FLAG : %end;
+%if &MY. = MY12 %then %do; TKA_FRACTURE_FLAG : %end;
+%if &MY. = MY3 %then %do; KNEE_ARTHRO_FLAG : %end;
+%if &MY. = MY3 %then %do; KNEE_ARTHRO_FRACTURE_FLAG : %end;
+%if &MY. = MY3 %then %do; HEM_STROKE_FLAG : %end;
+%if &MY. = MY3 %then %do; IBD_FISTULA_FLAG : %end;
+%if &MY. = MY3 %then %do; IBD_UC_FLAG : %end;
 ANY_DUAL :
-PRIOR_HOSP_W_ANY_IP_FLAG_90 :
+%if &MY. = MY3 %then %do; PRIOR_PAC_FLAG : %end;
+%if &MY. = MY3 %then %do; PRIOR_HOSP_W_NON_PAC_IP_FLAG_90 : %end;
+%if &MY. = MY12 %then %do; PRIOR_HOSP_W_ANY_IP_FLAG_90 : %end;
 HCC1 :
 HCC2 :
 HCC6 :
@@ -954,12 +997,17 @@ format BENE_BIRTH_DT BENE_DEATH_DT mmddyy10.;
 
 run;
 
-data EPI_&sub2._&BPID._&i. ;
- set temp_EPI; 
+data EPI_&sub2._&BPID._&i._&MY. ;
+ set temp_EPI_&MY.; 
 BENE_SK = compress(BENE_SK,",");
 ANCHOR_CLAIMNO = compress(ANCHOR_CLAIMNO,",");
 format MEASURE_YEAR $10.;
+%if &MY. = MY12 %then %do;
 MEASURE_YEAR = 'MY1 & MY2';
+%end;
+%if &MY. = MY3 %then %do;
+MEASURE_YEAR = 'MY3';
+%end;
 run ;
 %mend EPI;
 
