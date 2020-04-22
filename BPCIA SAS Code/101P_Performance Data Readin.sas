@@ -19,8 +19,13 @@ options mprint mlogic spool;
 %let dte = 202003;
 
 %let label = y&dte.; 
-
-
+/*
+quarterly
+Y if quarterly
+N if not quarterly
+next quarterly is month 202004
+*/
+%let quarterly = N; 
 ****** REFERENCE PROGRAMS **********************************************************************************;
 %let path = H:\BPCIA_BPCI Advanced\50 - BPCI Advanced Ongoing Reporting - 2020\Work Papers\SAS;
 
@@ -181,6 +186,17 @@ quit;
 ********************************************************* ;
 ********************************************************* ;
 
+%macro readin(datatype);
+
+/* kettering hospitals are on quarterly reporting */
+%if &quarterly. = Y %then %do;
+%call(Premier,1075-0000,1075_0000,&label.,12);
+%call(Premier,2048-0000,2048_0000,&label.,12);
+%call(Premier,2049-0000,2049_0000,&label.,12);
+%call(Premier,2589-0000,2589_0000,&label.,12);
+%call(Premier,5037-0000,5037_0000,&label.,12);
+%end;
+
 %call(Other,1191-0001,1191_0001,&label.,12);
 %call(Other,1209-0000,1209_0000,&label.,123);
 %call(Other,1374-0001,1374_0001,&label.,123);
@@ -207,7 +223,6 @@ quit;
 %call(Other,7310-0001,7310_0001,&label.,3);
 %call(Other,7312-0001,7312_0001,&label.,3);
 %call(Premier,1028-0000,1028_0000,&label.,3);
-%call(Premier,1075-0000,1075_0000,&label.,12);
 %call(Premier,1102-0000,1102_0000,&label.,12);
 %call(Premier,1103-0000,1103_0000,&label.,123);
 %call(Premier,1104-0000,1104_0000,&label.,12);
@@ -221,8 +236,6 @@ quit;
 %call(Premier,1634-0000,1634_0000,&label.,123);
 *%call(Premier,1803-0000,1803_0000,&label.,3);
 %call(Premier,1958-0000,1958_0000,&label.,123);
-%call(Premier,2048-0000,2048_0000,&label.,12);
-%call(Premier,2049-0000,2049_0000,&label.,12);
 %call(Premier,2070-0000,2070_0000,&label.,123);
 %call(Premier,2214-0000,2214_0000,&label.,3);
 %call(Premier,2215-0000,2215_0000,&label.,3);
@@ -238,10 +251,8 @@ quit;
 %call(Premier,2461-0000,2461_0000,&label.,3);
 %call(Premier,2468-0000,2468_0000,&label.,3);
 %call(Premier,2587-0000,2587_0000,&label.,123);
-%call(Premier,2589-0000,2589_0000,&label.,12);
 %call(Premier,2594-0000,2594_0000,&label.,123);
 %call(Premier,2607-0000,2607_0000,&label.,12);
-%call(Premier,5037-0000,5037_0000,&label.,12);
 %call(Premier,5038-0000,5038_0000,&label.,123);
 %call(Premier,5043-0000,5043_0000,&label.,123);
 %call(Premier,5050-0000,5050_0000,&label.,123);
@@ -261,7 +272,9 @@ quit;
 %call(Premier,5481-0001,5481_0001,&label.,123);
 %call(Premier,5746-0001,5746_0001,&label.,123);
 
+%mend readin;
 
+%readin(P, N);
 /************************************************************************************;*/
 /***** END OF PROGRAM ***************************************************************;*/
 /************************************************************************************;*/
