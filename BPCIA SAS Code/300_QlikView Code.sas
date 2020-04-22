@@ -31,12 +31,16 @@ SET UP
 /*%let reporting_period=201806;*Change for every Update*; */
 
 * TURN ON FOR PERFORMANCE / TURN OFF FOR BASELINE *****;
-%let label = y202002; *Update with change in period;
-%let prevlabel = y202001; *Update with the prior period;
-%let reporting_period=202003;*Change for every Update*; 
+%let label_monthly = y202003; *Update with change in period;
+%let prevlabel_monthly = y202002; *Update with the prior period;
+%let reporting_period_monthly =202004;*Change for every Update*; 
+%let transmit_date_monthly = '13MAR2020'd;*Change for every Update*; 
 
-* UPDATE WITH EVERY PERF UPDATE *****;
-%let transmit_date = '07FEB2020'd;*Change for every Update*; 
+%let label_quarterly = y202002; *Update with change in period;
+%let prevlabel_quarterly = y202001; *Update with the prior period;
+%let reporting_period_quarterly =202003;*Change for every Update*; 
+%let transmit_date_quarterly = '07FEB2020'd;*Change for every Update*; 
+
 
 * MAIN VS BASELINE INTERFACE *****;
 %let mode = main; *main=main interface, base = baseline interface;
@@ -462,6 +466,21 @@ quit;
 /*MAIN MACRO FOR DASHBOARD DATASETS*/
 
 %macro dashboard(bpid1,bpid2,epi_idx);
+
+/* quarterly update */
+%if &bpid1. = 1075 or &bpid1. = 2048 or &bpid1. = 2049 or &bpid1. = 2589 or &bpid1. = 5037 %then %do;
+%let label = &label_quarterly.;
+%let prevlabel = &prevlabel_quarterly.; 
+%let reporting_period =&reporting_period_quarterly.;
+%let transmit_date = &transmit_date_quarterly.;
+%end;
+
+%else %do;
+%let label = &label_monthly.; 
+%let prevlabel = &prevlabel_monthly.; 
+%let reporting_period =&reporting_period_monthly.;
+%let transmit_date = &transmit_date_monthly.;
+%end;
 
 
 /****
