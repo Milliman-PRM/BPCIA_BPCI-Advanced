@@ -30,7 +30,8 @@ quit;
 
 /*turn on for performance */
 %let mode = main; *main = main interface, base = baseline interface, recon = reconciliation;
-%let label = y202003; *Turn off for baseline data, turn on for quarterly data;
+%let label_monthly = y202003; *Turn off for baseline data, turn on for quarterly data;
+%let label_quarterly = y202002; *Turn off for baseline data, turn on for quarterly data;
 %let vers = P; *B for baseline, P for Performance;
 
 /*turn on for recon */
@@ -138,6 +139,14 @@ quit;
 
 
 %MACRO RunHosp(id1,id2,bpid1,bpid2,prov);
+
+/* quarterly update */
+%if &bpid1. = 1075 or &bpid1. = 2048 or &bpid1. = 2049 or &bpid1. = 2589 or &bpid1. = 5037 %then %do;
+%let label = &label_quarterly.;
+%end;
+%else %do;
+	%let label = &label_monthly.;
+%end;
 
 data TP_Components_all_V2;
 	set tp.TP_Components_all;
