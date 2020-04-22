@@ -16,7 +16,7 @@ Generate Hospital Data from:
 options mprint mlogic spool;
 
 ****** USER INPUTS **********************************************************************************;
-%let dte = 202002;
+%let dte = 202003;
 
 %let label = y&dte.; 
 
@@ -50,6 +50,7 @@ MY_Category
 
 %let pth =R:\data\HIPAA\BPCIA_BPCI Advanced\02 - Performance Data\Data &dte. ;
 %let folder = &pth.\&sub1.\&id.; 
+%let MY = MY12;
 
 TITLE1 'BPCI Advanced';
 TITLE2 "CLIENT: &sub1.  BPID:&BPID." ;
@@ -80,14 +81,14 @@ run;
 *use the file name to determine which macro to call;
 %do i=1 %to &max;
 	%put &&read&i;
-	%if %sysfunc(find(&&read&i,epi_,i))>0 %then %epi(&&read&i, &i);
-	%if %sysfunc(find(&&read&i,ip_,i))>0 %then %ip(&&read&i, &i);
-	%if %sysfunc(find(&&read&i,dm_,i))>0 %then %dme(&&read&i, &i);
-	%if %sysfunc(find(&&read&i,hh_,i))>0 %then %hha(&&read&i, &i);
-	%if %sysfunc(find(&&read&i,hs_,i))>0 %then %hs(&&read&i, &i);
-	%if %sysfunc(find(&&read&i,opl_,i))>0 %then %op(&&read&i, &i);
-	%if %sysfunc(find(&&read&i,pb_,i))>0 %then %pb(&&read&i, &i);
-	%if %sysfunc(find(&&read&i,sn_,i))>0 %then %snf(&&read&i, &i); 
+	%if %sysfunc(find(&&read&i,epi_,i))>0 %then %epi(&&read&i, &i, &MY);
+	%if %sysfunc(find(&&read&i,ip_,i))>0 %then %ip(&&read&i, &i, &MY);
+	%if %sysfunc(find(&&read&i,dm_,i))>0 %then %dme(&&read&i, &i, &MY);
+	%if %sysfunc(find(&&read&i,hh_,i))>0 %then %hha(&&read&i, &i, &MY);
+	%if %sysfunc(find(&&read&i,hs_,i))>0 %then %hs(&&read&i, &i, &MY);
+	%if %sysfunc(find(&&read&i,opl_,i))>0 %then %op(&&read&i, &i, &MY);
+	%if %sysfunc(find(&&read&i,pb_,i))>0 %then %pb(&&read&i, &i, &MY);
+	%if %sysfunc(find(&&read&i,sn_,i))>0 %then %snf(&&read&i, &i, &MY); 
 %end;
 %end;
 
@@ -96,6 +97,7 @@ run;
 
 %let pth =R:\data\HIPAA\BPCIA_BPCI Advanced\02 - Performance Data\Data &dte.\MY3;
 %let folder = &pth.\&sub1.\&id.; 
+%let MY = MY3;
 
 TITLE1 'BPCI Advanced';
 TITLE2 "CLIENT: &sub1.  BPID:&BPID." ;
@@ -126,14 +128,14 @@ run;
 *use the file name to determine which macro to call;
 %do i=1 %to &max;
 	%put &&read&i;
-	%if %sysfunc(find(&&read&i,epi_,i))>0 %then %epi_MY3(&&read&i, &i);
-	%if %sysfunc(find(&&read&i,ip_,i))>0 %then %ip_MY3(&&read&i, &i);
-	%if %sysfunc(find(&&read&i,dm_,i))>0 %then %dme_MY3(&&read&i, &i);
-	%if %sysfunc(find(&&read&i,hh_,i))>0 %then %hha_MY3(&&read&i, &i);
-	%if %sysfunc(find(&&read&i,hs_,i))>0 %then %hs_MY3(&&read&i, &i);
-	%if %sysfunc(find(&&read&i,opl_,i))>0 %then %op_MY3(&&read&i, &i);
-	%if %sysfunc(find(&&read&i,pb_,i))>0 %then %pb_MY3(&&read&i, &i);
-	%if %sysfunc(find(&&read&i,sn_,i))>0 %then %snf_MY3(&&read&i, &i);
+	%if %sysfunc(find(&&read&i,epi_,i))>0 %then %epi(&&read&i, &i, &MY);
+	%if %sysfunc(find(&&read&i,ip_,i))>0 %then %ip(&&read&i, &i, &MY);
+	%if %sysfunc(find(&&read&i,dm_,i))>0 %then %dme(&&read&i, &i, &MY);
+	%if %sysfunc(find(&&read&i,hh_,i))>0 %then %hha(&&read&i, &i, &MY);
+	%if %sysfunc(find(&&read&i,hs_,i))>0 %then %hs(&&read&i, &i, &MY);
+	%if %sysfunc(find(&&read&i,opl_,i))>0 %then %op(&&read&i, &i, &MY);
+	%if %sysfunc(find(&&read&i,pb_,i))>0 %then %pb(&&read&i, &i, &MY);
+	%if %sysfunc(find(&&read&i,sn_,i))>0 %then %snf(&&read&i, &i, &MY);
 %end;
 %end;
 
@@ -163,6 +165,7 @@ run;
 data in.EPI_&sub2._&BPID.;
 	set EPI_&sub2._&BPID._:;
 run;
+
 
 *delete work datasets - Comment out to retain work files in session;
 proc datasets lib=work memtype=data kill;
