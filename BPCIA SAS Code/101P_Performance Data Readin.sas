@@ -25,7 +25,6 @@ options mprint mlogic spool;
 %let path = H:\BPCIA_BPCI Advanced\50 - BPCI Advanced Ongoing Reporting - 2020\Work Papers\SAS;
 
 %include "&path.\100P_Read Performance Data.sas";
-%include "&path.\100P_Read Performance Data_MY3.sas";
 %include 'H:\_HealthLibrary\SAS\dirmemlist.sas' ;
 
 ****** LIBRARY ASSIGNMENT **********************************************************************************;
