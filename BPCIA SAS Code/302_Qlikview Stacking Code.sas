@@ -25,7 +25,7 @@ Setup
 ********************;
 ****** USER INPUTS ******************************************************************************************;
 /*%let label = ybase; *Baseline/Performance data label;*/
-%let label = y202002;
+%let label = y202003;
 
 %let mode=main; *Base=Baseline Interface, Main=Main Interface;
 
@@ -65,7 +65,7 @@ libname bench "R:\client work\CMS_PAC_Bundle_Processing\Benchmark Releases\v.201
 %macro stack_output(file);
 
 	data out.all_&file.;
-		set out.A_&file._ybase: out.&file._&label.:;
+		set out.A_&file._ybase: out.&file._y20:;
 		%if &file = ccn_enc %then %do;
 			fac_counter = _N_;
 		%end;
@@ -101,7 +101,7 @@ libname bench "R:\client work\CMS_PAC_Bundle_Processing\Benchmark Releases\v.201
 
 data out.all_&file.;
 
-		set out.&file.:(keep=BPID EPI_ID_MILLIMAN timeframe_filter)  out.epi_detail_&label.:(keep=BPID EPI_ID_MILLIMAN timeframe_filter);
+		set out.&file.:(keep=BPID EPI_ID_MILLIMAN timeframe_filter)  out.epi_detail_y20:(keep=BPID EPI_ID_MILLIMAN timeframe_filter);
 
 	run;
 
@@ -112,7 +112,7 @@ data out.all_&file.;
 %macro stack_output_e(file);
 
 	data out.all_&file.;
-		set out.&file._&label.:;
+		set out.&file._y20:;
 	run;
 
 %mend stack_output_e;
