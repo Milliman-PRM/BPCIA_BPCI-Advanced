@@ -1,5 +1,4 @@
 %let  _sdtm=%sysfunc(datetime());
-
 *********************************************************
 BPCIA: 200_Main_Processing
 Code to process imported data in preparation for dashboard data creation
@@ -30,7 +29,8 @@ quit;
 
 /*turn on for performance */
 %let mode = main; *main = main interface, base = baseline interface, recon = reconciliation;
-%let label = y202003; *Turn off for baseline data, turn on for quarterly data;
+%let label_monthly = y202003; *Turn off for baseline data, turn on for quarterly data;
+%let label_quarterly = y202002; *Turn off for baseline data, turn on for quarterly data;
 %let vers = P; *B for baseline, P for Performance;
 
 /*turn on for recon */
@@ -138,6 +138,15 @@ quit;
 
 
 %MACRO RunHosp(id1,id2,bpid1,bpid2,prov);
+
+
+/* quarterly update */
+%if &bpid1. = 1075 or &bpid1. = 2048 or &bpid1. = 2049 or &bpid1. = 2589 or &bpid1. = 5037 %then %do;
+%let label = &label_quarterly.;
+%end;
+%else %do;
+	%let label = &label_monthly.;
+%end;
 
 data TP_Components_all_V2;
 	set tp.TP_Components_all;
@@ -414,6 +423,7 @@ data epi0 out.epiexc_&label._&bpid1._&bpid2. perf_epis0;
 	%end;
 
 	DROP_EPISODE2=0;
+	%if %substr(&label.,1,5) ^= ybase %then %do;
 	DROP_EPISODE2=MAX(DROPFLAG_Predata, 
 					  DROPFLAG_NOT_CONT_ENR_AB_NO_C, DROPFLAG_ESRD, DROPFLAG_OTHER_PRIMARY_PAYER, 
 					  DROPFLAG_NO_BENE_ENR_INFO, DROPFLAG_NON_ACH, DROPFLAG_LOS_GT_59, 
@@ -421,6 +431,8 @@ data epi0 out.epiexc_&label._&bpid1._&bpid2. perf_epis0;
 					  DROPFLAG_CJR, DROPFLAG_RCH_DEMO, DROPFLAG_RURAL_PA, 
 					  DROPFLAG_ACO_MSSP_OVERLAP, DROPFLAG_ACO_CEC_OVERLAP, DROPFLAG_ACO_NEXTGEN_OVERLAP, 
 					  DROPFLAG_ACO_VERMONTAP_OVERLAP, DROPFLAG_DEATH_DUR_ANCHOR);
+	%end;
+	if Epi_Pre_Data=1 then DROP_EPISODE2=1;
 
 	if DROP_EPISODE2 ^= 0 then output out.epiexc_&label._&bpid1._&bpid2.;
 	else if DROPFLAG_NON_PERF_EPI=1 then output perf_epis0;
@@ -593,9 +605,9 @@ data ip_&label._&bpid1._&bpid2. out.FrChk_&label._&bpid1._&bpid2. readexc_&label
 		early_flag = 1;
 	end;
 	else if dos gt POST_DSCH_END_DT then delete ;
-	else if dos - ANCHOR_END_DT le 30 then timeframe = 1 ;
-	else if dos - ANCHOR_END_DT le 60 then timeframe = 2 ;
-	else if dos - ANCHOR_END_DT le 90 then timeframe = 3 ;
+	else if dos - ANCHOR_END_DT le 29 then timeframe = 1 ;
+	else if dos - ANCHOR_END_DT le 59 then timeframe = 2 ;
+	else if dos - ANCHOR_END_DT le 89 then timeframe = 3 ;
 
 	* sequestration *;
 	if not missing(STAY_dschrgdt) and STAY_dschrgdt <= mdy(3,31,2013) then do;
@@ -675,9 +687,7 @@ data ip_&label._&bpid1._&bpid2. out.FrChk_&label._&bpid1._&bpid2. readexc_&label
 	end;
 
 	std_allowed_calc = std_allowed;
-	*%if %substr(&label.,1,5) ^= ybase %then %do;
 		std_allowed = std_cost_epi_total;
-	*%end;
 	if std_allowed <= 0 then delete;
 
 	std_allowed_wage = std_allowed*wage_index;
@@ -784,13 +794,13 @@ data out.snf_&label._&bpid1._&bpid2. ;
 	*** timeframe is field to keep and will be output for exhibits *** ;
 	*** 0 = Anchor, Post-Acute: 1 = 0-30 days, 2 = 31-60 days, 3 =  61-90 days *** ;
 	if dos < ANCHOR_END_DT and dschrgdt <= ANCHOR_END_DT then timeframe = 0 ;
-	else if dos - ANCHOR_END_DT le 30 then timeframe = 1 ;
-	else if dos - ANCHOR_END_DT le 60 then timeframe = 2 ;
-	else if dos - ANCHOR_END_DT le 90 then timeframe = 3 ;
+	else if dos - ANCHOR_END_DT le 29 then timeframe = 1 ;
+	else if dos - ANCHOR_END_DT le 59 then timeframe = 2 ;
+	else if dos - ANCHOR_END_DT le 89 then timeframe = 3 ;
 
-	else if FROM_DT - ANCHOR_END_DT le 30 then timeframe = 1 ;
-	else if FROM_DT - ANCHOR_END_DT le 60 then timeframe = 2 ;
-	else if FROM_DT - ANCHOR_END_DT le 90 then timeframe = 3 ;
+	else if FROM_DT - ANCHOR_END_DT le 29 then timeframe = 1 ;
+	else if FROM_DT - ANCHOR_END_DT le 59 then timeframe = 2 ;
+	else if FROM_DT - ANCHOR_END_DT le 89 then timeframe = 3 ;
 
 	if dschrgdt=. then util_day = max(1,thru_dt-admsn_dt);
 	else util_day = max(1,dschrgdt-admsn_dt);
@@ -848,9 +858,9 @@ data out.hha_&label._&bpid1._&bpid2. nohhaccn;
 	*if THRU_DT le ANCHOR_BEG_DT then delete;
 	if dos gt POST_DSCH_END_DT then delete ;
 	else if dos < ANCHOR_END_DT and THRU_DT <= ANCHOR_END_DT then timeframe = 0 ;
-	else if dos - ANCHOR_END_DT le 30 then timeframe = 1 ;
-	else if dos - ANCHOR_END_DT le 60 then timeframe = 2 ;
-	else if dos - ANCHOR_END_DT LE 90 then timeframe = 3 ;
+	else if dos - ANCHOR_END_DT le 29 then timeframe = 1 ;
+	else if dos - ANCHOR_END_DT le 59 then timeframe = 2 ;
+	else if dos - ANCHOR_END_DT LE 89 then timeframe = 3 ;
 
 	array rvcntr(*) RVCNTR01 - RVCNTR45;
 	array hcpcs(*) HCPSCD01 - HCPSCD45;
@@ -993,9 +1003,9 @@ data 	op_pre_&label._&bpid1._&bpid2.
 	if dos gt POST_DSCH_END_DT then delete ;
 	else if type = 'OP_Idx' then timeframe = 0 ;
 	else if dos < ANCHOR_END_DT then timeframe = 0 ;
-	else if dos - ANCHOR_END_DT le 30 then timeframe = 1 ;
-	else if dos - ANCHOR_END_DT le 60 then timeframe = 2 ;
-	else if dos - ANCHOR_END_DT le 90 then timeframe = 3 ;	
+	else if dos - ANCHOR_END_DT le 29 then timeframe = 1 ;
+	else if dos - ANCHOR_END_DT le 59 then timeframe = 2 ;
+	else if dos - ANCHOR_END_DT le 89 then timeframe = 3 ;	
 
 	ER_flag_Line=0;
 	if new_rev in (450,451,452,456,459,981) then do;
@@ -1184,9 +1194,9 @@ data out.pb_&label._&bpid1._&bpid2.
 	*** 0 = Anchor, Post-Acute: 1 = 0-30 days, 2 = 31-60 days, 3 =  61-90 days *** ;
 	if dos < ANCHOR_END_DT then timeframe = 0;
 	else if dos = ANCHOR_END_DT and (PLCSRVC=21 or ANCHOR_TYPE = 'op') then timeframe = 0;
-	else if dos - ANCHOR_END_DT le 30 then timeframe = 1 ;
-	else if dos - ANCHOR_END_DT le 60 then timeframe = 2 ;
-	else if dos - ANCHOR_END_DT le 90 then timeframe = 3 ;
+	else if dos - ANCHOR_END_DT le 29 then timeframe = 1 ;
+	else if dos - ANCHOR_END_DT le 59 then timeframe = 2 ;
+	else if dos - ANCHOR_END_DT le 89 then timeframe = 3 ;
 	
 	std_allowed_calc = std_allowed;
 	*%if %substr(&label.,1,5) ^= ybase %then %do;
@@ -1265,9 +1275,9 @@ data out.dme_&label._&bpid1._&bpid2.
 	*if dos lt ANCHOR_BEG_DT then delete ;
 	if dos gt POST_DSCH_END_DT then delete ;
 	else if dos < ANCHOR_END_DT then timeframe = 0;
-	else if dos - ANCHOR_END_DT le 30 then timeframe = 1 ;
-	else if dos - ANCHOR_END_DT le 60 then timeframe = 2 ;
-	else if dos - ANCHOR_END_DT le 90 then timeframe = 3 ;
+	else if dos - ANCHOR_END_DT le 29 then timeframe = 1 ;
+	else if dos - ANCHOR_END_DT le 59 then timeframe = 2 ;
+	else if dos - ANCHOR_END_DT le 89 then timeframe = 3 ;
 
 	std_allowed_calc = std_allowed;
 	*%if %substr(&label.,1,5) ^= ybase %then %do;
@@ -1325,9 +1335,9 @@ data out.hs_&label._&bpid1._&bpid2. hsexcl_&label._&bpid1._&bpid2. ;
 	*if dos lt ANCHOR_BEG_DT then delete;
 	if dos gt POST_DSCH_END_DT then delete ;
 	else if dos < ANCHOR_END_DT and THRU_DT <= ANCHOR_END_DT then timeframe = 0 ;
-	else if dos - ANCHOR_END_DT le 30 then timeframe = 1 ;
-	else if dos - ANCHOR_END_DT le 60 then timeframe = 2 ;
-	else if dos - ANCHOR_END_DT le 90 then timeframe = 3 ;
+	else if dos - ANCHOR_END_DT le 29 then timeframe = 1 ;
+	else if dos - ANCHOR_END_DT le 59 then timeframe = 2 ;
+	else if dos - ANCHOR_END_DT le 89 then timeframe = 3 ;
 
 	days1 = THRU_DT - FROM_DT + 1;
 	days2 = POST_DSCH_END_DT - THRU_DT;
@@ -1468,9 +1478,9 @@ data pb2_&label._&bpid1._&bpid2.;
 	*** calculating timeframe *** ;
 	IF type2 = "IP_Idx" then timeframe = 0 ;
 	else if EXPNSDT1 <= ANCHOR_END_DT then timeframe = 0 ;
-	else if EXPNSDT1 - ANCHOR_END_DT le 30 then timeframe = 1 ;
-	else if EXPNSDT1 - ANCHOR_END_DT le 60 then timeframe = 2 ;
-	else if EXPNSDT1 - ANCHOR_END_DT le 90 then timeframe = 3 ;
+	else if EXPNSDT1 - ANCHOR_END_DT le 29 then timeframe = 1 ;
+	else if EXPNSDT1 - ANCHOR_END_DT le 59 then timeframe = 2 ;
+	else if EXPNSDT1 - ANCHOR_END_DT le 89 then timeframe = 3 ;
 run;
 
 data out.dme2_&label._&bpid1._&bpid2.;
@@ -1483,9 +1493,9 @@ data out.dme2_&label._&bpid1._&bpid2.;
 	*** calculating timeframe *** ;
 	IF type2 = "IP_Idx" then timeframe = 0 ;
 	else if EXPNSDT1 < ANCHOR_END_DT then timeframe = 0 ;
-	else if EXPNSDT1 - ANCHOR_END_DT le 30 then timeframe = 1 ;
-	else if EXPNSDT1 - ANCHOR_END_DT le 60 then timeframe = 2 ;
-	else if EXPNSDT1 - ANCHOR_END_DT le 90 then timeframe = 3 ;
+	else if EXPNSDT1 - ANCHOR_END_DT le 29 then timeframe = 1 ;
+	else if EXPNSDT1 - ANCHOR_END_DT le 59 then timeframe = 2 ;
+	else if EXPNSDT1 - ANCHOR_END_DT le 89 then timeframe = 3 ;
 run;
 
 
@@ -2124,6 +2134,8 @@ quit;
 %runhosp(6053_0001,6053_0001,6053,0002,450883);
 %runhosp(2974_0001,2974_0001,2974,0003,251716306);
 %runhosp(2974_0001,2974_0001,2974,0007,232730785);
+%runhosp(5916_0001,5916_0001,5916,0002,411861374);
+
 
 
 %MACRO CLINOUT;
