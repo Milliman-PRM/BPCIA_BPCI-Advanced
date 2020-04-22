@@ -12,6 +12,7 @@ proc printto;run;
 ***** USER INPUTS ******************************************************************************************;
 %let mode = main; *main = main interface, base = baseline interface;
 *%let mode = recon; *main = main interface, base = baseline interface;
+%let label = y202003; 
 
 
 ****** REFERENCE PROGRAMS ***********************************************************************************;
@@ -1751,8 +1752,8 @@ data t4;
 		NATURAL_DISASTER_MONTHLY='Yes';
 %if &label. ^= ybase %then %do ;
 		if EPI_STD_PMT_FCTR_WIN_1_99>TARGET_PRICE then do;
-			EPI_STD_PMT_FCTR_WIN_1_99=0;
-			TP_Adj=0;
+			EPI_STD_PMT_FCTR_WIN_1_99=.;
+			TP_Adj=.;
 		end;
 %end ;
 	end;
@@ -1827,8 +1828,9 @@ data out.tp_&label._&bpid1._&bpid2.;
 	HAS_TP="Yes";
 	if Adjusted_TP_Real=. then HAS_TP='No';
 
-	if PERFORMANCE_PERIOD_EPI = 1 then PERFORMANCE_PERIOD = 'Yes';
-	else PERFORMANCE_PERIOD = 'No';
+	*if PERFORMANCE_PERIOD_EPI = 1 then PERFORMANCE_PERIOD = 'Yes';
+	*else PERFORMANCE_PERIOD = 'No';
+	PERFORMANCE_PERIOD = 'Yes';
 
 run;
 
@@ -1888,6 +1890,12 @@ run;
 %runhosp(1931_0001,5479_0001,5479,0002,310051);
 */
 
+%runhosp(2586_0001,2586_0001,2586,0002,360027);
+%runhosp(2586_0001,2586_0001,2586,0005,360082);
+%runhosp(2586_0001,2586_0001,2586,0006,360077);
+%runhosp(2586_0001,2586_0001,2586,0007,360230);
+%runhosp(2586_0001,2586_0001,2586,0010,360143);
+%runhosp(2586_0001,2586_0001,2586,0013,360180);
 %runhosp(1374_0001,1374_0001,1374,0004,420078);
 %runhosp(1374_0001,1374_0001,1374,0008,420018);
 %runhosp(1374_0001,1374_0001,1374,0009,420086);
@@ -1960,12 +1968,14 @@ run;
 %runhosp(6051_0001,6051_0001,6051,0002,030112);
 %runhosp(6052_0001,6052_0001,6052,0002,670076);
 %runhosp(6053_0001,6053_0001,6053,0002,450883);
+%runhosp(5916_0001,5916_0001,5916,0002,411861374);
+
 
 %MEND TP;
 
 %TP(ybase);
-%TP(y202002);
-*%TP(pp1Initial);
+%TP(&label.);
+*%TP(pp1Initial); 
 /*
 data All_Target_Prices;
 	format BPID EPI_ID_MILLIMAN EPISODE_ID EPISODE_INITIATOR EPISODE_GROUP_NAME ANCHOR_TYPE ANCHOR_CODE ANCHOR_CCN
@@ -2132,7 +2142,7 @@ Calculation of Adjusted Target Prices
 
 data out3.tp_&label._&bpid1._&bpid2.;
 	format BPID $9.;
-	set out2.tp_&label._&bpid1._&bpid2. (rename=(BPID=BPID_o));
+	set out2.tp_&label._&bpid1._&bpid2.: (rename=(BPID=BPID_o));
 
 	BPID = put(BPID_o,$masked_bpid.);
 
@@ -2159,7 +2169,7 @@ run;
 %mend;
 
 %Period2(ybase);
-%Period2(y202003);
+%Period2(&label.);
 
 
 data All_Target_Prices;
