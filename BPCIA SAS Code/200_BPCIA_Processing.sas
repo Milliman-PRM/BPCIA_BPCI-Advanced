@@ -29,7 +29,11 @@ quit;
 
 /*turn on for performance */
 %let mode = main; *main = main interface, base = baseline interface, recon = reconciliation;
+<<<<<<< Updated upstream
 %let label = y202003; *Turn off for baseline data, turn on for quarterly data;
+=======
+%let label_monthly = y202003; *Turn off for baseline data, turn on for quarterly data;
+>>>>>>> Stashed changes
 %let label_quarterly = y202002; *Turn off for baseline data, turn on for quarterly data;
 %let vers = P; *B for baseline, P for Performance;
 
@@ -141,10 +145,21 @@ quit;
 
 
 /* quarterly update */
+<<<<<<< Updated upstream
 %if &mode. = main  and (&bpid1. = 1075 or &bpid1. = 2048 or &bpid1. = 2049 or &bpid1. = 2589 or &bpid1. = 5037) %then %do;
 %let label = &label_quarterly.;
 %end;
 
+=======
+%if &vers. = P and &mode.= main and (&bpid1. = 1075 or &bpid1. = 2048 or &bpid1. = 2049 or &bpid1. = 2589 or &bpid1. = 5037) %then %do;
+%let label = &label_quarterly.;
+%end;
+
+%else %if &vers. = P and &mode.= main %then %do;
+%let label = &label_monthly.; 
+%end;
+
+>>>>>>> Stashed changes
 data TP_Components_all_V2;
 	set tp.TP_Components_all;
 	format MEASURE_YEAR $10.;
@@ -2004,6 +2019,7 @@ quit;
 %runhosp(2607_0000,2607_0000,2607,0000,223700669);
 %runhosp(1931_0001,5479_0001,5479,0002,310051);
 */
+*%runhosp(1028_0000,1028_0000,1028,0000,100008);
 
 %runhosp(2586_0001,2586_0001,2586,0002,360027);
 %runhosp(2586_0001,2586_0001,2586,0005,360082);
@@ -2134,12 +2150,13 @@ quit;
 %runhosp(5916_0001,5916_0001,5916,0002,411861374);
 
 
+%let label = &label_monthly.;
 
 %MACRO CLINOUT;
 %if %substr(&label.,1,5) ^= ybase and &mode. ^= recon %then %do;
 	%if &mode. ^= dev %then %do;
 		data out.clinepi_&label.;
-			set out.clinepi_&label._:;
+			set out.clinepi_&label_monthly._: out.clinepi_&label_quarterly._:;
 		run;
 
 		proc export data= out.clinepi_&label.
