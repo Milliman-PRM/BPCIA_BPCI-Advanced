@@ -18,8 +18,9 @@ options minoperator mlogic;
 
 ****** USER INPUTS ******************************************************************************************;
 %let mode = main; *main = main interface, base = baseline interface;
-%let label_monthly = y202003; 
+%let label = y202003; 
 %let label_quarterly = y202002; 
+
 %include "H:\Nonclient\Medicare Bundled Payment Reference\Program - BPCIA\SAS Code\000 - BPCIA_Interface_BPIDs.sas";
 
 
@@ -45,9 +46,7 @@ Calculation of Monthly Reports Datasets
 %let label = &label_quarterly.;
 %end;
 
-%else %do;
-%let label = &label_monthly.; 
-%end;
+
 *************** PART 1: CREATE DEDUPED LIST OF FINAL EPISODES FOR INTERFACE **************************************;
 
 
@@ -142,7 +141,6 @@ run;
 * RUN FOR ALL FACILITIES, INCLUDING THOSE WITH NO PERFORMANCE EPISODES;
 
 *%selection(5746,0002,0);
-
 
 %Selection(2586,0002,1);
 %Selection(2586,0005,1);
@@ -270,6 +268,7 @@ run;
 %Selection(6053,0002,0);
 %Selection(2974,0003,1);
 %Selection(2974,0007,1);
+%Selection(5916,0002,0);
 
 
 
