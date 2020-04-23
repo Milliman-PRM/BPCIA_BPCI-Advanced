@@ -274,7 +274,7 @@ quit;
 
 %mend readin;
 
-%readin(P, N);
+%readin(P);
 /************************************************************************************;*/
 /***** END OF PROGRAM ***************************************************************;*/
 /************************************************************************************;*/
@@ -363,4 +363,3 @@ proc printto;run;
 %let _edtm=%sysfunc(datetime());
 %let _runtm=%sysevalf(%sysfunc(putn(&_edtm - &_sdtm, 12.))/60.0);
 %put It took &_runtm minutes to run the program;
-
