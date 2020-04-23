@@ -16,16 +16,20 @@ Generate Hospital Data from:
 options mprint mlogic spool;
 
 ****** USER INPUTS **********************************************************************************;
-%let dte = 202002;
+%let dte = 202003;
 
 %let label = y&dte.; 
-
-
+/*
+quarterly
+Y if quarterly
+N if not quarterly
+next quarterly is month 202004
+*/
+%let quarterly = N; 
 ****** REFERENCE PROGRAMS **********************************************************************************;
 %let path = H:\BPCIA_BPCI Advanced\50 - BPCI Advanced Ongoing Reporting - 2020\Work Papers\SAS;
 
 %include "&path.\100P_Read Performance Data.sas";
-%include "&path.\100P_Read Performance Data_MY3.sas";
 %include 'H:\_HealthLibrary\SAS\dirmemlist.sas' ;
 
 ****** LIBRARY ASSIGNMENT **********************************************************************************;
@@ -50,6 +54,7 @@ MY_Category
 
 %let pth =R:\data\HIPAA\BPCIA_BPCI Advanced\02 - Performance Data\Data &dte. ;
 %let folder = &pth.\&sub1.\&id.; 
+%let MY = MY12;
 
 TITLE1 'BPCI Advanced';
 TITLE2 "CLIENT: &sub1.  BPID:&BPID." ;
@@ -80,14 +85,14 @@ run;
 *use the file name to determine which macro to call;
 %do i=1 %to &max;
 	%put &&read&i;
-	%if %sysfunc(find(&&read&i,epi_,i))>0 %then %epi(&&read&i, &i);
-	%if %sysfunc(find(&&read&i,ip_,i))>0 %then %ip(&&read&i, &i);
-	%if %sysfunc(find(&&read&i,dm_,i))>0 %then %dme(&&read&i, &i);
-	%if %sysfunc(find(&&read&i,hh_,i))>0 %then %hha(&&read&i, &i);
-	%if %sysfunc(find(&&read&i,hs_,i))>0 %then %hs(&&read&i, &i);
-	%if %sysfunc(find(&&read&i,opl_,i))>0 %then %op(&&read&i, &i);
-	%if %sysfunc(find(&&read&i,pb_,i))>0 %then %pb(&&read&i, &i);
-	%if %sysfunc(find(&&read&i,sn_,i))>0 %then %snf(&&read&i, &i); 
+	%if %sysfunc(find(&&read&i,epi_,i))>0 %then %epi(&&read&i, &i, &MY);
+	%if %sysfunc(find(&&read&i,ip_,i))>0 %then %ip(&&read&i, &i, &MY);
+	%if %sysfunc(find(&&read&i,dm_,i))>0 %then %dme(&&read&i, &i, &MY);
+	%if %sysfunc(find(&&read&i,hh_,i))>0 %then %hha(&&read&i, &i, &MY);
+	%if %sysfunc(find(&&read&i,hs_,i))>0 %then %hs(&&read&i, &i, &MY);
+	%if %sysfunc(find(&&read&i,opl_,i))>0 %then %op(&&read&i, &i, &MY);
+	%if %sysfunc(find(&&read&i,pb_,i))>0 %then %pb(&&read&i, &i, &MY);
+	%if %sysfunc(find(&&read&i,sn_,i))>0 %then %snf(&&read&i, &i, &MY); 
 %end;
 %end;
 
@@ -96,6 +101,7 @@ run;
 
 %let pth =R:\data\HIPAA\BPCIA_BPCI Advanced\02 - Performance Data\Data &dte.\MY3;
 %let folder = &pth.\&sub1.\&id.; 
+%let MY = MY3;
 
 TITLE1 'BPCI Advanced';
 TITLE2 "CLIENT: &sub1.  BPID:&BPID." ;
@@ -126,14 +132,14 @@ run;
 *use the file name to determine which macro to call;
 %do i=1 %to &max;
 	%put &&read&i;
-	%if %sysfunc(find(&&read&i,epi_,i))>0 %then %epi_MY3(&&read&i, &i);
-	%if %sysfunc(find(&&read&i,ip_,i))>0 %then %ip_MY3(&&read&i, &i);
-	%if %sysfunc(find(&&read&i,dm_,i))>0 %then %dme_MY3(&&read&i, &i);
-	%if %sysfunc(find(&&read&i,hh_,i))>0 %then %hha_MY3(&&read&i, &i);
-	%if %sysfunc(find(&&read&i,hs_,i))>0 %then %hs_MY3(&&read&i, &i);
-	%if %sysfunc(find(&&read&i,opl_,i))>0 %then %op_MY3(&&read&i, &i);
-	%if %sysfunc(find(&&read&i,pb_,i))>0 %then %pb_MY3(&&read&i, &i);
-	%if %sysfunc(find(&&read&i,sn_,i))>0 %then %snf_MY3(&&read&i, &i);
+	%if %sysfunc(find(&&read&i,epi_,i))>0 %then %epi(&&read&i, &i, &MY);
+	%if %sysfunc(find(&&read&i,ip_,i))>0 %then %ip(&&read&i, &i, &MY);
+	%if %sysfunc(find(&&read&i,dm_,i))>0 %then %dme(&&read&i, &i, &MY);
+	%if %sysfunc(find(&&read&i,hh_,i))>0 %then %hha(&&read&i, &i, &MY);
+	%if %sysfunc(find(&&read&i,hs_,i))>0 %then %hs(&&read&i, &i, &MY);
+	%if %sysfunc(find(&&read&i,opl_,i))>0 %then %op(&&read&i, &i, &MY);
+	%if %sysfunc(find(&&read&i,pb_,i))>0 %then %pb(&&read&i, &i, &MY);
+	%if %sysfunc(find(&&read&i,sn_,i))>0 %then %snf(&&read&i, &i, &MY);
 %end;
 %end;
 
@@ -164,6 +170,7 @@ data in.EPI_&sub2._&BPID.;
 	set EPI_&sub2._&BPID._:;
 run;
 
+
 *delete work datasets - Comment out to retain work files in session;
 proc datasets lib=work memtype=data kill;
 
@@ -178,6 +185,17 @@ quit;
 
 ********************************************************* ;
 ********************************************************* ;
+
+%macro readin(datatype);
+
+/* kettering hospitals are on quarterly reporting */
+%if &quarterly. = Y %then %do;
+%call(Premier,1075-0000,1075_0000,&label.,12);
+%call(Premier,2048-0000,2048_0000,&label.,12);
+%call(Premier,2049-0000,2049_0000,&label.,12);
+%call(Premier,2589-0000,2589_0000,&label.,12);
+%call(Premier,5037-0000,5037_0000,&label.,12);
+%end;
 
 %call(Other,1191-0001,1191_0001,&label.,12);
 %call(Other,1209-0000,1209_0000,&label.,123);
@@ -205,7 +223,6 @@ quit;
 %call(Other,7310-0001,7310_0001,&label.,3);
 %call(Other,7312-0001,7312_0001,&label.,3);
 %call(Premier,1028-0000,1028_0000,&label.,3);
-%call(Premier,1075-0000,1075_0000,&label.,12);
 %call(Premier,1102-0000,1102_0000,&label.,12);
 %call(Premier,1103-0000,1103_0000,&label.,123);
 %call(Premier,1104-0000,1104_0000,&label.,12);
@@ -219,8 +236,6 @@ quit;
 %call(Premier,1634-0000,1634_0000,&label.,123);
 *%call(Premier,1803-0000,1803_0000,&label.,3);
 %call(Premier,1958-0000,1958_0000,&label.,123);
-%call(Premier,2048-0000,2048_0000,&label.,12);
-%call(Premier,2049-0000,2049_0000,&label.,12);
 %call(Premier,2070-0000,2070_0000,&label.,123);
 %call(Premier,2214-0000,2214_0000,&label.,3);
 %call(Premier,2215-0000,2215_0000,&label.,3);
@@ -236,10 +251,8 @@ quit;
 %call(Premier,2461-0000,2461_0000,&label.,3);
 %call(Premier,2468-0000,2468_0000,&label.,3);
 %call(Premier,2587-0000,2587_0000,&label.,123);
-%call(Premier,2589-0000,2589_0000,&label.,12);
 %call(Premier,2594-0000,2594_0000,&label.,123);
 %call(Premier,2607-0000,2607_0000,&label.,12);
-%call(Premier,5037-0000,5037_0000,&label.,12);
 %call(Premier,5038-0000,5038_0000,&label.,123);
 %call(Premier,5043-0000,5043_0000,&label.,123);
 %call(Premier,5050-0000,5050_0000,&label.,123);
@@ -259,7 +272,9 @@ quit;
 %call(Premier,5481-0001,5481_0001,&label.,123);
 %call(Premier,5746-0001,5746_0001,&label.,123);
 
+%mend readin;
 
+%readin(P);
 /************************************************************************************;*/
 /***** END OF PROGRAM ***************************************************************;*/
 /************************************************************************************;*/
@@ -348,4 +363,3 @@ proc printto;run;
 %let _edtm=%sysfunc(datetime());
 %let _runtm=%sysevalf(%sysfunc(putn(&_edtm - &_sdtm, 12.))/60.0);
 %put It took &_runtm minutes to run the program;
-
