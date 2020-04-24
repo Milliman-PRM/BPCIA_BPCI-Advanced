@@ -118,16 +118,16 @@ quit;
 
 data future_recon1C;
 set future_recon1B future_recon1B_all;
-	if '01OCT2018'd le POST_DSCH_END_DT le '30JUN2019'd then epi_period_short = "Perf Pd 1 (End by 6/30/2019)";
-	if '01JUL2019'd le POST_DSCH_END_DT le '31DEC2019'd then epi_period_short = "Perf Pd 2 (End 7/1–12/31/2019)";
-	if '01JAN2020'd le POST_DSCH_END_DT le '30JUN2020'd then epi_period_short = "Perf Pd 3 (End 1/1–6/30/2020)";
-	if '01JUL2020'd le POST_DSCH_END_DT le '31DEC2020'd then epi_period_short = "Perf Pd 4 (End 7/1-12/31/2020)";
-	if '01JAN2021'd le POST_DSCH_END_DT le '30JUN2021'd then epi_period_short = "Perf Pd 5 (End 1/1-6/30/2021)";
-	if '01JUL2021'd le POST_DSCH_END_DT le '31DEC2021'd then epi_period_short = "Perf Pd 6 (End 7/1-12/31/2021)";
-	if '01JAN2022'd le POST_DSCH_END_DT le '30JUN2022'd then epi_period_short = "Perf Pd 7 (End 1/1-6/30/2022)";
-	if '01JUL2022'd le POST_DSCH_END_DT le '31DEC2022'd then epi_period_short = "Perf Pd 8 (End 7/1-12/31/2022)";
-	if '01JAN2023'd le POST_DSCH_END_DT le '30JUN2023'd then epi_period_short = "Perf Pd 9 (End 1/1-6/30/2023)";
-	if '01JUL2023'd le POST_DSCH_END_DT le '31DEC2023'd then epi_period_short = "Perf Pd 10 (End 7/1-12/31/2023)";
+	if '01OCT2018'd le POST_DSCH_END_DT le '30JUN2019'd then epi_period_short = "PP1";
+	if '01JUL2019'd le POST_DSCH_END_DT le '31DEC2019'd then epi_period_short = "PP2";
+	if '01JAN2020'd le POST_DSCH_END_DT le '30JUN2020'd then epi_period_short = "PP3";
+	if '01JUL2020'd le POST_DSCH_END_DT le '31DEC2020'd then epi_period_short = "PP4";
+	if '01JAN2021'd le POST_DSCH_END_DT le '30JUN2021'd then epi_period_short = "PP5";
+	if '01JUL2021'd le POST_DSCH_END_DT le '31DEC2021'd then epi_period_short = "PP6";
+	if '01JAN2022'd le POST_DSCH_END_DT le '30JUN2022'd then epi_period_short = "PP7";
+	if '01JUL2022'd le POST_DSCH_END_DT le '31DEC2022'd then epi_period_short = "PP8";
+	if '01JAN2023'd le POST_DSCH_END_DT le '30JUN2023'd then epi_period_short = "PP9";
+	if '01JUL2023'd le POST_DSCH_END_DT le '31DEC2023'd then epi_period_short = "PP10";
 run;
 
 proc sql;
