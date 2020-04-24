@@ -32,42 +32,20 @@ libname cjrref "H:\Nonclient\Medicare Bundled Payment Reference\Program - CJR\SA
 
 %macro FutureRecon(id,reconref);
 
-/*
-data tp_&label._&id. ;
-	set out.tp_&label._&id.:(Drop=Census_Pre);
-run;
-*/
-
-data tp_drop_flag_1 ;
-    set out.tp_&label._&id.:(Drop=Census_Pre);
-    format FUTURE_RECON_OVERLAP_FLAG $30.;
-    FUTURE_RECON_OVERLAP_FLAG = 'None';
-run;
-
-data tp_drop_flag_2;
-    set out.tp_&label._&id.:(Drop=Census_Pre);
-    format FUTURE_RECON_OVERLAP_FLAG $30.;
-    FUTURE_RECON_OVERLAP_FLAG = 'Both BPCIA and CJR Episodes';
-    if DROPFLAG_PRELIM_CJR_OVERLAP = 0 AND DROPFLAG_PRELIM_BPCI_A_OVERLAP = 0 THEN DELETE;
-run;
-
-data tp_drop_flag_3;
-    set out.tp_&label._&id.:(Drop=Census_Pre);
-    format FUTURE_RECON_OVERLAP_FLAG $30.;
-    FUTURE_RECON_OVERLAP_FLAG = 'CJR Episodes';
-    if DROPFLAG_PRELIM_CJR_OVERLAP = 1 AND DROPFLAG_PRELIM_BPCI_A_OVERLAP = 0 THEN DELETE;
-run;
-
-data tp_drop_flag_4;
-    set out.tp_&label._&id.:(Drop=Census_Pre);
-    format FUTURE_RECON_OVERLAP_FLAG $30.;
-    FUTURE_RECON_OVERLAP_FLAG = 'BPCIA Episodes';
-    if DROPFLAG_PRELIM_CJR_OVERLAP = 0 AND DROPFLAG_PRELIM_BPCI_A_OVERLAP = 1 THEN DELETE;
+data tp_stack;
+set out.tp_&label._&id.: (Drop=Census_Pre);
 run;
 
 data tp_&label._&id. ;
-	set tp_drop_flag:;
-	if BPCI_Episode_Idx ^=10 then delete;
+    set tp_stack (in=a) 
+tp_stack (in=b where=(max(DROPFLAG_PRELIM_CJR_OVERLAP, DROPFLAG_PRELIM_BPCI_A_OVERLAP)=0))
+tp_stack (in=c where=(DROPFLAG_PRELIM_CJR_OVERLAP=0))
+tp_stack (in=d where=(DROPFLAG_PRELIM_BPCI_A_OVERLAP=0));
+    format FUTURE_RECON_OVERLAP_FLAG $30.;
+    if a=1 then FUTURE_RECON_OVERLAP_FLAG = 'None';
+	else if b=1 then FUTURE_RECON_OVERLAP_FLAG = 'Both BPCIA and CJR Episodes';
+	else if c=1 then FUTURE_RECON_OVERLAP_FLAG = 'CJR Episodes';
+	else if d=1 then FUTURE_RECON_OVERLAP_FLAG = 'BPCIA Episodes';
 run;
 
 proc sql;
