@@ -1,10 +1,10 @@
 %let _sdtm=%sysfunc(datetime());
 
-%let label = y202002; *Recon label;
-%let Prev_label = y202001; *Previous Recon label;
-%let Perf_label = y202002; *Most recent performance label;
+%let label = y202003; *Recon label;
+%let Prev_label = y202002; *Previous Recon label;
+%let Perf_label = y202003; *Most recent performance label;
 %let Recon_label = pp1Initial; *Most recent performance label;
-%let transmit_date = '07FEB2020'd;*Change for every Update*; 
+%let transmit_date = '13MAR2020'd;*Change for every Update*; 
 
 proc printto;run;
 proc printto log="H:\BPCIA_BPCI Advanced\50 - BPCI Advanced Ongoing Reporting - 2020\Work Papers\SAS\logs\310A - Qlikview Code_&label._&sysdate..log" print=print new;
@@ -32,8 +32,20 @@ libname cjrref "H:\Nonclient\Medicare Bundled Payment Reference\Program - CJR\SA
 
 %macro FutureRecon(id,reconref);
 
+data tp_stack;
+set out.tp_&label._&id.: (Drop=Census_Pre);
+run;
+
 data tp_&label._&id. ;
-	set out.tp_&label._&id.:(Drop=Census_Pre);
+    set tp_stack (in=a) 
+tp_stack (in=b where=(max(DROPFLAG_PRELIM_CJR_OVERLAP, DROPFLAG_PRELIM_BPCI_A_OVERLAP)=0))
+tp_stack (in=c where=(DROPFLAG_PRELIM_CJR_OVERLAP=0))
+tp_stack (in=d where=(DROPFLAG_PRELIM_BPCI_A_OVERLAP=0));
+    format FUTURE_RECON_OVERLAP_FLAG $30.;
+    if a=1 then FUTURE_RECON_OVERLAP_FLAG = 'None';
+	else if b=1 then FUTURE_RECON_OVERLAP_FLAG = 'Both BPCIA and CJR Episodes';
+	else if c=1 then FUTURE_RECON_OVERLAP_FLAG = 'CJR Episodes';
+	else if d=1 then FUTURE_RECON_OVERLAP_FLAG = 'BPCIA Episodes';
 run;
 
 proc sql;
@@ -98,12 +110,12 @@ run;
 
 proc sql;
 create table future_recon1 as 
-select BPID, epi_period_short, clinical_episode_abbr, COUNT(*) AS EPISODE_COUNT, 
+select FUTURE_RECON_OVERLAP_FLAG, BPID, epi_period_short, clinical_episode_abbr, COUNT(*) AS EPISODE_COUNT, 
 SUM(EPI_STD_PMT_FCTR_WIN_1_99_Real) AS TRUED_UP_COST,
 SUM(adjusted_TP_Real) as TRUEDUP_TP,
 SUM(adjusted_TP_Real) - SUM(EPI_STD_PMT_FCTR_WIN_1_99_Real) AS TRUED_UP_NPRA
 from future_recon1C
-group by BPID, clinical_episode_abbr, epi_period_short
+group by FUTURE_RECON_OVERLAP_FLAG, BPID, clinical_episode_abbr, epi_period_short
 ;
 quit;
 
@@ -154,7 +166,8 @@ b.ALLEPI_ADJ_RECON_Q10,
 b.RECON_AMT as ALLEPI_TrueUp, 
 b.ALLEPI_TP,  a.*
 	from future_recon3_pre as a left join future_recon3_pre2 as b
-	on a.BPID=b.BPID and a.epi_period_short=b.epi_period_short;
+	on a.BPID=b.BPID and a.epi_period_short=b.epi_period_short
+	and a.FUTURE_RECON_OVERLAP_FLAG = b.FUTURE_RECON_OVERLAP_FLAG;
 quit;
 
 
@@ -287,7 +300,7 @@ run;
 
 	proc sql;
 	create table future_recon7_multiplier as
-	select BPID, epi_period_short,
+	select FUTURE_RECON_OVERLAP_FLAG, BPID, epi_period_short,
 	clinical_episode_abbr,
 	(CASE WHEN ABS(ALLEPI_ADJ_RECON) >= ABS(ALLEPI_TP*0.20) THEN ABS(ALLEPI_TP*0.20)/ABS(ALLEPI_ADJ_RECON) ELSE 1 END) AS MULTIPLIER,
 	(CASE WHEN ABS(ALLEPI_ADJ_RECON_Q0) >= ABS(ALLEPI_TP*0.20) THEN ABS(ALLEPI_TP*0.20)/ABS(ALLEPI_ADJ_RECON_Q0) ELSE 1 END) AS MULTIPLIER_Q0 ,
@@ -302,7 +315,7 @@ run;
 
 	proc sql;
 	create table future_recon8 as
-	select A.BPID, A.epi_period_short,
+	select A.FUTURE_RECON_OVERLAP_FLAG, A.BPID, A.epi_period_short,
 	A.clinical_episode_abbr,
 EPISODE_COUNT,
 TRUED_UP_COST, TRUEDUP_TP,	TRUED_UP_NPRA,	RECON_AMT,	ADJ_RECON*Multiplier AS ADJ_RECON,	
@@ -316,9 +329,9 @@ SORT_NUMBER_BPID, SORT_NUMBER, Multiplier,
 E.BPID_CMS_ALLOWED_REAL,
 E.BPID_CMS_TP_REAL,
 E.CMS_RECON_Amount, 
-E.CMS_adjusted_recon_amount,
+E.CMS_adjusted_recon_amount AS CMS_adjusted_recon_amount,
 E.StopLoss_StopGain,
-E.Capped_adj_recon_Amt,
+E.Capped_adj_recon_Amt AS Capped_adj_recon_Amt,
 E.ALLEPI_CMS_EPI_COUNT,
 D.CLIN_CMS_TP_REAL,
 D.CLIN_CMS_ALLOWED_REAL,
@@ -344,6 +357,7 @@ D.CLIN_CMS_NPRA
 			ON A.BPID = B.BPID
 			AND A.epi_period_short = B.epi_period_short
 			AND A.clinical_episode_abbr = B.clinical_episode_abbr
+			AND A.FUTURE_RECON_OVERLAP_FLAG = B.FUTURE_RECON_OVERLAP_FLAG
 		LEFT OUTER JOIN tp.recon_reports_all C
 			ON A.BPID = C.Convener_ID
 		%if &reconref. = 1 %then %do;
@@ -372,6 +386,9 @@ set future_recon8;
 	if CMS_RECON_Amount>0 then CLIN_CMS_RECON_AMT = CLIN_CMS_NPRA*0.9;
 	else CLIN_CMS_RECON_AMT = CLIN_CMS_NPRA;
 
+	recon_mult = Capped_adj_recon_Amt / CMS_adjusted_recon_amount;
+	CLIN_CMS_CAP_RECON_AMT=CLIN_CMS_RECON_AMT*recon_mult;
+
 	FR_JOIN = BPID||"_"||epi_period_short;
 run;
 
@@ -392,12 +409,12 @@ quit;
 *%FutureRecon(5746_0002,1);
 
 
-%FutureRecon(2586_0002,0);
-%FutureRecon(2586_0005,0);
-%FutureRecon(2586_0006,0);
-%FutureRecon(2586_0007,0);
-%FutureRecon(2586_0010,0);
-%FutureRecon(2586_0013,0);
+%FutureRecon(2586_0002,1);
+%FutureRecon(2586_0005,1);
+%FutureRecon(2586_0006,1);
+%FutureRecon(2586_0007,1);
+%FutureRecon(2586_0010,1);
+%FutureRecon(2586_0013,1);
 %FutureRecon(2586_0025,0);
 %FutureRecon(2586_0026,0);
 %FutureRecon(2586_0028,0);
@@ -518,6 +535,7 @@ quit;
 %FutureRecon(6053_0002,1);
 %FutureRecon(2974_0003,0);
 %FutureRecon(2974_0007,0);
+%FutureRecon(5916_0002,1);
 
 
 data out.TP_Var_&label. out.TP_Var_pmr_&label. out.TP_Var_oth_&label. out.TP_Var_ccf_&label.;
@@ -549,7 +567,7 @@ proc format; value $masked_bpid
 '5479-0002'='8888-0000'
 other='';
 run;
-/*
+
 ********************
 ********************
 Calculation of Adjusted Target Prices
@@ -562,7 +580,7 @@ data out3.TP_Var_&label._&id.;
 	set out.TP_Var_&label._&id. (rename=(BPID=BPID_o));
 
 	BPID = put(BPID_o,$masked_bpid.);
-
+	IF FR_JOIN = '' THEN FR_JOIN = BPID||"_"||epi_period_short;
 	*episode_count = 100;
 
 run;
@@ -580,12 +598,13 @@ run;
 
 
 data All_TP_Var_Demo;
-	set out3.TP_Var_: ;
+	set out3.TP_Var_&label.: ;
+	FR_JOIN = BPID||"_"||epi_period_short;
 run;
 
 
 %sas_2_csv(All_TP_Var_Demo,TP_Variability_Demo.csv);
-*/
+
 
 proc printto;run;
 %let _edtm=%sysfunc(datetime());
