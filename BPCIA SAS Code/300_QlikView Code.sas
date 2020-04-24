@@ -26,20 +26,25 @@ SET UP
 
 ****** USER INPUTS ******************************************************************************************;
 * TURN ON FOR BASELINE / TURN OFF FOR PERFORMANCE *****;
-/*%let label = ybase; *Update with change in period;*/
-/*%let prevlabel = ybase;*/
-/*%let reporting_period=201806;*Change for every Update*; */
+%let label = ybase; *Update with change in period;
+%let prevlabel = ybase;
+%let reporting_period=201806;*Change for every Update*; 
+%let transmit_date = '13MAR2020'd;*Change for every Update;
+%let vers = B;
+%let mode = main; *main=main interface, base = baseline interface;
 
 * TURN ON FOR PERFORMANCE / TURN OFF FOR BASELINE *****;
-%let label = y202003; *Update with change in period;
-%let prevlabel = y202002; *Update with the prior period;
-%let reporting_period=202004;*Change for every Update*; 
+*%let label_monthly = y202003; *Update with change in period;
+*%let prevlabel_monthly = y202002; *Update with the prior period;
+*%let reporting_period_monthly =202004;*Change for every Update*; 
+*%let transmit_date_monthly = '13MAR2020'd;*Change for every Update*; 
+*%let label_quarterly = y202002; *Update with change in period;
+*%let prevlabel_quarterly = y202001; *Update with the prior period;
+*%let reporting_period_quarterly =202003;*Change for every Update*; 
+*%let transmit_date_quarterly = '07FEB2020'd;*Change for every Update*; 
+*%let vers = P;
+*%let mode = main; *main=main interface, base = baseline interface;
 
-* UPDATE WITH EVERY PERF UPDATE *****;
-%let transmit_date = '13MAR2020'd;*Change for every Update*; 
-
-* MAIN VS BASELINE INTERFACE *****;
-%let mode = main; *main=main interface, base = baseline interface;
 
 proc printto;run;
 
@@ -463,6 +468,20 @@ quit;
 
 %macro dashboard(bpid1,bpid2,epi_idx);
 
+/* quarterly update */
+%if &vers. = P and &mode. = main AND (&bpid1. = 1075 or &bpid1. = 2048 or &bpid1. = 2049 or &bpid1. = 2589 or &bpid1. = 5037) %then %do;
+%let label = &label_quarterly.;
+%let prevlabel = &prevlabel_quarterly.; 
+%let reporting_period =&reporting_period_quarterly.;
+%let transmit_date = &transmit_date_quarterly.;
+%end;
+
+%else %if &vers. = P and &mode. = main %then %do;
+%let label = &label_monthly.; 
+%let prevlabel = &prevlabel_monthly.; 
+%let reporting_period =&reporting_period_monthly.;
+%let transmit_date = &transmit_date_monthly.;
+%end;
 
 /****
 combines
@@ -890,6 +909,17 @@ data bpcia_performance_episodes;
 
 	perf_period_epi_flag=1;
 
+	format anchor_type_lower $2.;
+	if anchor_type in ('ip','IP') then anchor_type_lower = 'ip';
+	else if anchor_type in ('op','OP') then anchor_type_lower = 'op';
+	else anchor_type_lower = 'ms';
+
+	format clinical_episode_use $70.;
+	clinical_episode_use = EPISODE_GROUP_NAME_USE;
+	if clinical_episode_use = 'Coronary artery bypass graft' then clinical_episode_use = 'Coronary artery bypass graft surgery';
+	if clinical_episode_use = 'Chronic obstructive pulmonary disease, bronchitis, asthma' then clinical_episode_use = 'Chronic obstructive pulmonary disease, bronchitis/asthma';
+	if clinical_episode_use = 'Lower extremity and humerus procedure except hip, foot, femur' then clinical_episode_use = 'Lower extremity/humerus procedure except hip, foot, femur';
+
 run;
 
 
@@ -1118,8 +1148,8 @@ create table Episode_Detail_5 as
 		,case when ANCHOR_CODE ="" then ""
 		  		when ANCHOR_CODE ^= "" and hcpcs_desc ^= "" then strip(ANCHOR_CODE)||": "||strip(hcpcs_desc)
 				end as anchor_hcpcs_description
-		,case when a.anchor_type = "op" then "Not Available" else primary_diag_with_desc end as primary_diag_with_desc1
-		,case when a.anchor_type = "op" then calculated anchor_hcpcs_description else primary_proc_with_desc end as primary_proc_with_desc1
+		,case when a.anchor_type in ("op","OP") then "Not Available" else primary_diag_with_desc end as primary_diag_with_desc1
+		,case when a.anchor_type in ("op","OP") then calculated anchor_hcpcs_description else primary_proc_with_desc end as primary_proc_with_desc1
 		,case when ANCHOR_CODE ="" then ""
 				when ANCHOR_CODE ^= "" and anchor_description ^= "" then strip(ANCHOR_CODE)||": "||strip(anchor_description)
 		  		when ANCHOR_CODE ^= "" and hcpcs_desc ^= "" then strip(ANCHOR_CODE)||": "||strip(hcpcs_desc)
@@ -1311,22 +1341,22 @@ create table Episode_Detail_7 as
 					then 1 else 0 end as client_type
 			%if &label = ybase %then %do;
 			,"BASE" as period
-			, case when a.measure_year = "MY1 & MY2" then "Baseline (2014 - 2016)" 
-				  when a.measure_year = "MY3" then "Baseline (2015Q4 - 2018Q3)"
+			, case when a.measure_year = "MY1 & MY2" then "Base MY1&2 (2014–2016)" 
+				  when a.measure_year = "MY3" then "Base MY3 (Q4 2015–Q3 2018)"
 				end as timeframe_filter format = $100. length=100 
 			%end;
 			%else %do;
 			,"PERF" as period
-			, case when '01OCT2018'd le POST_DSCH_END_DT le '30JUN2019'd then "Performance Period 1"
-				   when '01JUL2019'd le POST_DSCH_END_DT le '31DEC2019'd then "Performance Period 2"
-				   when '01JAN2020'd le POST_DSCH_END_DT le '30JUN2020'd then "Performance Period 3"
-				   when '01JUL2020'd le POST_DSCH_END_DT le '31DEC2020'd then "Performance Period 4"
-				   when '01JAN2021'd le POST_DSCH_END_DT le '30JUN2021'd then "Performance Period 5"
-				   when '01JUL2021'd le POST_DSCH_END_DT le '31DEC2021'd then "Performance Period 6"
-				   when '01JAN2022'd le POST_DSCH_END_DT le '30JUN2022'd then "Performance Period 7"
-				   when '01JUL2022'd le POST_DSCH_END_DT le '31DEC2022'd then "Performance Period 8"
-				   when '01JAN2023'd le POST_DSCH_END_DT le '30JUN2023'd then "Performance Period 9"
-				   when '01JUL2023'd le POST_DSCH_END_DT le '31DEC2023'd then "Performance Period 10"
+			, case when '01OCT2018'd le POST_DSCH_END_DT le '30JUN2019'd then "Perf Pd 1 (End by 6/30/2019)"
+				   when '01JUL2019'd le POST_DSCH_END_DT le '31DEC2019'd then "Perf Pd 2 (End 7/1-12/31/2019)"
+				   when '01JAN2020'd le POST_DSCH_END_DT le '30JUN2020'd then "Perf Pd 3 (End 1/1-6/30/2020)"
+				   when '01JUL2020'd le POST_DSCH_END_DT le '31DEC2020'd then "Perf Pd 4 (End 7/1-12/31/2020)"
+				   when '01JAN2021'd le POST_DSCH_END_DT le '30JUN2021'd then "Perf Pd 5 (End 1/1-6/30/2021)"
+				   when '01JUL2021'd le POST_DSCH_END_DT le '31DEC2021'd then "Perf Pd 6 (End 7/1-12/31/2021)"
+				   when '01JAN2022'd le POST_DSCH_END_DT le '30JUN2022'd then "Perf Pd 7 (End 1/1-6/30/2022)"
+				   when '01JUL2022'd le POST_DSCH_END_DT le '31DEC2022'd then "Perf Pd 8 (End 7/1-12/31/2022)"
+				   when '01JAN2023'd le POST_DSCH_END_DT le '30JUN2023'd then "Perf Pd 9 (End 1/1-6/30/2023)"
+				   when '01JUL2023'd le POST_DSCH_END_DT le '31DEC2023'd then "Perf Pd 10 (End 7/1-12/31/2023)"
 				end as timeframe_filter format = $100. length=100
 			%end;
 			,case when (&transmit_date. - b.POST_DSCH_END_DT) >= 60 then "Yes" else "No" end as COMP_EP_FLAG
@@ -4226,9 +4256,9 @@ create table episode_detail_12 as
 				and 
 				a.BPID = b.BPID
 				and
-				a.Clinical_Episode = b.EPISODE_GROUP_NAME_USE
+				a.Clinical_Episode = b.clinical_episode_use
 				and
-				a.ANCHOR_TYPE=b.ANCHOR_TYPE
+				a.ANCHOR_TYPE=b.ANCHOR_TYPE_lower
 
 ;
 
@@ -4257,7 +4287,7 @@ create table episode_detail_12 as
 			when b.total_excess_days >0 then "Yes"
 			when b.total_excess_days =0 then "No" else "N/A"
 			end as excess_days_status2
-			,case when clinical_episode_abbr2 not in('MJRLE','DJRLE') then '-'
+			,case when clinical_episode_abbr2 not in('MJRLE','DJRLE','MJRLE (MY3)') then '-'
 				else complication_status end as complication_status2
 			,mortality_CABG as mortality_CABG2
 		%end;
@@ -4268,7 +4298,7 @@ create table episode_detail_12 as
 			when b.total_excess_days =0 then "No" else "N/A"
 			end as excess_days_status2
 			,case when perf_period_epi_flag=. then'-'
-			when clinical_episode_abbr2 not in('MJRLE','DJRLE') then '-'
+			when clinical_episode_abbr2 not in('MJRLE','DJRLE','MJRLE (MY3)') then '-'
 				else complication_status end as complication_status2
 			,case when perf_period_epi_flag=. then '-'
 				else mortality_CABG end as mortality_CABG2
@@ -4537,7 +4567,7 @@ create table er_ccn as
 	where substr(caretype,1,2)= 'Em' and startdate ^= . 
 ;
 
-create table er_ccn_desc_name as
+create table er_ccn_desc_name_V1 as
 	select distinct
 	     measure_year, epi_id_milliman
 		 ,er_CCN_Name_Desc
@@ -4546,17 +4576,66 @@ create table er_ccn_desc_name as
 ;
 quit;
 
+/* identifies ER based upon rev code and HCPCS */
+data er_visits1A ;
+	format clinic_visit_type $50.; length clinic_visit_type $50;
+	set out.ccn_enc_&label._&bpid1._&bpid2.;
+	if put(HCPCS_CD,$ER_HCPCS.) = 'Y' then do; 
+	clinic_visit_type = "Emergency Room"; end;
+run;
+
+proc sql;
+create table er_visits1B as 
+select 
+measure_year, epi_id_milliman
+		,'Yes' as Er_start_flag
+from er_visits1A
+where clinic_visit_type = "Emergency Room" and startdate ^= . 
+;
+quit;
+
+proc sql;
+create table er_ccn_desc_name_V2 as
+	select distinct
+	     measure_year, epi_id_milliman
+		 ,er_CCN_Name_Desc
+from er_visits1A
+where clinic_visit_type = "Emergency Room" and startdate ^= . 
+;
+quit;
+
+data er_visits2A;
+	format clinic_visit_type $50.; length clinic_visit_type $50;
+	set out.provider_&label._&bpid1._&bpid2.;
+	if put(HCPCS_CD,$ER_HCPCS.) = 'Y' then do; 
+	clinic_visit_type = "Emergency Room"; end;
+run;
+
+proc sql;
+create table er_visits2B as 
+select 
+measure_year, epi_id_milliman
+		,'Yes' as Er_start_flag
+from er_visits2A
+where clinic_visit_type = "Emergency Room" and service_date ^= . 
+;
+quit;
+
 *Stacking and deduping Epi_ids;
 data Er_prov_ccn ;
-set er_prov er_ccn ; 
+set er_prov er_ccn er_visits1B er_visits2B; 
 run ;
 
 proc sort data = Er_prov_ccn nodupkey;
-by epi_id_milliman ; 
+by epi_id_milliman measure_year; 
 run ; 
 
+data er_ccn_desc_name ;
+set er_ccn_desc_name_V1 er_ccn_desc_name_V2;
+run ;
+
 proc sort data = er_ccn_desc_name nodupkey;
-by epi_id_milliman ; 
+by epi_id_milliman measure_year; 
 run ; 
 
 proc sql ;
@@ -4623,16 +4702,16 @@ create table exclusions1 as
 		,a.anchor_beg_dt
 		,a.anchor_end_dt
 		,"PERF" as period
-		,case when '01OCT2018'd le POST_DSCH_END_DT le '30JUN2019'd then "Performance Period 1"
-			  when '01JUL2019'd le POST_DSCH_END_DT le '31DEC2019'd then "Performance Period 2"
-			  when '01JAN2020'd le POST_DSCH_END_DT le '30JUN2020'd then "Performance Period 3"
-			  when '01JUL2020'd le POST_DSCH_END_DT le '31DEC2020'd then "Performance Period 4"
-			  when '01JAN2021'd le POST_DSCH_END_DT le '30JUN2021'd then "Performance Period 5"
-			  when '01JUL2021'd le POST_DSCH_END_DT le '31DEC2021'd then "Performance Period 6"
-			  when '01JAN2022'd le POST_DSCH_END_DT le '30JUN2022'd then "Performance Period 7"
-			  when '01JUL2022'd le POST_DSCH_END_DT le '31DEC2022'd then "Performance Period 8"
-			  when '01JAN2023'd le POST_DSCH_END_DT le '30JUN2023'd then "Performance Period 9"
-			  when '01JUL2023'd le POST_DSCH_END_DT le '31DEC2023'd then "Performance Period 10"
+		,case when '01OCT2018'd le POST_DSCH_END_DT le '30JUN2019'd then "Perf Pd 1 (End by 6/30/2019)"
+			  when '01JUL2019'd le POST_DSCH_END_DT le '31DEC2019'd then "Perf Pd 2 (End 7/1-12/31/2019)"
+			  when '01JAN2020'd le POST_DSCH_END_DT le '30JUN2020'd then "Perf Pd 3 (End 1/1-6/30/2020)"
+			  when '01JUL2020'd le POST_DSCH_END_DT le '31DEC2020'd then "Perf Pd 4 (End 7/1-12/31/2020)"
+			  when '01JAN2021'd le POST_DSCH_END_DT le '30JUN2021'd then "Perf Pd 5 (End 1/1-6/30/2021)"
+			  when '01JUL2021'd le POST_DSCH_END_DT le '31DEC2021'd then "Perf Pd 6 (End 7/1-12/31/2021)"
+			  when '01JAN2022'd le POST_DSCH_END_DT le '30JUN2022'd then "Perf Pd 7 (End 1/1-6/30/2022)"
+			  when '01JUL2022'd le POST_DSCH_END_DT le '31DEC2022'd then "Perf Pd 8 (End 7/1-12/31/2022)"
+			  when '01JAN2023'd le POST_DSCH_END_DT le '30JUN2023'd then "Perf Pd 9 (End 1/1-6/30/2023)"
+			  when '01JUL2023'd le POST_DSCH_END_DT le '31DEC2023'd then "Perf Pd 10 (End 7/1-12/31/2023)"
 		 end as timeframe_filter format = $100. length=100
 /*		,a.DROPFLAG_NON_ACH*/
 /*		,a.DROPFLAG_EXCLUDED_STATE*/
@@ -4950,10 +5029,12 @@ dev runs
 %Dashboard(6053,0002,0);
 %Dashboard(2974,0003,1);
 %Dashboard(2974,0007,1);
+%Dashboard(5916,0002,0);
 */
 
 ***********************************;
 *****Baseline*****;
+*%Dashboard(1028,0000,1);
 
 %Dashboard(2586,0002,1);
 %Dashboard(2586,0005,1);
@@ -5081,6 +5162,7 @@ dev runs
 %Dashboard(6053,0002,1);
 %Dashboard(2974,0003,1);
 %Dashboard(2974,0007,1);
+%Dashboard(5916,0002,1);
 
 
 *DEMO/DEV ONLY;
