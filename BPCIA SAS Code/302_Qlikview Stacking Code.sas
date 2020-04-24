@@ -25,7 +25,8 @@ Setup
 ********************;
 ****** USER INPUTS ******************************************************************************************;
 /*%let label = ybase; *Baseline/Performance data label;*/
-%let label = y202002;
+%let label_monthly = y202003;
+%let label_quarterly = y202002;
 
 %let mode=main; *Base=Baseline Interface, Main=Main Interface;
 
@@ -40,7 +41,7 @@ Setup
 %macro modesetup;
 %if &mode.=main %then %do;
 libname out "&dataDir.\07 - Processed Data";
-proc printto log="H:\BPCIA_BPCI Advanced\50 - BPCI Advanced Ongoing Reporting - 2020\Work Papers\SAS\logs\302 - Qlikview Stacking Code_&label._&sysdate..log" print=print new;
+*proc printto log="H:\BPCIA_BPCI Advanced\50 - BPCI Advanced Ongoing Reporting - 2020\Work Papers\SAS\logs\302 - Qlikview Stacking Code_&label._&sysdate..log" print=print new;
 run;
 %end;
 %else %if &mode.=base %then %do;
@@ -58,14 +59,167 @@ run;
 %modesetup;
 
 libname bench "R:\client work\CMS_PAC_Bundle_Processing\Benchmark Releases\v.201912\sasout";
+libname bench2 "R:\client work\CMS_PAC_Bundle_Processing\Benchmark Releases\v.201909\sasout";
 
 ****** EXPORT INFO *****************************************************************************************;
 /*%let exportDir = R:\data\HIPAA\BPCIA_BPCI Advanced\80 - Qlikview\Outfiles;*/
 
+%macro Perf_File_Standarizer(file);
+
+%macro Perf_Month_Picker(bpid1,bpid2);
+
+%let id = &bpid1._&bpid2.;
+
+%if &bpid1. = 1075 or &bpid1. = 2048 or &bpid1. = 2049 or &bpid1. = 2589 or &bpid1. = 5037 %then %do;
+%let label = &label_quarterly.;
+%end;
+
+%else %do;
+%let label = &label_monthly.; 
+%end;
+
+data &file._Perf_Month_&id.;
+set out.&file._&label._&id.;
+run;
+
+%mend Perf_Month_Picker;
+
+%Perf_Month_Picker(2586,0002);
+%Perf_Month_Picker(2586,0005);
+%Perf_Month_Picker(2586,0006);
+%Perf_Month_Picker(2586,0007);
+%Perf_Month_Picker(2586,0010);
+%Perf_Month_Picker(2586,0013);
+%Perf_Month_Picker(2586,0025);
+%Perf_Month_Picker(2586,0026);
+%Perf_Month_Picker(2586,0028);
+%Perf_Month_Picker(2586,0029);
+%Perf_Month_Picker(2586,0030);
+%Perf_Month_Picker(2586,0031);
+%Perf_Month_Picker(2586,0032);
+%Perf_Month_Picker(2586,0033);
+%Perf_Month_Picker(2586,0034);
+%Perf_Month_Picker(2586,0035);
+*%Perf_Month_Picker(2586,0036);
+*%Perf_Month_Picker(2586,0038);
+%Perf_Month_Picker(2586,0039);
+*%Perf_Month_Picker(2586,0040);
+*%Perf_Month_Picker(2586,0041);
+*%Perf_Month_Picker(2586,0042);
+*%Perf_Month_Picker(2586,0043);
+%Perf_Month_Picker(2586,0044);
+%Perf_Month_Picker(2586,0045);
+%Perf_Month_Picker(2586,0046);
+%Perf_Month_Picker(1374,0004);
+%Perf_Month_Picker(1374,0008);
+%Perf_Month_Picker(1374,0009);
+%Perf_Month_Picker(1374,0012);
+%Perf_Month_Picker(1374,0013);
+%Perf_Month_Picker(1374,0014);
+%Perf_Month_Picker(1374,0015);
+%Perf_Month_Picker(1374,0017);
+%Perf_Month_Picker(1374,0018);
+%Perf_Month_Picker(1191,0002);
+%Perf_Month_Picker(7310,0002);
+%Perf_Month_Picker(7310,0003);
+%Perf_Month_Picker(7310,0004);
+%Perf_Month_Picker(7310,0005);
+%Perf_Month_Picker(7310,0006);
+%Perf_Month_Picker(7310,0007);
+%Perf_Month_Picker(7312,0002);
+%Perf_Month_Picker(6054,0002);
+%Perf_Month_Picker(6055,0002);
+%Perf_Month_Picker(6056,0002);
+%Perf_Month_Picker(6057,0002);
+%Perf_Month_Picker(6058,0002);
+%Perf_Month_Picker(6059,0002);
+%Perf_Month_Picker(1209,0000);
+%Perf_Month_Picker(1028,0000);
+%Perf_Month_Picker(1075,0000);
+%Perf_Month_Picker(1102,0000);
+%Perf_Month_Picker(1103,0000);
+%Perf_Month_Picker(1104,0000);
+%Perf_Month_Picker(1105,0000);
+%Perf_Month_Picker(1106,0000);
+%Perf_Month_Picker(1148,0000);
+%Perf_Month_Picker(1167,0000);
+%Perf_Month_Picker(1343,0000);
+%Perf_Month_Picker(1368,0000);
+%Perf_Month_Picker(1461,0000);
+%Perf_Month_Picker(1634,0000);
+*%Perf_Month_Picker(1803,0000);
+%Perf_Month_Picker(1958,0000);
+%Perf_Month_Picker(2048,0000);
+%Perf_Month_Picker(2049,0000);
+%Perf_Month_Picker(2070,0000);
+%Perf_Month_Picker(2214,0000);
+%Perf_Month_Picker(2215,0000);
+%Perf_Month_Picker(2216,0000);
+%Perf_Month_Picker(2302,0000);
+%Perf_Month_Picker(2317,0000);
+%Perf_Month_Picker(2374,0000);
+%Perf_Month_Picker(2376,0000);
+%Perf_Month_Picker(2378,0000);
+%Perf_Month_Picker(2379,0000);
+%Perf_Month_Picker(2451,0000);
+%Perf_Month_Picker(2452,0000);
+%Perf_Month_Picker(2461,0000);
+%Perf_Month_Picker(2468,0000);
+%Perf_Month_Picker(2587,0000);
+%Perf_Month_Picker(2589,0000);
+%Perf_Month_Picker(2594,0000);
+%Perf_Month_Picker(2607,0000);
+%Perf_Month_Picker(5037,0000);
+%Perf_Month_Picker(5038,0000);
+%Perf_Month_Picker(5043,0000);
+%Perf_Month_Picker(5050,0000);
+%Perf_Month_Picker(5154,0000);
+%Perf_Month_Picker(5215,0002);
+%Perf_Month_Picker(5215,0003);
+%Perf_Month_Picker(5229,0000);
+%Perf_Month_Picker(5263,0000);
+%Perf_Month_Picker(5264,0000);
+%Perf_Month_Picker(5282,0000);
+%Perf_Month_Picker(5392,0004);
+%Perf_Month_Picker(5394,0000);
+%Perf_Month_Picker(5395,0000);
+%Perf_Month_Picker(5397,0002);
+%Perf_Month_Picker(5397,0003);
+%Perf_Month_Picker(5397,0004);
+%Perf_Month_Picker(5397,0005);
+%Perf_Month_Picker(5397,0006);
+%Perf_Month_Picker(5397,0007);
+%Perf_Month_Picker(5397,0008);
+%Perf_Month_Picker(5397,0009);
+%Perf_Month_Picker(5397,0010);
+%Perf_Month_Picker(5478,0002);
+%Perf_Month_Picker(5479,0002);
+%Perf_Month_Picker(5480,0002);
+%Perf_Month_Picker(5481,0002);
+%Perf_Month_Picker(5746,0002);
+%Perf_Month_Picker(1686,0002);
+%Perf_Month_Picker(1688,0002);
+%Perf_Month_Picker(1696,0002);
+%Perf_Month_Picker(1710,0002);
+%Perf_Month_Picker(2941,0002);
+%Perf_Month_Picker(2956,0002);
+%Perf_Month_Picker(6049,0002);
+%Perf_Month_Picker(6050,0002);
+%Perf_Month_Picker(6051,0002);
+%Perf_Month_Picker(6052,0002);
+%Perf_Month_Picker(6053,0002);
+%Perf_Month_Picker(2974,0003);
+%Perf_Month_Picker(2974,0007);
+%Perf_Month_Picker(5916,0002);
+
+%mend Perf_File_Standarizer;
+
 %macro stack_output(file);
 
+%Perf_File_Standarizer(&file);
+
 	data out.all_&file.;
-		set out.A_&file._ybase: out.&file._&label.:;
+		set out.A_&file._ybase: &file._Perf_Month_:;
 		%if &file = ccn_enc %then %do;
 			fac_counter = _N_;
 		%end;
@@ -84,6 +238,10 @@ libname bench "R:\client work\CMS_PAC_Bundle_Processing\Benchmark Releases\v.201
 		%end;
 	run;
 
+proc datasets lib=work memtype=data kill;
+run;
+quit;
+
 %mend stack_output;
 
 %stack_output(epi_detail);
@@ -95,15 +253,19 @@ libname bench "R:\client work\CMS_PAC_Bundle_Processing\Benchmark Releases\v.201
 %stack_output(phys_summ);
 %stack_output(pat_detail);
 %stack_output(comp);
-%stack_output(bpid_member);
+*%stack_output(bpid_member);
 
 %macro stack_output_timefilter(file);
 
+%Perf_File_Standarizer(epi_detail);
+
 data out.all_&file.;
-
-		set out.&file.:(keep=BPID EPI_ID_MILLIMAN timeframe_filter)  out.epi_detail_&label.:(keep=BPID EPI_ID_MILLIMAN timeframe_filter);
-
+		set out.&file.:(keep=BPID EPI_ID_MILLIMAN timeframe_filter)  epi_detail_Perf_Month_:(keep=BPID EPI_ID_MILLIMAN timeframe_filter);
 	run;
+
+proc datasets lib=work memtype=data kill;
+run;
+quit;
 
 %mend stack_output_timefilter;
 
@@ -111,17 +273,37 @@ data out.all_&file.;
 
 %macro stack_output_e(file);
 
+%Perf_File_Standarizer(&file);
+
 	data out.all_&file.;
-		set out.&file._&label.:;
+		set &file._Perf_Month_:;
 	run;
+
+proc datasets lib=work memtype=data kill;
+run;
+quit;
 
 %mend stack_output_e;
 %stack_output_e(exclusions);
 
+%let label = &label_monthly;
 
-data benchmarks_pmr;
+data benchmarks_pmr_my12;
 	set bench.benchmarks_bpcia_pmr_18;
 	where fracture = "N/A";
+	format MEASURE_YEAR $10.;
+	MEASURE_YEAR = 'MY1 & MY2';
+run;
+
+data benchmarks_pmr_my3;
+	set bench2.benchmarks_bpcia_my3_pmr_18;
+	where fracture = "N/A";
+	format MEASURE_YEAR $10.;
+	MEASURE_YEAR = 'MY3';
+run;
+
+data benchmarks_pmr;
+	set benchmarks_pmr_my12 benchmarks_pmr_my3;
 run;
 
 proc sql;
@@ -131,7 +313,8 @@ proc sql;
 	from out.all_perf as a
 	left join benchmarks_pmr as b
 	on a.Anchor_code = b.drg
-	and timeframe_id = b._id 
+	and timeframe_id = b._id
+	and A.MEASURE_YEAR = B.MEASURE_YEAR
 	and client_type = 1
 	order by epi_id_milliman, timeframe
 ;
@@ -152,6 +335,7 @@ proc sql;
 	on  a.BPID=b.BPID
 	and a.Anchor_code = b.Anchor_code
 	and a.timeframe_id = b.timeframe_id 
+	and A.MEASURE_YEAR = B.MEASURE_YEAR
 	order by epi_id_milliman, timeframe
 ;
 quit;
@@ -211,19 +395,20 @@ run;
 				out.epi_detail_&file2._&bpid6._0000(keep=EPI_ID_MILLIMAN timeframe_filter)
 				out.epi_detail_&file2._&bpid7._0000(keep=EPI_ID_MILLIMAN timeframe_filter)
 				out.epi_detail_&file2._&bpid8._0002(keep=EPI_ID_MILLIMAN timeframe_filter)
+				;
 	run;
 	
 			;
 			%end;
 			%else %do;
-				out.&file._ybase_&bpid1._0000
-				out.&file._ybase_&bpid2._0000
-				out.&file._ybase_&bpid3._0000
-				out.&file._ybase_&bpid4._0000
-				out.&file._ybase_&bpid5._0000
-				out.&file._ybase_&bpid6._0000
-				out.&file._ybase_&bpid7._0000
-				out.&file._ybase_&bpid8._0002
+				out.A_&file._ybase_&bpid1._0000
+				out.A_&file._ybase_&bpid2._0000
+				out.A_&file._ybase_&bpid3._0000
+				out.A_&file._ybase_&bpid4._0000
+				out.A_&file._ybase_&bpid5._0000
+				out.A_&file._ybase_&bpid6._0000
+				out.A_&file._ybase_&bpid7._0000
+				out.A_&file._ybase_&bpid8._0002
 				out.&file._&file2._&bpid1._0000
 				out.&file._&file2._&bpid2._0000
 				out.&file._&file2._&bpid3._0000
@@ -265,7 +450,15 @@ run;
 		ANCHOR_BEG_DT0 = ANCHOR_BEG_DT;
 
 		/*	*20200304 Update: Mask identifiable dates;*/
-	 	 ANCHOR_BEG_DT = intnx('year',intnx('day', ANCHOR_BEG_DT, floor(ranuni(7)*60)),10,'sameday');	
+	 	 *ANCHOR_BEG_DT = intnx('year',intnx('day', ANCHOR_BEG_DT, floor(ranuni(7)*60)),10,'sameday');
+		ANCHOR_BEG_DT = intnx('month', ANCHOR_BEG_DT, 3,'sameday');
+		ANCHOR_BEG_DT = intnx('year', ANCHOR_BEG_DT, 11,'sameday');
+		
+	if DAY(ANCHOR_BEG_DT) > 20 THEN ANCHOR_BEG_DT = ANCHOR_BEG_DT-15;
+	if DAY(ANCHOR_BEG_DT) > 15 THEN ANCHOR_BEG_DT = ANCHOR_BEG_DT-9;	
+	if DAY(ANCHOR_BEG_DT) > 10 THEN ANCHOR_BEG_DT = ANCHOR_BEG_DT-3;
+	if DAY(ANCHOR_BEG_DT) < 15 THEN ANCHOR_BEG_DT = ANCHOR_BEG_DT+5;
+	
 	  	Anchor_Year = put(year(ANCHOR_BEG_DT), 4.);
 	   	Anchor_YearQtr = put(year(ANCHOR_BEG_DT), 4.)||' Q'||strip(qtr(ANCHOR_BEG_DT));
 	  	if month(ANCHOR_BEG_DT) < 10 then Anchor_YearMo = put(year(ANCHOR_BEG_DT), 4.)||' M0'||strip(month(ANCHOR_BEG_DT));
@@ -291,7 +484,8 @@ run;
 	%date(BENE_DOB);
 	%date(epi_end_date);
 
-	%date(T0_IP_IDX_STARTDATE);
+	
+%date(T0_IP_IDX_STARTDATE);
 %date(T0_IP_IDX_ENDDATE);
 %date(T1_IP_A_FAC_STARTDATE);
 %date(T1_IP_A_FAC_ENDDATE);
@@ -530,7 +724,7 @@ format &date.0  mmddyy10.;
 %stack_output_demo(util,&label.); 
  %stack_output_demo(phys_summ,&label.); 
 %stack_output_demo(comp,&label.);
-%stack_output_demo(bpid_member,&label.);
+*%stack_output_demo(bpid_member,&label.);
 %stack_output_demo(timeframe_filter,&label.);
 
 *ONLY RUN EXCLUSIONS FOR MAIN DEMOS, NOT BASELINE;
@@ -563,9 +757,22 @@ data perf_demo ;
 			out.perf_ybase_&bpid8._0002 ;
 run ;
 *** PREMIER BENCHMARKS ******;
-data benchmarks_pmr;
+data benchmarks_pmr_my12;
 	set bench.benchmarks_bpcia_pmr_18;
 	where fracture = "N/A";
+	format MEASURE_YEAR $10.;
+	MEASURE_YEAR = 'MY1 & MY2';
+run;
+
+data benchmarks_pmr_my3;
+	set bench2.benchmarks_bpcia_my3_pmr_18;
+	where fracture = "N/A";
+	format MEASURE_YEAR $10.;
+	MEASURE_YEAR = 'MY3';
+run;
+
+data benchmarks_pmr;
+	set benchmarks_pmr_my12 benchmarks_pmr_my3;
 run;
 
 proc sql;
@@ -577,6 +784,7 @@ proc sql;
 	on a.Anchor_code = b.drg
 	and timeframe_id = b._id 
 	and client_type = 1
+	and A.MEASURE_YEAR = B.MEASURE_YEAR
 	order by epi_id_milliman, timeframe
 ;
 quit;
@@ -594,6 +802,7 @@ proc sql;
 	on  a.BPID=b.BPID
 	and a.Anchor_code = b.Anchor_code
 	and a.timeframe_id = b.timeframe_id 
+	and A.MEASURE_YEAR = B.MEASURE_YEAR
 	order by epi_id_milliman, timeframe
 ;
 quit;
@@ -623,6 +832,7 @@ run;
 
 
 ******* EXPORT QVW_FILES *******;
+%sas_2_csv(out.all_timeframe_filter_demo,timeframe_filter_demo.csv);
 %sas_2_csv(out.all_epi_detail_demo,epi_detail_demo.csv);
 %sas_2_csv(out.all_pjourney_demo,pjourney_demo.csv);
 %sas_2_csv(out.all_pjourneyagg_demo,pjourneyagg_demo.csv);
@@ -632,7 +842,7 @@ run;
 %sas_2_csv(out.all_perf_demo,performance_demo.csv);
 %sas_2_csv(out.all_phys_summ_demo,phys_summary_demo.csv);
 %sas_2_csv(out.all_comp_demo,comp_demo.csv);
-%sas_2_csv(out.all_bpid_member_demo,bpid_member_demo.csv);
+*%sas_2_csv(out.all_bpid_member_demo,bpid_member_demo.csv);
 
 *ONLY EXPORT FOR MAIN INTERFACE DEMO;
 %if &mode.^=base %then %do ;
@@ -684,7 +894,7 @@ run;
 %stack_output(pat_detail);
 %stack_output(exclusions);
 %stack_output(comp);
-%stack_output(bpid_member);
+*%stack_output(bpid_member);
 %stack_output(timeframe_filter);
 
 
@@ -699,7 +909,7 @@ run;
 %sas_2_csv(out.all_pat_detail_&name.,patient_detail.csv);
 %sas_2_csv(out.all_exclusions_&name.,exclusions.csv);
 %sas_2_csv(out.all_comp_&name.,comp.csv);
-%sas_2_csv(out.all_bpid_member_&name.,bpid_member.csv);
+*%sas_2_csv(out.all_bpid_member_&name.,bpid_member.csv);
 %sas_2_csv(out.all_timeframe_filter_&name.,timeframe_filter.csv);
 
 %mend stacking_pre_other;
@@ -722,7 +932,7 @@ run;
 %stacking_pre_other(R:\data\HIPAA\BPCIA_BPCI Advanced\80 - Qlikview\Outfiles\CCF, CCF);
 
 *** DEMO RUN ***;
-/*%stackingdemo(R:\data\HIPAA\BPCIA_BPCI Advanced\80 - Qlikview\Outfiles,1148,1167,1343,1368,2379,2587,2607,5479);*/
+%stackingdemo(R:\data\HIPAA\BPCIA_BPCI Advanced\80 - Qlikview\Outfiles,1148,1167,1343,1368,2379,2587,2607,5479);
 
 *** BASELINE DEMO RUN ***;
 /*%stackingdemo(R:\data\HIPAA\BPCIA_BPCI Advanced\80 - Qlikview\Outfiles\Baseline Demo,1148,1167,1343,1368,2379,2587,2607,5479);*/
