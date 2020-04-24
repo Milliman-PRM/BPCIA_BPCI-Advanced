@@ -18,11 +18,11 @@ Setup
 
 %let label = pp1Initial; *Recon label;
 %let Prev_label = pp1Initial; *Previous Recon label;
-%let Perf_label = y202002; *Most recent performance label;
+%let Perf_label = y202003; *Most recent performance label;
 
 
 proc printto;run;
-proc printto log="H:\BPCIA_BPCI Advanced\50 - BPCI Advanced Ongoing Reporting - 2020\Work Papers\SAS\logs\310 - Recon Processing_&label._&sysdate..log" print=print new;
+*proc printto log="H:\BPCIA_BPCI Advanced\50 - BPCI Advanced Ongoing Reporting - 2020\Work Papers\SAS\logs\310 - Recon Processing_&label._&sysdate..log" print=print new;
 run;
 
 %let norecon = '1209-0000',
@@ -122,16 +122,16 @@ quit;
 data recon_pre2;
 	set recon_pre;
 	format timeframe_filter epi_period_short $100.;
-	if '01OCT2018'd le POST_DSCH_END_DT le '30JUN2019'd then timeframe_filter = "Performance Period 1";
-	if '01JUL2019'd le POST_DSCH_END_DT le '31DEC2019'd then timeframe_filter = "Performance Period 2";
-	if '01JAN2020'd le POST_DSCH_END_DT le '30JUN2020'd then timeframe_filter = "Performance Period 3";
-	if '01JUL2020'd le POST_DSCH_END_DT le '31DEC2020'd then timeframe_filter = "Performance Period 4";
-	if '01JAN2021'd le POST_DSCH_END_DT le '30JUN2021'd then timeframe_filter = "Performance Period 5";
-	if '01JUL2021'd le POST_DSCH_END_DT le '31DEC2021'd then timeframe_filter = "Performance Period 6";
-	if '01JAN2022'd le POST_DSCH_END_DT le '30JUN2022'd then timeframe_filter = "Performance Period 7";
-	if '01JUL2022'd le POST_DSCH_END_DT le '31DEC2022'd then timeframe_filter = "Performance Period 8";
-	if '01JAN2023'd le POST_DSCH_END_DT le '30JUN2023'd then timeframe_filter = "Performance Period 9";
-	if '01JUL2023'd le POST_DSCH_END_DT le '31DEC2023'd then timeframe_filter = "Performance Period 10";
+	if '01OCT2018'd le POST_DSCH_END_DT le '30JUN2019'd then timeframe_filter = "Perf Pd 1 (End by 6/30/2019)";
+	if '01JUL2019'd le POST_DSCH_END_DT le '31DEC2019'd then timeframe_filter = "Perf Pd 2 (End 7/1-12/31/2019)";
+	if '01JAN2020'd le POST_DSCH_END_DT le '30JUN2020'd then timeframe_filter = "Perf Pd 3 (End 1/1-6/30/2020)";
+	if '01JUL2020'd le POST_DSCH_END_DT le '31DEC2020'd then timeframe_filter = "Perf Pd 4 (End 7/1-12/31/2020)";
+	if '01JAN2021'd le POST_DSCH_END_DT le '30JUN2021'd then timeframe_filter = "Perf Pd 5 (End 1/1-6/30/2021)";
+	if '01JUL2021'd le POST_DSCH_END_DT le '31DEC2021'd then timeframe_filter = "Perf Pd 6 (End 7/1-12/31/2021)";
+	if '01JAN2022'd le POST_DSCH_END_DT le '30JUN2022'd then timeframe_filter = "Perf Pd 7 (End 1/1-6/30/2022)";
+	if '01JUL2022'd le POST_DSCH_END_DT le '31DEC2022'd then timeframe_filter = "Perf Pd 8 (End 7/1-12/31/2022)";
+	if '01JAN2023'd le POST_DSCH_END_DT le '30JUN2023'd then timeframe_filter = "Perf Pd 9 (End 1/1-6/30/2023)";
+	if '01JUL2023'd le POST_DSCH_END_DT le '31DEC2023'd then timeframe_filter = "Perf Pd 10 (End 7/1-12/31/2023)";
 
 	if '01OCT2018'd le POST_DSCH_END_DT le '30JUN2019'd then epi_period_short = "PP1";
 	if '01JUL2019'd le POST_DSCH_END_DT le '31DEC2019'd then epi_period_short = "PP2";
@@ -156,16 +156,16 @@ run;
 data chk_&label._&id._V2;
 set out2.chk_&label._&id.;
 	format timeframe_filter epi_period_short $100.;
-	if '01OCT2018'd le POST_DSCH_END_DT le '30JUN2019'd then timeframe_filter = "Performance Period 1";
-	if '01JUL2019'd le POST_DSCH_END_DT le '31DEC2019'd then timeframe_filter = "Performance Period 2";
-	if '01JAN2020'd le POST_DSCH_END_DT le '30JUN2020'd then timeframe_filter = "Performance Period 3";
-	if '01JUL2020'd le POST_DSCH_END_DT le '31DEC2020'd then timeframe_filter = "Performance Period 4";
-	if '01JAN2021'd le POST_DSCH_END_DT le '30JUN2021'd then timeframe_filter = "Performance Period 5";
-	if '01JUL2021'd le POST_DSCH_END_DT le '31DEC2021'd then timeframe_filter = "Performance Period 6";
-	if '01JAN2022'd le POST_DSCH_END_DT le '30JUN2022'd then timeframe_filter = "Performance Period 7";
-	if '01JUL2022'd le POST_DSCH_END_DT le '31DEC2022'd then timeframe_filter = "Performance Period 8";
-	if '01JAN2023'd le POST_DSCH_END_DT le '30JUN2023'd then timeframe_filter = "Performance Period 9";
-	if '01JUL2023'd le POST_DSCH_END_DT le '31DEC2023'd then timeframe_filter = "Performance Period 10";
+	if '01OCT2018'd le POST_DSCH_END_DT le '30JUN2019'd then timeframe_filter = "Perf Pd 1 (End by 6/30/2019)";
+	if '01JUL2019'd le POST_DSCH_END_DT le '31DEC2019'd then timeframe_filter = "Perf Pd 2 (End 7/1-12/31/2019)";
+	if '01JAN2020'd le POST_DSCH_END_DT le '30JUN2020'd then timeframe_filter = "Perf Pd 3 (End 1/1-6/30/2020)";
+	if '01JUL2020'd le POST_DSCH_END_DT le '31DEC2020'd then timeframe_filter = "Perf Pd 4 (End 7/1-12/31/2020)";
+	if '01JAN2021'd le POST_DSCH_END_DT le '30JUN2021'd then timeframe_filter = "Perf Pd 5 (End 1/1-6/30/2021)";
+	if '01JUL2021'd le POST_DSCH_END_DT le '31DEC2021'd then timeframe_filter = "Perf Pd 6 (End 7/1-12/31/2021)";
+	if '01JAN2022'd le POST_DSCH_END_DT le '30JUN2022'd then timeframe_filter = "Perf Pd 7 (End 1/1-6/30/2022)";
+	if '01JUL2022'd le POST_DSCH_END_DT le '31DEC2022'd then timeframe_filter = "Perf Pd 8 (End 7/1-12/31/2022)";
+	if '01JAN2023'd le POST_DSCH_END_DT le '30JUN2023'd then timeframe_filter = "Perf Pd 9 (End 1/1-6/30/2023)";
+	if '01JUL2023'd le POST_DSCH_END_DT le '31DEC2023'd then timeframe_filter = "Perf Pd 10 (End 7/1-12/31/2023)";
 
 	if '01OCT2018'd le POST_DSCH_END_DT le '30JUN2019'd then epi_period_short = "PP1";
 	if '01JUL2019'd le POST_DSCH_END_DT le '31DEC2019'd then epi_period_short = "PP2";
@@ -192,16 +192,16 @@ quit;
 data tp_&label._&id._V2;
 set out2.tp_&label._&id.;
 	format timeframe_filter epi_period_short $100.;
-	if '01OCT2018'd le POST_DSCH_END_DT le '30JUN2019'd then timeframe_filter = "Performance Period 1";
-	if '01JUL2019'd le POST_DSCH_END_DT le '31DEC2019'd then timeframe_filter = "Performance Period 2";
-	if '01JAN2020'd le POST_DSCH_END_DT le '30JUN2020'd then timeframe_filter = "Performance Period 3";
-	if '01JUL2020'd le POST_DSCH_END_DT le '31DEC2020'd then timeframe_filter = "Performance Period 4";
-	if '01JAN2021'd le POST_DSCH_END_DT le '30JUN2021'd then timeframe_filter = "Performance Period 5";
-	if '01JUL2021'd le POST_DSCH_END_DT le '31DEC2021'd then timeframe_filter = "Performance Period 6";
-	if '01JAN2022'd le POST_DSCH_END_DT le '30JUN2022'd then timeframe_filter = "Performance Period 7";
-	if '01JUL2022'd le POST_DSCH_END_DT le '31DEC2022'd then timeframe_filter = "Performance Period 8";
-	if '01JAN2023'd le POST_DSCH_END_DT le '30JUN2023'd then timeframe_filter = "Performance Period 9";
-	if '01JUL2023'd le POST_DSCH_END_DT le '31DEC2023'd then timeframe_filter = "Performance Period 10";
+	if '01OCT2018'd le POST_DSCH_END_DT le '30JUN2019'd then timeframe_filter = "Perf Pd 1 (End by 6/30/2019)";
+	if '01JUL2019'd le POST_DSCH_END_DT le '31DEC2019'd then timeframe_filter = "Perf Pd 2 (End 7/1-12/31/2019)";
+	if '01JAN2020'd le POST_DSCH_END_DT le '30JUN2020'd then timeframe_filter = "Perf Pd 3 (End 1/1-6/30/2020)";
+	if '01JUL2020'd le POST_DSCH_END_DT le '31DEC2020'd then timeframe_filter = "Perf Pd 4 (End 7/1-12/31/2020)";
+	if '01JAN2021'd le POST_DSCH_END_DT le '30JUN2021'd then timeframe_filter = "Perf Pd 5 (End 1/1-6/30/2021)";
+	if '01JUL2021'd le POST_DSCH_END_DT le '31DEC2021'd then timeframe_filter = "Perf Pd 6 (End 7/1-12/31/2021)";
+	if '01JAN2022'd le POST_DSCH_END_DT le '30JUN2022'd then timeframe_filter = "Perf Pd 7 (End 1/1-6/30/2022)";
+	if '01JUL2022'd le POST_DSCH_END_DT le '31DEC2022'd then timeframe_filter = "Perf Pd 8 (End 7/1-12/31/2022)";
+	if '01JAN2023'd le POST_DSCH_END_DT le '30JUN2023'd then timeframe_filter = "Perf Pd 9 (End 1/1-6/30/2023)";
+	if '01JUL2023'd le POST_DSCH_END_DT le '31DEC2023'd then timeframe_filter = "Perf Pd 10 (End 7/1-12/31/2023)";
 
 	if '01OCT2018'd le POST_DSCH_END_DT le '30JUN2019'd then epi_period_short = "PP1";
 	if '01JUL2019'd le POST_DSCH_END_DT le '31DEC2019'd then epi_period_short = "PP2";
@@ -254,16 +254,16 @@ data Recon_cost_&id._1;
 	if a then npi = prfnpi;
 	else npi = npi_a;
 format timeframe_filter epi_period_short $100.;
-	if '01OCT2018'd le POST_DSCH_END_DT le '30JUN2019'd then timeframe_filter = "Performance Period 1";
-	if '01JUL2019'd le POST_DSCH_END_DT le '31DEC2019'd then timeframe_filter = "Performance Period 2";
-	if '01JAN2020'd le POST_DSCH_END_DT le '30JUN2020'd then timeframe_filter = "Performance Period 3";
-	if '01JUL2020'd le POST_DSCH_END_DT le '31DEC2020'd then timeframe_filter = "Performance Period 4";
-	if '01JAN2021'd le POST_DSCH_END_DT le '30JUN2021'd then timeframe_filter = "Performance Period 5";
-	if '01JUL2021'd le POST_DSCH_END_DT le '31DEC2021'd then timeframe_filter = "Performance Period 6";
-	if '01JAN2022'd le POST_DSCH_END_DT le '30JUN2022'd then timeframe_filter = "Performance Period 7";
-	if '01JUL2022'd le POST_DSCH_END_DT le '31DEC2022'd then timeframe_filter = "Performance Period 8";
-	if '01JAN2023'd le POST_DSCH_END_DT le '30JUN2023'd then timeframe_filter = "Performance Period 9";
-	if '01JUL2023'd le POST_DSCH_END_DT le '31DEC2023'd then timeframe_filter = "Performance Period 10";
+	if '01OCT2018'd le POST_DSCH_END_DT le '30JUN2019'd then timeframe_filter = "Perf Pd 1 (End by 6/30/2019)";
+	if '01JUL2019'd le POST_DSCH_END_DT le '31DEC2019'd then timeframe_filter = "Perf Pd 2 (End 7/1-12/31/2019)";
+	if '01JAN2020'd le POST_DSCH_END_DT le '30JUN2020'd then timeframe_filter = "Perf Pd 3 (End 1/1-6/30/2020)";
+	if '01JUL2020'd le POST_DSCH_END_DT le '31DEC2020'd then timeframe_filter = "Perf Pd 4 (End 7/1-12/31/2020)";
+	if '01JAN2021'd le POST_DSCH_END_DT le '30JUN2021'd then timeframe_filter = "Perf Pd 5 (End 1/1-6/30/2021)";
+	if '01JUL2021'd le POST_DSCH_END_DT le '31DEC2021'd then timeframe_filter = "Perf Pd 6 (End 7/1-12/31/2021)";
+	if '01JAN2022'd le POST_DSCH_END_DT le '30JUN2022'd then timeframe_filter = "Perf Pd 7 (End 1/1-6/30/2022)";
+	if '01JUL2022'd le POST_DSCH_END_DT le '31DEC2022'd then timeframe_filter = "Perf Pd 8 (End 7/1-12/31/2022)";
+	if '01JAN2023'd le POST_DSCH_END_DT le '30JUN2023'd then timeframe_filter = "Perf Pd 9 (End 1/1-6/30/2023)";
+	if '01JUL2023'd le POST_DSCH_END_DT le '31DEC2023'd then timeframe_filter = "Perf Pd 10 (End 7/1-12/31/2023)";
 
 	if '01OCT2018'd le POST_DSCH_END_DT le '30JUN2019'd then epi_period_short = "PP1";
 	if '01JUL2019'd le POST_DSCH_END_DT le '31DEC2019'd then epi_period_short = "PP2";
@@ -370,16 +370,16 @@ data perf_epis;
 	set out.epi_&Perf_label._&id. (keep=EPI_ID_MILLIMAN POST_DSCH_END_DT);
 
 	format timeframe_filter epi_period_short $100.;
-	if '01OCT2018'd le POST_DSCH_END_DT le '30JUN2019'd then timeframe_filter = "Performance Period 1";
-	if '01JUL2019'd le POST_DSCH_END_DT le '31DEC2019'd then timeframe_filter = "Performance Period 2";
-	if '01JAN2020'd le POST_DSCH_END_DT le '30JUN2020'd then timeframe_filter = "Performance Period 3";
-	if '01JUL2020'd le POST_DSCH_END_DT le '31DEC2020'd then timeframe_filter = "Performance Period 4";
-	if '01JAN2021'd le POST_DSCH_END_DT le '30JUN2021'd then timeframe_filter = "Performance Period 5";
-	if '01JUL2021'd le POST_DSCH_END_DT le '31DEC2021'd then timeframe_filter = "Performance Period 6";
-	if '01JAN2022'd le POST_DSCH_END_DT le '30JUN2022'd then timeframe_filter = "Performance Period 7";
-	if '01JUL2022'd le POST_DSCH_END_DT le '31DEC2022'd then timeframe_filter = "Performance Period 8";
-	if '01JAN2023'd le POST_DSCH_END_DT le '30JUN2023'd then timeframe_filter = "Performance Period 9";
-	if '01JUL2023'd le POST_DSCH_END_DT le '31DEC2023'd then timeframe_filter = "Performance Period 10";
+	if '01OCT2018'd le POST_DSCH_END_DT le '30JUN2019'd then timeframe_filter = "Perf Pd 1 (End by 6/30/2019)";
+	if '01JUL2019'd le POST_DSCH_END_DT le '31DEC2019'd then timeframe_filter = "Perf Pd 2 (End 7/1-12/31/2019)";
+	if '01JAN2020'd le POST_DSCH_END_DT le '30JUN2020'd then timeframe_filter = "Perf Pd 3 (End 1/1-6/30/2020)";
+	if '01JUL2020'd le POST_DSCH_END_DT le '31DEC2020'd then timeframe_filter = "Perf Pd 4 (End 7/1-12/31/2020)";
+	if '01JAN2021'd le POST_DSCH_END_DT le '30JUN2021'd then timeframe_filter = "Perf Pd 5 (End 1/1-6/30/2021)";
+	if '01JUL2021'd le POST_DSCH_END_DT le '31DEC2021'd then timeframe_filter = "Perf Pd 6 (End 7/1-12/31/2021)";
+	if '01JAN2022'd le POST_DSCH_END_DT le '30JUN2022'd then timeframe_filter = "Perf Pd 7 (End 1/1-6/30/2022)";
+	if '01JUL2022'd le POST_DSCH_END_DT le '31DEC2022'd then timeframe_filter = "Perf Pd 8 (End 7/1-12/31/2022)";
+	if '01JAN2023'd le POST_DSCH_END_DT le '30JUN2023'd then timeframe_filter = "Perf Pd 9 (End 1/1-6/30/2023)";
+	if '01JUL2023'd le POST_DSCH_END_DT le '31DEC2023'd then timeframe_filter = "Perf Pd 10 (End 7/1-12/31/2023)";
 
 	if '01OCT2018'd le POST_DSCH_END_DT le '30JUN2019'd then epi_period_short = "PP1";
 	if '01JUL2019'd le POST_DSCH_END_DT le '31DEC2019'd then epi_period_short = "PP2";
@@ -781,18 +781,16 @@ data Epi_Join_&label._&id.;
 		join_variable_recon = strip(Measure_year)||"_"||strip(EPI_ID_Milliman);
 	end;
 
-	if timeframe_filter  = "Performance Period 1" then epi_period_short = "PP1";
-	else if timeframe_filter  = "Performance Period 2" then epi_period_short = "PP2";
-	/*
-	else if timeframe_filter  = "Performance Period 3" then epi_period_short = "PP3";
-	else if timeframe_filter  = "Performance Period 4" then epi_period_short = "PP4";
-	else if timeframe_filter  = "Performance Period 5" then epi_period_short = "PP5";
-	else if timeframe_filter  = "Performance Period 6" then epi_period_short = "PP6";
-	else if timeframe_filter  = "Performance Period 7" then epi_period_short = "PP7";
-	else if timeframe_filter  = "Performance Period 8" then epi_period_short = "PP8";
-	else if timeframe_filter  = "Performance Period 9" then epi_period_short = "PP9";
-	else if timeframe_filter  = "Performance Period 10" then epi_period_short = "PP10";
-	*/
+	if timeframe_filter  = "Perf Pd 1 (End by 6/30/2019)" then epi_period_short = "PP1";
+	else if timeframe_filter  = "Perf Pd 2 (End 7/1-12/31/2019)" then epi_period_short = "PP2";
+	else if timeframe_filter  = "Perf Pd 3 (End 1/1-6/30/2020)" then epi_period_short = "PP3";
+	else if timeframe_filter  = "Perf Pd 4 (End 7/1-12/31/2020)" then epi_period_short = "PP4";
+	else if timeframe_filter  = "Perf Pd 5 (End 1/1-6/30/2021)" then epi_period_short = "PP5";
+	else if timeframe_filter  = "Perf Pd 6 (End 7/1-12/31/2021)" then epi_period_short = "PP6";
+	else if timeframe_filter  = "Perf Pd 7 (End 1/1-6/30/2022)" then epi_period_short = "PP7";
+	else if timeframe_filter  = "Perf Pd 8 (End 7/1-12/31/2022)" then epi_period_short = "PP8";
+	else if timeframe_filter  = "Perf Pd 9 (End 1/1-6/30/2023)" then epi_period_short = "PP9";
+	else if timeframe_filter  = "Perf Pd 10 (End 7/1-12/31/2023)" then epi_period_short = "PP10";
 	else epi_period_short = "";
 
 	FR_JOIN = BPID||"_"||epi_period_short;
@@ -849,12 +847,12 @@ quit;
 %ReconDashboard(5479,0002,1);
 */
 
-%ReconDashboard(2586_0002,0);
-%ReconDashboard(2586_0005,0);
-%ReconDashboard(2586_0006,0);
-%ReconDashboard(2586_0007,0);
-%ReconDashboard(2586_0010,0);
-%ReconDashboard(2586_0013,0);
+%ReconDashboard(2586_0002,1);
+%ReconDashboard(2586_0005,1);
+%ReconDashboard(2586_0006,1);
+%ReconDashboard(2586_0007,1);
+%ReconDashboard(2586_0010,1);
+%ReconDashboard(2586_0013,1);
 %ReconDashboard(2586_0025,0);
 %ReconDashboard(2586_0026,0);
 %ReconDashboard(2586_0028,0);
@@ -975,6 +973,7 @@ quit;
 %ReconDashboard(6053_0002,1);
 %ReconDashboard(2974_0003,0);
 %ReconDashboard(2974_0007,0);
+%ReconDashboard(5916_0002,1);
 
 
 
@@ -1003,7 +1002,7 @@ run;
 %sas_2_csv(out.All_Recon_ccf_&label.,Recon_ccf.csv);
 %sas_2_csv(out.All_Epi_Join_ccf_&label.,Epi_Detail_Recon_Join_ccf.csv);
 
-/*
+
 ******************* Create Demo Output *************************;
 proc format; value $masked_bpid
 '1148-0000'='1111-0000'
@@ -1023,7 +1022,7 @@ data out3.Recon_&bpid1._&bpid2.;
 	set out.Recon_&label._&bpid1._&bpid2. (rename=(BPID=BPID_o));
 
 	BPID = put(BPID_o,$masked_bpid.);
-
+	
 	BENE_SK = 123456789;
 	MBI_ID="987654321";
 
@@ -1076,28 +1075,28 @@ data Epi_Join_&bpid1._&bpid2.;
 
 		BENE_SK = 123456789;
 		MBI_ID="987654321";
-
+		
 		BPID_ClinicalEp = strip(BPID)||" - "||strip(clinical_episode_abbr);
 		BPID_ClinicalEp_ccn = strip(BPID)||" - "||strip(clinical_episode_abbr)||" - "||strip(anchor_ccn);
 
 		join_variable_recon = strip(Measure_year)||"_"||strip(EPI_ID_Milliman);
 	end;
 
-	if timeframe_filter  = "Performance Period 1" then epi_period_short = "PP1";
-	else if timeframe_filter  = "Performance Period 2" then epi_period_short = "PP2";
-	
-	*else if timeframe_filter  = "Performance Period 3" then epi_period_short = "PP3";
-	*else if timeframe_filter  = "Performance Period 4" then epi_period_short = "PP4";
-	*else if timeframe_filter  = "Performance Period 5" then epi_period_short = "PP5";
-	*else if timeframe_filter  = "Performance Period 6" then epi_period_short = "PP6";
-	*else if timeframe_filter  = "Performance Period 7" then epi_period_short = "PP7";
-	*else if timeframe_filter  = "Performance Period 8" then epi_period_short = "PP8";
-	*else if timeframe_filter  = "Performance Period 9" then epi_period_short = "PP9";
-	*else if timeframe_filter  = "Performance Period 10" then epi_period_short = "PP10";
+	if timeframe_filter  = "Perf Pd 1 (End by 6/30/2019)" then epi_period_short = "PP1";
+	else if timeframe_filter  = "Perf Pd 2 (End 7/1-12/31/2019)" then epi_period_short = "PP2";
+	else if timeframe_filter  = "Perf Pd 3 (End 1/1-6/30/2020)" then epi_period_short = "PP3";
+	else if timeframe_filter  = "Perf Pd 4 (End 7/1-12/31/2020)" then epi_period_short = "PP4";
+	else if timeframe_filter  = "Perf Pd 5 (End 1/1-6/30/2021)" then epi_period_short = "PP5";
+	else if timeframe_filter  = "Perf Pd 6 (End 7/1-12/31/2021)" then epi_period_short = "PP6";
+	else if timeframe_filter  = "Perf Pd 7 (End 1/1-6/30/2022)" then epi_period_short = "PP7";
+	else if timeframe_filter  = "Perf Pd 8 (End 7/1-12/31/2022)" then epi_period_short = "PP8";
+	else if timeframe_filter  = "Perf Pd 9 (End 1/1-6/30/2023)" then epi_period_short = "PP9";
+	else if timeframe_filter  = "Perf Pd 10 (End 7/1-12/31/2023)" then epi_period_short = "PP10";
 	
 	else epi_period_short = "";
+	FR_JOIN = BPID||"_"||epi_period_short;
 
-	keep measure_year EPI_ID_Milliman BPID Anchor_Fac_Code_Name ANCHOR_CODE operating_name attending_name client_type Episode_Initiator_Use clinical_episode_abbr timeframe_filter epi_period_short PERFORMANCE_PERIOD 
+	keep FR_JOIN measure_year EPI_ID_Milliman BPID Anchor_Fac_Code_Name ANCHOR_CODE operating_name attending_name client_type Episode_Initiator_Use clinical_episode_abbr timeframe_filter epi_period_short PERFORMANCE_PERIOD 
 			join_variable_recon recon_episode perf_episode
 			EI_system_name BPID_ClinicalEp MDC_Description death_flag Episode_End_YearMo PATIENT_NAME Bene_SK;
 run;
@@ -1140,6 +1139,7 @@ proc sort nodupkey data=out3.Epi_Join_&bpid1._&bpid2.;
 
 data out3.All_Recon_Demo;
 	set out3.Recon_: ;
+		FR_JOIN = BPID||"_"||epi_period_short;
 run;
 
 data out3.All_Epi_Join_Demo;
@@ -1148,7 +1148,7 @@ run;
 
 %sas_2_csv(out3.All_Recon_Demo,Recon_Demo.csv);
 %sas_2_csv(out3.All_Epi_Join_Demo,Epi_Detail_Recon_Join_Demo.csv);
-*/
+
 proc printto;run;
 %let _edtm=%sysfunc(datetime());
 %let _runtm=%sysevalf(%sysfunc(putn(&_edtm - &_sdtm, 12.))/60.0);
