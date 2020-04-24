@@ -176,8 +176,8 @@ Step 2 - Stack current and archived versions of of the TP_Component and Peer Gro
 
 	* limit the new TP data;
 	proc sql;
-		create table tp_com_&client._pre_lim_&rel_date. as
-		select a.*
+		create table tp_com_&client._pre_lim_&rel_date._2 as
+		select a.*, 2 AS TP_Priority
 		from tpcomp_comb_&client._pre as a
 		inner join ref.bpcia_episode_initiator_info as b
 		on a.initiator_bpid = b.BPCI_Advanced_ID_number_2
@@ -245,10 +245,26 @@ Step 2 - Stack current and archived versions of of the TP_Component and Peer Gro
 */
 %mend PERFORMANCE;
 
+<<<<<<< Updated upstream
+%PERFORMANCE(Premier, 20181231, '07/01/2019 - 09/30/2019', mdy(7,1,2019), mdy(9,30,2019),TP_Components);
+%PERFORMANCE(Other, 20181231, '07/01/2019 - 09/30/2019', mdy(7,1,2019), mdy(9,30,2019),TP_Components);
 %PERFORMANCE(Premier, 20191121, '10/01/2019 - 12/31/2019', mdy(10,1,2019), mdy(12,31,2019),TP_Components);
 %PERFORMANCE(Other, 20191121, '10/01/2019 - 12/31/2019', mdy(10,1,2019), mdy(12,31,2019),TP_Components);
 
+%PERFORMANCE(Premier, 20190101, '01/01/2019 - 06/30/2019', mdy(1,1,2019), mdy(6,30,2019),TP_Components);
+%PERFORMANCE(Other, 20190101, '01/01/2019 - 06/30/2019', mdy(1,1,2019), mdy(6,30,2019),TP_Components);
+%PERFORMANCE(Premier, 20181001, '10/01/2018 - 12/31/2018', mdy(10,1,2018), mdy(12,31,2018),TP_Components);
+%PERFORMANCE(Other, 20181001, '10/01/2018 - 12/31/2018', mdy(10,1,2018), mdy(12,31,2018),TP_Components);
 
+=======
+%PERFORMANCE(Premier, 20181001, '10/01/2018 - 12/31/2018', mdy(10,1,2018), mdy(12,31,2018),TP_Components);
+%PERFORMANCE(Other, 20181001, '10/01/2018 - 12/31/2018', mdy(10,1,2018), mdy(12,31,2018),TP_Components);
+%PERFORMANCE(Premier, 20181231, '01/01/2019 - 09/30/2019', mdy(1,1,2019), mdy(9,30,2019),TP_Components);
+%PERFORMANCE(Other, 20181231, '01/01/2019 - 09/30/2019', mdy(1,1,2019), mdy(9,30,2019),TP_Components);
+%PERFORMANCE(Premier, 20191121, '10/01/2019 - 12/31/2019', mdy(10,1,2019), mdy(12,31,2019),TP_Components);
+%PERFORMANCE(Other, 20191121, '10/01/2019 - 12/31/2019', mdy(10,1,2019), mdy(12,31,2019),TP_Components);
+
+>>>>>>> Stashed changes
 %macro PERFORMANCE2(client, rel_date, timeper, epi_start, epi_end, filename);
 
 	libname perf "R:\data\HIPAA\BPCIA_BPCI Advanced\04 - Target Price Reports\Distributed &rel_date.\&client.\Stacked Files";
@@ -301,11 +317,20 @@ Step 2 - Stack current and archived versions of of the TP_Component and Peer Gro
 	
 %mend PERFORMANCE2;
 
-%PERFORMANCE2(Premier, 20181231, '01/01/2019 - 09/30/2019', mdy(1,1,2019), mdy(9,30,2019),Peer_Group);
-%PERFORMANCE2(Other, 20181231, '01/01/2019 - 09/30/2019', mdy(1,1,2019), mdy(9,30,2019),Peer_Group);
 %PERFORMANCE2(Premier, 20181001, '10/01/2018 - 12/31/2018', mdy(10,1,2018), mdy(12,31,2018),Peer_Group);
 %PERFORMANCE2(Other, 20181001, '10/01/2018 - 12/31/2018', mdy(10,1,2018), mdy(12,31,2018),Peer_Group);
+<<<<<<< Updated upstream
 
+%PERFORMANCE2(Premier, 20190101, '01/01/2019 - 06/30/2019', mdy(1,1,2019), mdy(6,30,2019),Peer_Group);
+%PERFORMANCE2(Other, 20190101, '01/01/2019 - 06/30/2019', mdy(1,1,2019), mdy(6,30,2019),Peer_Group);
+%PERFORMANCE2(Premier, 20181001, '10/01/2018 - 12/31/2018', mdy(10,1,2018), mdy(12,31,2018),Peer_Group);
+%PERFORMANCE2(Other, 20181001, '10/01/2018 - 12/31/2018', mdy(10,1,2018), mdy(12,31,2018),Peer_Group);
+=======
+%PERFORMANCE2(Premier, 20181231, '01/01/2019 - 09/30/2019', mdy(1,1,2019), mdy(9,30,2019),Peer_Group);
+%PERFORMANCE2(Other, 20181231, '01/01/2019 - 09/30/2019', mdy(1,1,2019), mdy(9,30,2019),Peer_Group);
+%PERFORMANCE2(Premier, 20191121, '10/01/2019 - 12/31/2019', mdy(10,1,2019), mdy(12,31,2019),Peer_Group);
+%PERFORMANCE2(Other, 20191121, '10/01/2019 - 12/31/2019', mdy(10,1,2019), mdy(12,31,2019),Peer_Group);
+>>>>>>> Stashed changes
 
 %macro RECON(client, rel_date, timeper, epi_start, epi_end, filename);
 
@@ -366,8 +391,8 @@ Step 2 - Stack current and archived versions of of the TP_Component and Peer Gro
 
 	* limit the new TP data;
 	proc sql;
-		create table tp_com_&client._pre_lim_&rel_date. as
-		select a.*
+		create table tp_com_&client._pre_lim_&rel_date._1 as
+		select a.*, 1 AS TP_Priority
 		from tpcomp_comb_&client._pre as a
 		inner join ref.bpcia_episode_initiator_info as b
 		on a.initiator_bpid = b.BPCI_Advanced_ID_number_2
@@ -435,8 +460,8 @@ Step 2 - Stack current and archived versions of of the TP_Component and Peer Gro
 
 %mend RECON;
 
-%RECON(Premier, 20181231, '01/01/2019 - 09/30/2019', mdy(1,1,2019), mdy(9,30,2019),CY19_FY19_TP_Components);
-%RECON(Other, 20181231, '01/01/2019 - 09/30/2019', mdy(1,1,2019), mdy(9,30,2019),CY19_FY19_TP_Components);
+%RECON(Premier, 20190101, '01/01/2019 - 06/30/2019', mdy(1,1,2019), mdy(6,30,2019),CY19_FY19_TP_Components);
+%RECON(Other, 20190101, '01/01/2019 - 06/30/2019', mdy(1,1,2019), mdy(6,30,2019),CY19_FY19_TP_Components);
 %RECON(Premier, 20181001, '10/01/2018 - 12/31/2018', mdy(10,1,2018), mdy(12,31,2018),CY18_FY19_TP_Components);
 %RECON(Other, 20181001, '10/01/2018 - 12/31/2018', mdy(10,1,2018), mdy(12,31,2018),CY18_FY19_TP_Components);
 
@@ -470,12 +495,60 @@ run;
 			if length(CCN_TIN) <= 6 then PGP_ACH = 'ACH';
 			else PGP_ACH = 'PGP';
 		end;
+<<<<<<< Updated upstream
 
-		proc sort; by INITIATOR_BPID EPI_CAT EPI_TYPE ccn_join descending rel_dt;
+		proc sort; by INITIATOR_BPID EPI_CAT EPI_TYPE ccn_join descending epi_end;
 	run;
 
+	proc sort data=TP_Components_Combine;
+	by INITIATOR_BPID EPI_CAT EPI_TYPE ccn_join rel_dt epi_start epi_end TP_Priority;
+run;
+
+proc sort nodupkey data=TP_Components_Combine out=TP_Components_Combine_V2;
+	by INITIATOR_BPID EPI_CAT EPI_TYPE ccn_join rel_dt epi_start epi_end;
+=======
+	run;
+
+	proc sort data=TP_Components_Combine;
+	by INITIATOR_BPID EPI_CAT EPI_TYPE ccn_join epi_start epi_end TP_Priority;
+run;
+
+proc sort nodupkey data=TP_Components_Combine out=TP_Components_Combine_V2;
+	by INITIATOR_BPID EPI_CAT EPI_TYPE ccn_join epi_start epi_end;
+>>>>>>> Stashed changes
+run;
+
+	PROC SQL;
+	create table TP_Components_Combine_V3 AS 
+	SELECT A.*, B.TARGET_PRICE_REAL AS PRELIM, C.TARGET_PRICE_REAL AS FINAL_TP, C.TARGET_PRICE_REAL-B.TARGET_PRICE_REAL AS TP_DIFFERENCE
+	FROM TP_Components_Combine_V2 A
+		LEFT JOIN TP_Components_Combine B
+			ON A.INITIATOR_BPID = B.INITIATOR_BPID
+			AND A.EPI_CAT = B.EPI_CAT
+			AND A.EPI_TYPE = B.EPI_TYPE
+			AND A.ccn_join = B.ccn_join
+<<<<<<< Updated upstream
+			AND A.rel_dt = B.rel_dt
+=======
+>>>>>>> Stashed changes
+			AND A.epi_start = B.epi_start
+			AND B.TP_PRIORITY = 2
+		LEFT JOIN TP_Components_Combine C
+			ON A.INITIATOR_BPID = C.INITIATOR_BPID
+			AND A.EPI_CAT = C.EPI_CAT
+			AND A.EPI_TYPE = C.EPI_TYPE
+			AND A.ccn_join = C.ccn_join
+<<<<<<< Updated upstream
+			AND A.rel_dt = C.rel_dt
+=======
+>>>>>>> Stashed changes
+			AND A.epi_start = C.epi_start
+			AND C.TP_PRIORITY = 1
+			;
+			quit;
+
 	data TP_Components;
-		set TP_Components_Combine;
+		set TP_Components_Combine_V3;
 	run;
 
 	proc sql;
@@ -594,6 +667,7 @@ Step 3 - out tables, limit TP_Components to BPIDs in the Data Tracker, and expor
 /****************************************************************************************************************
 Step 4 - Create de-identified DEMO version
 ****************************************************************************************************************/
+/*
 %macro create_demo(bpid1,bpid2,bpid3,bpid4,bpid5,bpid6,bpid7,bpid8);
 
 * create format to mask CCN and TIN;
@@ -675,7 +749,7 @@ proc export
 	dbms=CSV 
 	replace;
 run;
-
+*/
 /*data Demo.TP_Components_Base_demo;*/
 /*	set Demo.TP_Components_demo;*/
 /*	if time_period='Baseline';*/
@@ -687,8 +761,8 @@ run;
 /*	dbms=CSV */
 /*	replace;*/
 /*run;*/
-
+/*
 %mend create_demo;
 
 %create_demo(1148-0000,1167-0000,1343-0000,1368-0000,2379-0000,2587-0000,2607-0000,5479-0002);  
-
+*/
