@@ -12,7 +12,9 @@ proc printto;run;
 ***** USER INPUTS ******************************************************************************************;
 %let mode = main; *main = main interface, base = baseline interface;
 *%let mode = recon; *main = main interface, base = baseline interface;
-%let label = y202003; 
+%let label_monthly = y202003;
+%let label_quarterly = y202002;
+%let label = &label_monthly.;
 
 
 ****** REFERENCE PROGRAMS ***********************************************************************************;
@@ -176,9 +178,21 @@ data TP_Risk_Adj_Parameters_baseline;
 		Clinical_Episode_Category = "Disorders of liver except malignancy, cirrhosis or alcoholic hepatitis" ;
 run;
 
-%MACRO TP(label);
+%MACRO TP(label, type);
 
 %MACRO RunHosp(id1,id2,bpid1,bpid2,prov);
+
+%if &type = P AND (&bpid1. = 1075 or &bpid1. = 2048 or &bpid1. = 2049 or &bpid1. = 2589 or &bpid1. = 5037) %then %do;
+%let label = &label_quarterly.;
+%end;
+
+%else %if &type = P %then %do;
+%let label = &label_monthly.; 
+%end;
+
+%else %if &type = B %then %do;
+%let label = ybase; 
+%end;
 
 data temp0;
 	format BPID $9. EPI_ID_MILLIMAN $32. ;
@@ -1973,9 +1987,9 @@ run;
 
 %MEND TP;
 
-%TP(ybase);
-%TP(&label.);
-*%TP(pp1Initial); 
+%TP(ybase, B);
+%TP(&label., P);
+*%TP(pp1Initial, R); 
 /*
 data All_Target_Prices;
 	format BPID EPI_ID_MILLIMAN EPISODE_ID EPISODE_INITIATOR EPISODE_GROUP_NAME ANCHOR_TYPE ANCHOR_CODE ANCHOR_CCN
