@@ -20,6 +20,7 @@ options minoperator mlogic;
 %let mode = main; *main = main interface, base = baseline interface;
 %let label_monthly = y202003; 
 %let label_quarterly = y202002; 
+%let label = &label_monthly.; 
 
 %include "H:\Nonclient\Medicare Bundled Payment Reference\Program - BPCIA\SAS Code\000 - BPCIA_Interface_BPIDs.sas";
 
