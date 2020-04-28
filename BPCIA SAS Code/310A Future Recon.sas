@@ -1,13 +1,15 @@
 %let _sdtm=%sysfunc(datetime());
 
 %let label = y202003; *Recon label;
-%let Prev_label = y202002; *Previous Recon label;
-%let Perf_label = y202003; *Most recent performance label;
+*%let Prev_label = y202002; *Previous Recon label;
+*%let Perf_label = y202003; *Most recent performance label;
 %let Recon_label = pp1Initial; *Most recent performance label;
 %let transmit_date = '13MAR2020'd;*Change for every Update*; 
+%let Perf_label_monthly = y202003; *Most recent performance label;
+%let Perf_label_quarterly = y202002;
 
 proc printto;run;
-proc printto log="H:\BPCIA_BPCI Advanced\50 - BPCI Advanced Ongoing Reporting - 2020\Work Papers\SAS\logs\310A - Qlikview Code_&label._&sysdate..log" print=print new;
+*proc printto log="H:\BPCIA_BPCI Advanced\50 - BPCI Advanced Ongoing Reporting - 2020\Work Papers\SAS\logs\310A - Qlikview Code_&label._&sysdate..log" print=print new;
 
 %let main = H:\Nonclient\Medicare Bundled Payment Reference\Program - BPCIA\SAS Code;
 %include "&main.\000 - Formats - BPCIA.sas";
@@ -31,6 +33,14 @@ libname cjrref "H:\Nonclient\Medicare Bundled Payment Reference\Program - CJR\SA
 %let exportDir = R:\data\HIPAA\BPCIA_BPCI Advanced\13 - Reconciliation Output\Recon - &Recon_label.;
 
 %macro FutureRecon(id,reconref);
+
+%if &id. = 1075_0000 or &id. = 2048_0000 or &id. = 2049_0000 or &id. = 2589_0000 or &id. = 5037_0000 %then %do;
+%let label = &Perf_label_quarterly.;
+%end;
+
+%else %do;
+%let label = &Perf_label_monthly.; 
+%end;
 
 data tp_stack;
 set out.tp_&label._&id.: (Drop=Census_Pre);
@@ -400,9 +410,9 @@ data out.TP_Var_&label._&id.;
 run;
 
 *delete work datasets*;
-proc datasets lib=work memtype=data kill;
-run;
-quit;
+*proc datasets lib=work memtype=data kill;
+*run;
+*quit;
 
 %mend FutureRecon;
 
@@ -537,9 +547,10 @@ quit;
 %FutureRecon(2974_0007,0);
 %FutureRecon(5916_0002,1);
 
+%let label = &Perf_label_monthly.; *Most recent performance label;
 
 data out.TP_Var_&label. out.TP_Var_pmr_&label. out.TP_Var_oth_&label. out.TP_Var_ccf_&label.;
-	set out.TP_Var_&label._: ;
+	set out.TP_Var_&label._: out.TP_Var_&Perf_label_quarterly._: ;
 	output out.TP_Var_&label.;
 	if BPID in (&PMR_EI_lst.) then output out.TP_Var_pmr_&label.;
 	else if BPID in (&NON_PMR_EI_lst.) then output out.TP_Var_oth_&label.;
