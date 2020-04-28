@@ -18,11 +18,12 @@ Setup
 
 %let label = pp1Initial; *Recon label;
 %let Prev_label = pp1Initial; *Previous Recon label;
-%let Perf_label = y202003; *Most recent performance label;
-
+%let Perf_label_monthly = y202003; *Most recent performance label;
+%let Perf_label_quarterly = y202002;
+%let Perf_label = &Perf_label_monthly.;
 
 proc printto;run;
-*proc printto log="H:\BPCIA_BPCI Advanced\50 - BPCI Advanced Ongoing Reporting - 2020\Work Papers\SAS\logs\310 - Recon Processing_&label._&sysdate..log" print=print new;
+proc printto log="H:\BPCIA_BPCI Advanced\50 - BPCI Advanced Ongoing Reporting - 2020\Work Papers\SAS\logs\310 - Recon Processing_&label._&sysdate..log" print=print new;
 run;
 
 %let norecon = '1209-0000',
@@ -52,11 +53,29 @@ libname cjrref "H:\Nonclient\Medicare Bundled Payment Reference\Program - CJR\SA
 
 
 %macro ReconDashboard(id,reconref);
+
+%if &id. = 1075_0000 or &id. = 2048_0000 or &id. = 2049_0000 or &id. = 2589_0000 or &id. = 5037_0000 %then %do;
+%let Perf_label = &Perf_label_quarterly.;
+%end;
+
+%else %do;
+%let Perf_label = &Perf_label_monthly.; 
+%end;
+
 %if &reconref = 1 %then %do;
 data TP_Components;
 	set tp.TP_Components_all (rename=(EPI_COUNT=EPI_COUNT_Char));
 	format ccn_join $6. epi_period_short $100.;
-	epi_period_short = "PP1";
+	if '01OCT2018'd le epi_end le '30JUN2019'd then epi_period_short = "PP1";
+	if '01JUL2019'd le epi_end le '31DEC2019'd then epi_period_short = "PP2";
+	if '01JAN2020'd le epi_end le '30JUN2020'd then epi_period_short = "PP3";
+	if '01JUL2020'd le epi_end le '31DEC2020'd then epi_period_short = "PP4";
+	if '01JAN2021'd le epi_end le '30JUN2021'd then epi_period_short = "PP5";
+	if '01JUL2021'd le epi_end le '31DEC2021'd then epi_period_short = "PP6";
+	if '01JAN2022'd le epi_end le '30JUN2022'd then epi_period_short = "PP7";
+	if '01JUL2022'd le epi_end le '31DEC2022'd then epi_period_short = "PP8";
+	if '01JAN2023'd le epi_end le '30JUN2023'd then epi_period_short = "PP9";
+	if '01JUL2023'd le epi_end le '31DEC2023'd then epi_period_short = "PP10";
 	ccn_join = ASSOC_ACH_CCN;
 	if ccn_join = '' then ccn_join = CCN_TIN;
 	if length(compress(ccn_join)) = 5 then ccn_join = '0' || ccn_join;
