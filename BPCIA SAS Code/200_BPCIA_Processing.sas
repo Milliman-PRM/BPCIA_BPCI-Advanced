@@ -5,40 +5,31 @@ Code to process imported data in preparation for dashboard data creation
 *********************************************************;
 options mprint;
 
-/*
-***** CHECK BEFORE RUNNING *****
-	1) Label Var (18-19)
-	2) Vers Var (22)
-	3) Type Var (25-26)
-********************************
-*/
-/*
-proc sql;
-	create table test1 as
-	select anchor_type, episode_group_name, count(*) as freq
-	from epi
-	group by anchor_type, episode_group_name
-	order by anchor_type, episode_group_name;
-quit;
-*/
 ***** USER INPUTS ******************************************************************************************;
 /* turn on for baseline */
-/*%let mode = main; *main = main interface, base = baseline interface, recon = reconciliation;*/
-/*%let label = ybase; *Turn on for baseline data, turn off for quarterly data;*/
-/*%let vers = B; *B for baseline, P for Performance;*/
+%let mode = main; *main = main interface, base = baseline interface, recon = reconciliation;
+%let label = ybase; *Turn on for baseline data, turn off for quarterly data;
+%let vers = B; *B for baseline, P for Performance;
 
 /*turn on for performance */
-%let mode = main; *main = main interface, base = baseline interface, recon = reconciliation;
-%let label_monthly = y202003; *Turn off for baseline data, turn on for quarterly data;
-%let label_quarterly = y202002; *Turn off for baseline data, turn on for quarterly data;
-%let vers = P; *B for baseline, P for Performance;
+*%let mode = main; *main = main interface, base = baseline interface, recon = reconciliation;
+*%let label_monthly = y202003; *Turn off for baseline data, turn on for quarterly data;
+*%let label_quarterly = y202002; *Turn off for baseline data, turn on for quarterly data;
+*%let label = &label_monthly.; *Turn off for baseline data, turn on for quarterly data;
+*%let vers = P; *B for baseline, P for Performance;
 
 /*turn on for recon */
 *%let mode = recon; *main = main interface, base = baseline interface, recon = reconciliation;
 *%let label = pp1Initial; *Turn off for baseline data, turn on for quarterly data;
 *%let vers = P; *B for baseline, P for Performance;
 
-
+/*
+quarterly
+Y if quarterly
+N if not quarterly
+next quarterly is month 202004
+*/
+%let quarterly = N; 
 
 ***** REFERENCE PROGRAMS ***********************************************************************************;
 %include "H:\_HealthLibrary\SAS\000 - General SAS Macros.sas";
@@ -141,11 +132,12 @@ quit;
 
 
 /* quarterly update */
-%if &bpid1. = 1075 or &bpid1. = 2048 or &bpid1. = 2049 or &bpid1. = 2589 or &bpid1. = 5037 %then %do;
+%if &vers. = P and &mode.= main and (&bpid1. = 1075 or &bpid1. = 2048 or &bpid1. = 2049 or &bpid1. = 2589 or &bpid1. = 5037) %then %do;
 %let label = &label_quarterly.;
 %end;
-%else %do;
-	%let label = &label_monthly.;
+
+%else %if &vers. = P and &mode.= main %then %do;
+%let label = &label_monthly.; 
 %end;
 
 data TP_Components_all_V2;
@@ -1992,22 +1984,7 @@ quit;
 
 %mend;
 
-*%runhosp(5746_0001,5746_0001,5746,0002,100007);
-*%runhosp(2956_0001,2956_0001,2956,0002,450853);
-*%runhosp(5038_0000,5038_0000,5038,0000,080007);
-
-*****For Development*****;
-/*
-%runhosp(1148_0000,1148_0000,1148,0000,310008);
-%runhosp(1167_0000,1167_0000,1167,0000,390173);
-%runhosp(1343_0000,1343_0000,1343,0000,232856880);
-%runhosp(1368_0000,1368_0000,1368,0000,390049);
-%runhosp(2379_0000,2379_0000,2379,0000,310060);
-%runhosp(2587_0000,2587_0000,2587,0000,310014);
-%runhosp(2607_0000,2607_0000,2607,0000,223700669);
-%runhosp(1931_0001,5479_0001,5479,0002,310051);
-*/
-
+/* Run Calls */
 %runhosp(2586_0001,2586_0001,2586,0002,360027);
 %runhosp(2586_0001,2586_0001,2586,0005,360082);
 %runhosp(2586_0001,2586_0001,2586,0006,360077);
@@ -2142,7 +2119,11 @@ quit;
 %if %substr(&label.,1,5) ^= ybase and &mode. ^= recon %then %do;
 	%if &mode. ^= dev %then %do;
 		data out.clinepi_&label.;
-			set out.clinepi_&label._:;
+			set out.clinepi_&label_monthly.: 
+				%if &quarterly = N %then %do;
+			out.clinepi_&label_quarterly.:
+			%end;
+			;
 		run;
 
 		proc export data= out.clinepi_&label.
