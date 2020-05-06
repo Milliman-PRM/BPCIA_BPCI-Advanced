@@ -169,6 +169,9 @@ data TP_Components;
 	if EPI_CAT = "Transcathether aortic valve replacement" then
 		EPI_CAT = "Endovascular Cardiac Valve Replacement" ;
 
+if EPI_CAT = "Inflammatory bowel disease" then        
+	EPI_CAT = "Inflammatory Bowel Disease" ;
+
 run; 
 
 proc sort data=TP_Components;
@@ -405,7 +408,10 @@ proc sql;
 			b.EPI_INDEX,
 			b.BPID_CHANGE,
 			b.EPI_DROPPED_FLAG,
-			b.TIME_PERIOD
+			b.TIME_PERIOD,
+			b.Prelim_TP,
+	b.Final_TP,
+	b.TP_Difference
 		from temp3a as a 
 			left join TP_Components as b
 				on a.BPID = b.INITIATOR_BPID
@@ -450,7 +456,10 @@ proc sql;
 			b.EPI_INDEX,
 			b.BPID_CHANGE,
 			b.EPI_DROPPED_FLAG,
-			b.TIME_PERIOD
+			b.TIME_PERIOD,
+			b.Prelim_TP,
+	b.Final_TP,
+	b.TP_Difference
 		from temp3a as a 
 			left join TP_Components_forBase as b
 				on a.BPID = b.INITIATOR_BPID
@@ -1979,7 +1988,7 @@ quit;
 	 
 data out.tp_&label._&bpid1._&bpid2._MY3;
 	set t6 (rename=(anchor_ccn=anchor_ccn_orig EPI_STD_PMT_FCTR_WIN_1_99=EPI_STD_PMT_FCTR_WIN_1_99_orig)) ;
-	format HAS_TP PERFORMANCE_PERIOD $3.;
+	format HAS_TP $100. PERFORMANCE_PERIOD $3.;
 
 	PGP_Offset_Amt_Real=0;
 	if PGP_Offset < 1 and PGP_Offset ^= . then PGP_Offset_Amt_Real = TP_Adj / .97 * (1-(PGP_Offset/PGP_Offset_Adj)) * PAYMENT_RATIO;
@@ -2016,8 +2025,10 @@ data out.tp_&label._&bpid1._&bpid2._MY3;
 		PAT_Amt_Real = .;
 	end;
 
-	HAS_TP="Yes";
-	if Adjusted_TP_Real=. then HAS_TP='No';
+		HAS_TP="Yes";
+
+	if Adjusted_TP_Real=. and NATURAL_DISASTER_MONTHLY ne 'Yes' then HAS_TP='No: Baseline Volume';
+	if Adjusted_TP_Real=. and NATURAL_DISASTER_MONTHLY =  'Yes' then HAS_TP='No: Natural Disaster Policy';
 
 	if PERFORMANCE_PERIOD_EPI = 1 then PERFORMANCE_PERIOD = 'Yes';
 	else PERFORMANCE_PERIOD = 'No';
@@ -2064,7 +2075,10 @@ data out2.tp_&label._&bpid1._&bpid2._MY3;
 		 PAT PAT_Adj PCMA PCMA_Adj PGP_ACH_PCMA PGP_PCMA_Adj CASE_MIX PGP_ACH_Ratio PGP_Offset PGP_Offset_Adj PAYMENT_RATIO 
 		 HAS_TP PERFORMANCE_PERIOD
 		 HCC_COUNT HCC18 HCC19 HCC40 HCC58 HCC84 HCC85 HCC86 HCC88 HCC96 HCC108 HCC111 NATURAL_DISASTER_MONTHLY TKA_FLAG
-		;
+	Prelim_TP
+	Final_TP
+	TP_Difference
+;
 run;
 
 
@@ -2087,6 +2101,8 @@ run;
 %runhosp(2607_0000,2607_0000,2607,0000,223700669);
 %runhosp(1931_0001,5479_0001,5479,0002,310051);
 */
+
+*%runhosp(1028_0000,1028_0000,1028,0000,100008,0);
 
 %runhosp(2586_0001,2586_0001,2586,0002,360027,1);
 
