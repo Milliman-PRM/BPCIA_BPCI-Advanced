@@ -47,7 +47,7 @@ next quarterly is month 202004
 %macro modesetup;
 %if &mode.=main %then %do;
 libname out "&dataDir.\07 - Processed Data";
-*proc printto log="H:\BPCIA_BPCI Advanced\50 - BPCI Advanced Ongoing Reporting - 2020\Work Papers\SAS\logs\302 - Qlikview Stacking Code_&label._&sysdate..log" print=print new;
+proc printto log="H:\BPCIA_BPCI Advanced\50 - BPCI Advanced Ongoing Reporting - 2020\Work Papers\SAS\logs\302 - Qlikview Stacking Code_&label._&sysdate..log" print=print new;
 run;
 %end;
 %else %if &mode.=base %then %do;
@@ -93,6 +93,10 @@ libname bench2 "R:\client work\CMS_PAC_Bundle_Processing\Benchmark Releases\v.20
 			if primary_proc_with_desc1 = '' then primary_proc_with_desc1 = '-';
 			if flag_overlap = '' then flag_overlap = '-';
 			if mult_attr_provs = '' then mult_attr_provs = '-';
+		%end;
+
+		%else %if &file = pat_detail %then %do;
+		service_provider = tranwrd(service_provider, '','-');
 		%end;
 	run;
 
