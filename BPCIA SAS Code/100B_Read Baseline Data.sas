@@ -46,6 +46,7 @@ EXPNSDT1	:date9.
 EXPNSDT2	:date9.
 LPRPDAMT : 
 LINEDGNS : $20.
+CMSSUCKS : $50.
 ;
 
  format FROM_DT THRU_DT mmddyy10.;
