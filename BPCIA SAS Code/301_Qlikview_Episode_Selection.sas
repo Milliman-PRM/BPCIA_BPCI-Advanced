@@ -277,7 +277,8 @@ run;
 
 
 data All_Target_Prices_1 All_Target_Prices_Premier All_Target_Prices_NonPremier All_Target_Prices_CCF All_Target_Prices_Dev;
-	set out.A_tp_:;
+format HAS_TP $100.;
+set out.A_tp_:;
 
 	if BPID in (&PMR_EI_lst.) or BPID in (&NON_PMR_EI_lst.) then output All_Target_Prices_1;
 	if BPID in (&DEV_EI_lst.) then output All_Target_Prices_Dev;
