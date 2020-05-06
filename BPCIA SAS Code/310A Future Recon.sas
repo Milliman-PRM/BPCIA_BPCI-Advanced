@@ -7,9 +7,15 @@
 %let transmit_date = '13MAR2020'd;*Change for every Update*; 
 %let Perf_label_monthly = y202003; *Most recent performance label;
 %let Perf_label_quarterly = y202002;
-
+/*
+quarterly
+Y if quarterly
+N if not quarterly
+next quarterly is month 202004
+*/
+%let quarterly = N; 
 proc printto;run;
-*proc printto log="H:\BPCIA_BPCI Advanced\50 - BPCI Advanced Ongoing Reporting - 2020\Work Papers\SAS\logs\310A - Qlikview Code_&label._&sysdate..log" print=print new;
+proc printto log="H:\BPCIA_BPCI Advanced\50 - BPCI Advanced Ongoing Reporting - 2020\Work Papers\SAS\logs\310A - Qlikview Code_&label._&sysdate..log" print=print new;
 
 %let main = H:\Nonclient\Medicare Bundled Payment Reference\Program - BPCIA\SAS Code;
 %include "&main.\000 - Formats - BPCIA.sas";
@@ -410,9 +416,9 @@ data out.TP_Var_&label._&id.;
 run;
 
 *delete work datasets*;
-*proc datasets lib=work memtype=data kill;
-*run;
-*quit;
+proc datasets lib=work memtype=data kill;
+run;
+quit;
 
 %mend FutureRecon;
 
@@ -547,10 +553,12 @@ run;
 %FutureRecon(2974_0007,0);
 %FutureRecon(5916_0002,1);
 
-%let label = &Perf_label_monthly.; *Most recent performance label;
-
 data out.TP_Var_&label. out.TP_Var_pmr_&label. out.TP_Var_oth_&label. out.TP_Var_ccf_&label.;
-	set out.TP_Var_&label._: out.TP_Var_&Perf_label_quarterly._: ;
+	set out.TP_Var_&Perf_label_monthly._: 
+				%if &quarterly = N %then %do;
+			out.TP_Var_&Perf_label_quarterly._:
+			%end;
+			 ;
 	output out.TP_Var_&label.;
 	if BPID in (&PMR_EI_lst.) then output out.TP_Var_pmr_&label.;
 	else if BPID in (&NON_PMR_EI_lst.) then output out.TP_Var_oth_&label.;
