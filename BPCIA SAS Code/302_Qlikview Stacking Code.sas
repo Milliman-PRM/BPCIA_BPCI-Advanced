@@ -27,9 +27,15 @@ Setup
 /*%let label = ybase; *Baseline/Performance data label;*/
 %let label_monthly = y202003;
 %let label_quarterly = y202002;
-
+%let label = &label_monthly.;
 %let mode=main; *Base=Baseline Interface, Main=Main Interface;
-
+/*
+quarterly
+Y if quarterly
+N if not quarterly
+next quarterly is month 202004
+*/
+%let quarterly = N; 
 ****** REFERENCE PROGRAMS ***********************************************************************************;
 %include "H:\_HealthLibrary\SAS\000 - General SAS Macros.sas";
 %include "H:\_HealthLibrary\SAS\000 - General SAS Macros_64bit.sas";
@@ -64,162 +70,14 @@ libname bench2 "R:\client work\CMS_PAC_Bundle_Processing\Benchmark Releases\v.20
 ****** EXPORT INFO *****************************************************************************************;
 /*%let exportDir = R:\data\HIPAA\BPCIA_BPCI Advanced\80 - Qlikview\Outfiles;*/
 
-%macro Perf_File_Standarizer(file);
-
-%macro Perf_Month_Picker(bpid1,bpid2);
-
-%let id = &bpid1._&bpid2.;
-
-%if &bpid1. = 1075 or &bpid1. = 2048 or &bpid1. = 2049 or &bpid1. = 2589 or &bpid1. = 5037 %then %do;
-%let label = &label_quarterly.;
-%end;
-
-%else %do;
-%let label = &label_monthly.; 
-%end;
-
-data &file._Perf_Month_&id.;
-set out.&file._&label._&id.;
-run;
-
-%mend Perf_Month_Picker;
-
-%Perf_Month_Picker(2586,0002);
-%Perf_Month_Picker(2586,0005);
-%Perf_Month_Picker(2586,0006);
-%Perf_Month_Picker(2586,0007);
-%Perf_Month_Picker(2586,0010);
-%Perf_Month_Picker(2586,0013);
-%Perf_Month_Picker(2586,0025);
-%Perf_Month_Picker(2586,0026);
-%Perf_Month_Picker(2586,0028);
-%Perf_Month_Picker(2586,0029);
-%Perf_Month_Picker(2586,0030);
-%Perf_Month_Picker(2586,0031);
-%Perf_Month_Picker(2586,0032);
-%Perf_Month_Picker(2586,0033);
-%Perf_Month_Picker(2586,0034);
-%Perf_Month_Picker(2586,0035);
-*%Perf_Month_Picker(2586,0036);
-*%Perf_Month_Picker(2586,0038);
-%Perf_Month_Picker(2586,0039);
-*%Perf_Month_Picker(2586,0040);
-*%Perf_Month_Picker(2586,0041);
-*%Perf_Month_Picker(2586,0042);
-*%Perf_Month_Picker(2586,0043);
-%Perf_Month_Picker(2586,0044);
-%Perf_Month_Picker(2586,0045);
-%Perf_Month_Picker(2586,0046);
-%Perf_Month_Picker(1374,0004);
-%Perf_Month_Picker(1374,0008);
-%Perf_Month_Picker(1374,0009);
-%Perf_Month_Picker(1374,0012);
-%Perf_Month_Picker(1374,0013);
-%Perf_Month_Picker(1374,0014);
-%Perf_Month_Picker(1374,0015);
-%Perf_Month_Picker(1374,0017);
-%Perf_Month_Picker(1374,0018);
-%Perf_Month_Picker(1191,0002);
-%Perf_Month_Picker(7310,0002);
-%Perf_Month_Picker(7310,0003);
-%Perf_Month_Picker(7310,0004);
-%Perf_Month_Picker(7310,0005);
-%Perf_Month_Picker(7310,0006);
-%Perf_Month_Picker(7310,0007);
-%Perf_Month_Picker(7312,0002);
-%Perf_Month_Picker(6054,0002);
-%Perf_Month_Picker(6055,0002);
-%Perf_Month_Picker(6056,0002);
-%Perf_Month_Picker(6057,0002);
-%Perf_Month_Picker(6058,0002);
-%Perf_Month_Picker(6059,0002);
-%Perf_Month_Picker(1209,0000);
-%Perf_Month_Picker(1028,0000);
-%Perf_Month_Picker(1075,0000);
-%Perf_Month_Picker(1102,0000);
-%Perf_Month_Picker(1103,0000);
-%Perf_Month_Picker(1104,0000);
-%Perf_Month_Picker(1105,0000);
-%Perf_Month_Picker(1106,0000);
-%Perf_Month_Picker(1148,0000);
-%Perf_Month_Picker(1167,0000);
-%Perf_Month_Picker(1343,0000);
-%Perf_Month_Picker(1368,0000);
-%Perf_Month_Picker(1461,0000);
-%Perf_Month_Picker(1634,0000);
-*%Perf_Month_Picker(1803,0000);
-%Perf_Month_Picker(1958,0000);
-%Perf_Month_Picker(2048,0000);
-%Perf_Month_Picker(2049,0000);
-%Perf_Month_Picker(2070,0000);
-%Perf_Month_Picker(2214,0000);
-%Perf_Month_Picker(2215,0000);
-%Perf_Month_Picker(2216,0000);
-%Perf_Month_Picker(2302,0000);
-%Perf_Month_Picker(2317,0000);
-%Perf_Month_Picker(2374,0000);
-%Perf_Month_Picker(2376,0000);
-%Perf_Month_Picker(2378,0000);
-%Perf_Month_Picker(2379,0000);
-%Perf_Month_Picker(2451,0000);
-%Perf_Month_Picker(2452,0000);
-%Perf_Month_Picker(2461,0000);
-%Perf_Month_Picker(2468,0000);
-%Perf_Month_Picker(2587,0000);
-%Perf_Month_Picker(2589,0000);
-%Perf_Month_Picker(2594,0000);
-%Perf_Month_Picker(2607,0000);
-%Perf_Month_Picker(5037,0000);
-%Perf_Month_Picker(5038,0000);
-%Perf_Month_Picker(5043,0000);
-%Perf_Month_Picker(5050,0000);
-%Perf_Month_Picker(5154,0000);
-%Perf_Month_Picker(5215,0002);
-%Perf_Month_Picker(5215,0003);
-%Perf_Month_Picker(5229,0000);
-%Perf_Month_Picker(5263,0000);
-%Perf_Month_Picker(5264,0000);
-%Perf_Month_Picker(5282,0000);
-%Perf_Month_Picker(5392,0004);
-%Perf_Month_Picker(5394,0000);
-%Perf_Month_Picker(5395,0000);
-%Perf_Month_Picker(5397,0002);
-%Perf_Month_Picker(5397,0003);
-%Perf_Month_Picker(5397,0004);
-%Perf_Month_Picker(5397,0005);
-%Perf_Month_Picker(5397,0006);
-%Perf_Month_Picker(5397,0007);
-%Perf_Month_Picker(5397,0008);
-%Perf_Month_Picker(5397,0009);
-%Perf_Month_Picker(5397,0010);
-%Perf_Month_Picker(5478,0002);
-%Perf_Month_Picker(5479,0002);
-%Perf_Month_Picker(5480,0002);
-%Perf_Month_Picker(5481,0002);
-%Perf_Month_Picker(5746,0002);
-%Perf_Month_Picker(1686,0002);
-%Perf_Month_Picker(1688,0002);
-%Perf_Month_Picker(1696,0002);
-%Perf_Month_Picker(1710,0002);
-%Perf_Month_Picker(2941,0002);
-%Perf_Month_Picker(2956,0002);
-%Perf_Month_Picker(6049,0002);
-%Perf_Month_Picker(6050,0002);
-%Perf_Month_Picker(6051,0002);
-%Perf_Month_Picker(6052,0002);
-%Perf_Month_Picker(6053,0002);
-%Perf_Month_Picker(2974,0003);
-%Perf_Month_Picker(2974,0007);
-%Perf_Month_Picker(5916,0002);
-
-%mend Perf_File_Standarizer;
-
 %macro stack_output(file);
 
-%Perf_File_Standarizer(&file);
-
 	data out.all_&file.;
-		set out.A_&file._ybase: &file._Perf_Month_:;
+		set out.A_&file._ybase: out.&file._&label_monthly.: 
+		%if &quarterly. = N %then %do;
+		out.&file._&label_quarterly.:
+		%end;
+		;
 		%if &file = ccn_enc %then %do;
 			fac_counter = _N_;
 		%end;
@@ -238,10 +96,6 @@ run;
 		%end;
 	run;
 
-proc datasets lib=work memtype=data kill;
-run;
-quit;
-
 %mend stack_output;
 
 %stack_output(epi_detail);
@@ -257,15 +111,13 @@ quit;
 
 %macro stack_output_timefilter(file);
 
-%Perf_File_Standarizer(epi_detail);
-
 data out.all_&file.;
-		set out.&file.:(keep=BPID EPI_ID_MILLIMAN timeframe_filter)  epi_detail_Perf_Month_:(keep=BPID EPI_ID_MILLIMAN timeframe_filter);
+		set out.&file.:(keep=BPID EPI_ID_MILLIMAN timeframe_filter)  out.epi_detail_&label_monthly.:(keep=BPID EPI_ID_MILLIMAN timeframe_filter)
+		%if &quarterly = N %then %do;
+			out.epi_detail_&label_quarterly.:(keep=BPID EPI_ID_MILLIMAN timeframe_filter)
+			%end;
+;
 	run;
-
-proc datasets lib=work memtype=data kill;
-run;
-quit;
 
 %mend stack_output_timefilter;
 
@@ -273,20 +125,16 @@ quit;
 
 %macro stack_output_e(file);
 
-%Perf_File_Standarizer(&file);
-
 	data out.all_&file.;
-		set &file._Perf_Month_:;
+		set out.&file._&label_monthly.:
+				%if &quarterly = N %then %do;
+			out.&file._&label_quarterly.:
+			%end;
+			;
 	run;
-
-proc datasets lib=work memtype=data kill;
-run;
-quit;
 
 %mend stack_output_e;
 %stack_output_e(exclusions);
-
-%let label = &label_monthly;
 
 data benchmarks_pmr_my12;
 	set bench.benchmarks_bpcia_pmr_18;
