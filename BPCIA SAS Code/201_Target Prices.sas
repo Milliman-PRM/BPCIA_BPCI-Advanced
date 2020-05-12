@@ -12,7 +12,9 @@ proc printto;run;
 ***** USER INPUTS ******************************************************************************************;
 %let mode = main; *main = main interface, base = baseline interface;
 *%let mode = recon; *main = main interface, base = baseline interface;
-%let label = y202003; 
+%let label_monthly = y202003;
+%let label_quarterly = y202002;
+%let label = &label_monthly.;
 
 
 ****** REFERENCE PROGRAMS ***********************************************************************************;
@@ -176,9 +178,21 @@ data TP_Risk_Adj_Parameters_baseline;
 		Clinical_Episode_Category = "Disorders of liver except malignancy, cirrhosis or alcoholic hepatitis" ;
 run;
 
-%MACRO TP(label);
+%MACRO TP(label, type);
 
 %MACRO RunHosp(id1,id2,bpid1,bpid2,prov);
+
+%if &type = P AND (&bpid1. = 1075 or &bpid1. = 2048 or &bpid1. = 2049 or &bpid1. = 2589 or &bpid1. = 5037) %then %do;
+%let label = &label_quarterly.;
+%end;
+
+%else %if &type = P %then %do;
+%let label = &label_monthly.; 
+%end;
+
+%else %if &type = B %then %do;
+%let label = ybase; 
+%end;
 
 data temp0;
 	format BPID $9. EPI_ID_MILLIMAN $32. ;
@@ -360,7 +374,10 @@ proc sql;
 			b.EPI_INDEX,
 			b.BPID_CHANGE,
 			b.EPI_DROPPED_FLAG,
-			b.TIME_PERIOD
+			b.TIME_PERIOD,
+			b.Prelim_TP,
+	b.Final_TP,
+	b.TP_Difference
 		from temp3a as a 
 			left join TP_Components as b
 				on a.BPID = b.INITIATOR_BPID
@@ -404,7 +421,10 @@ proc sql;
 			b.EPI_INDEX,
 			b.BPID_CHANGE,
 			b.EPI_DROPPED_FLAG,
-			b.TIME_PERIOD
+			b.TIME_PERIOD,
+			b.Prelim_TP,
+	b.Final_TP,
+	b.TP_Difference
 		from temp3a as a 
 			left join TP_Components_forBase as b
 				on a.BPID = b.INITIATOR_BPID
@@ -1788,7 +1808,7 @@ quit;
 
 data out.tp_&label._&bpid1._&bpid2.;
 	set t6 (rename=(anchor_ccn=anchor_ccn_orig EPI_STD_PMT_FCTR_WIN_1_99=EPI_STD_PMT_FCTR_WIN_1_99_orig)) ;
-	format HAS_TP PERFORMANCE_PERIOD $3.;
+	format HAS_TP $100. PERFORMANCE_PERIOD $3.;
 
 	PGP_Offset_Amt_Real=0;
 	if PGP_Offset < 1 and PGP_Offset ^= . then PGP_Offset_Amt_Real = TP_Adj / .97 * (1-(PGP_Offset/PGP_Offset_Adj)) * PAYMENT_RATIO;
@@ -1825,8 +1845,10 @@ data out.tp_&label._&bpid1._&bpid2.;
 		PAT_Amt_Real = .;
 	end;
 
-	HAS_TP="Yes";
-	if Adjusted_TP_Real=. then HAS_TP='No';
+		HAS_TP="Yes";
+
+	if Adjusted_TP_Real=. and NATURAL_DISASTER_MONTHLY ne 'Yes' then HAS_TP='No: Baseline Volume';
+	if Adjusted_TP_Real=. and NATURAL_DISASTER_MONTHLY='Yes' then HAS_TP='No: Natural Disaster Policy';
 
 	*if PERFORMANCE_PERIOD_EPI = 1 then PERFORMANCE_PERIOD = 'Yes';
 	*else PERFORMANCE_PERIOD = 'No';
@@ -1872,6 +1894,9 @@ data out2.tp_&label._&bpid1._&bpid2.;
 		 HAS_TP PERFORMANCE_PERIOD
 		 HCC_COUNT HCC18 HCC19 HCC40 HCC58 HCC84 HCC85 HCC86 HCC88 HCC96 HCC108 HCC111
 		 NATURAL_DISASTER_MONTHLY
+		 	Prelim_TP
+	Final_TP
+	TP_Difference
 		;
 run;
 
@@ -1891,6 +1916,7 @@ run;
 */
 
 %runhosp(2586_0001,2586_0001,2586,0002,360027);
+
 %runhosp(2586_0001,2586_0001,2586,0005,360082);
 %runhosp(2586_0001,2586_0001,2586,0006,360077);
 %runhosp(2586_0001,2586_0001,2586,0007,360230);
@@ -1973,9 +1999,9 @@ run;
 
 %MEND TP;
 
-%TP(ybase);
-%TP(&label.);
-*%TP(pp1Initial); 
+%TP(ybase, B);
+%TP(&label., P);
+*%TP(pp1Initial, R); 
 /*
 data All_Target_Prices;
 	format BPID EPI_ID_MILLIMAN EPISODE_ID EPISODE_INITIATOR EPISODE_GROUP_NAME ANCHOR_TYPE ANCHOR_CODE ANCHOR_CCN
