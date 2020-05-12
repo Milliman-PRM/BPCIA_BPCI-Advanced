@@ -18,11 +18,12 @@ Setup
 
 %let label = pp1Initial; *Recon label;
 %let Prev_label = pp1Initial; *Previous Recon label;
-%let Perf_label = y202003; *Most recent performance label;
-
+%let Perf_label_monthly = y202003; *Most recent performance label;
+%let Perf_label_quarterly = y202002;
+%let Perf_label = &Perf_label_monthly.;
 
 proc printto;run;
-*proc printto log="H:\BPCIA_BPCI Advanced\50 - BPCI Advanced Ongoing Reporting - 2020\Work Papers\SAS\logs\310 - Recon Processing_&label._&sysdate..log" print=print new;
+proc printto log="H:\BPCIA_BPCI Advanced\50 - BPCI Advanced Ongoing Reporting - 2020\Work Papers\SAS\logs\310 - Recon Processing_&label._&sysdate..log" print=print new;
 run;
 
 %let norecon = '1209-0000',
@@ -52,11 +53,32 @@ libname cjrref "H:\Nonclient\Medicare Bundled Payment Reference\Program - CJR\SA
 
 
 %macro ReconDashboard(id,reconref);
+
+%if &id. = 1075_0000 or &id. = 2048_0000 or &id. = 2049_0000 or &id. = 2589_0000 or &id. = 5037_0000 %then %do;
+%let Perf_label = &Perf_label_quarterly.;
+%end;
+
+%else %do;
+%let Perf_label = &Perf_label_monthly.; 
+%end;
+
 %if &reconref = 1 %then %do;
 data TP_Components;
 	set tp.TP_Components_all (rename=(EPI_COUNT=EPI_COUNT_Char));
 	format ccn_join $6. epi_period_short $100.;
-	epi_period_short = "PP1";
+	epi_period_short = 'PP1';
+	/*
+	if '01OCT2018'd le epi_end le '30JUN2019'd then epi_period_short = "PP1";
+	if '01JUL2019'd le epi_end le '31DEC2019'd then epi_period_short = "PP2";
+	if '01JAN2020'd le epi_end le '30JUN2020'd then epi_period_short = "PP3";
+	if '01JUL2020'd le epi_end le '31DEC2020'd then epi_period_short = "PP4";
+	if '01JAN2021'd le epi_end le '30JUN2021'd then epi_period_short = "PP5";
+	if '01JUL2021'd le epi_end le '31DEC2021'd then epi_period_short = "PP6";
+	if '01JAN2022'd le epi_end le '30JUN2022'd then epi_period_short = "PP7";
+	if '01JUL2022'd le epi_end le '31DEC2022'd then epi_period_short = "PP8";
+	if '01JAN2023'd le epi_end le '30JUN2023'd then epi_period_short = "PP9";
+	if '01JUL2023'd le epi_end le '31DEC2023'd then epi_period_short = "PP10";
+	*/
 	ccn_join = ASSOC_ACH_CCN;
 	if ccn_join = '' then ccn_join = CCN_TIN;
 	if length(compress(ccn_join)) = 5 then ccn_join = '0' || ccn_join;
@@ -65,6 +87,8 @@ data TP_Components;
 		EPI_CAT = "Disorders of liver except malignancy, cirrhosis or alcoholic hepatitis" ;
 
 	EPI_COUNT = sum(EPI_COUNT_Char,0);
+	EPI_COUNT = 0;
+	if TP_PRIORITY = 1 then EPI_COUNT = sum(EPI_COUNT_Char,0);
 
 run; 
 
@@ -755,6 +779,7 @@ data Epi_Join_&label._&id.;
 	format join_variable_recon $132. PERFORMANCE_PERIOD $3.;
 	format clinical_episode_abbr $30.;
 	format clinical_episode_abbr2 $11.;
+	format epi_period_short $4.;
 	set %if &reconref. = 1 %then %do; 
 			out.Recon_&label._&id. (in=b)
 			out.epi_detail_&Perf_label._&id. (in=a)
@@ -802,16 +827,19 @@ run;
 
 proc sql;
 	create table recon_epi_check as
-	select MEASURE_YEAR, EPI_ID_Milliman, max(recon_episode) as recon_episode, max(perf_episode) as perf_episode 
+	select MEASURE_YEAR, EPI_ID_Milliman, epi_period_short, max(recon_episode) as recon_episode, max(perf_episode) as perf_episode 
 	from Epi_Join_&label._&id.
-	group by MEASURE_YEAR, epi_id_milliman;
+	group by MEASURE_YEAR, epi_id_milliman, epi_period_short;
 quit;
 
 data recon_epi_check2;
 	set recon_epi_check;
 	format IN_RECON_FLAG $3.;
+	format epi_period_short2 $4.;
 	IN_RECON_FLAG = 'No';
 	if recon_episode=1 and perf_episode=1 then IN_RECON_FLAG = 'Yes';
+		epi_period_short2='';
+	if recon_episode=1 then epi_period_short2 = epi_period_short;
 run;
 
 proc sql;
@@ -847,6 +875,7 @@ quit;
 %ReconDashboard(5479,0002,1);
 */
 
+%ReconDashboard(1191_0002,1);
 %ReconDashboard(2586_0002,1);
 %ReconDashboard(2586_0005,1);
 %ReconDashboard(2586_0006,1);
@@ -910,6 +939,7 @@ quit;
 %ReconDashboard(1368_0000,1);
 %ReconDashboard(1461_0000,0);
 %ReconDashboard(1634_0000,1);
+
 *%ReconDashboard(1803_0000,0);
 %ReconDashboard(1958_0000,1);
 %ReconDashboard(2048_0000,1);
@@ -974,6 +1004,7 @@ quit;
 %ReconDashboard(2974_0003,0);
 %ReconDashboard(2974_0007,0);
 %ReconDashboard(5916_0002,1);
+
 
 
 
@@ -1103,17 +1134,21 @@ run;
 
 proc sql;
 	create table recon_epi_check as
-	select EPI_ID_Milliman, max(recon_episode) as recon_episode, max(perf_episode) as perf_episode 
+	select EPI_ID_Milliman, epi_period_short, max(recon_episode) as recon_episode, max(perf_episode) as perf_episode 
 	from Epi_Join_&bpid1._&bpid2.
-	group by epi_id_milliman;
+	group by epi_id_milliman, epi_period_short;
 quit;
 
 data recon_epi_check2;
 	set recon_epi_check;
 	format IN_RECON_FLAG $3.;
+	format epi_period_short2 $4.;
 
 	IN_RECON_FLAG = 'No';
 	if recon_episode=1 and perf_episode=1 then IN_RECON_FLAG = 'Yes';
+
+			epi_period_short2='';
+	if recon_episode=1 then epi_period_short2 = epi_period_short;
 run;
 
 proc sql;
