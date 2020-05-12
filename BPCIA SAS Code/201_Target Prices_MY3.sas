@@ -11,6 +11,9 @@ proc printto;run;
 
 ***** USER INPUTS ******************************************************************************************;
 %let mode = main; *main = main interface, base = baseline interface;
+%let label_monthly = y202003;
+%let label_quarterly = y202002;
+%let label = &label_monthly.;
 
 ****** REFERENCE PROGRAMS ***********************************************************************************;
 %include "H:\_HealthLibrary\SAS\000 - General SAS Macros.sas";
@@ -166,6 +169,9 @@ data TP_Components;
 	if EPI_CAT = "Transcathether aortic valve replacement" then
 		EPI_CAT = "Endovascular Cardiac Valve Replacement" ;
 
+if EPI_CAT = "Inflammatory bowel disease" then        
+	EPI_CAT = "Inflammatory Bowel Disease" ;
+
 run; 
 
 proc sort data=TP_Components;
@@ -195,7 +201,7 @@ proc sort nodupkey data=TP_Risk_Adj_Parameters out=TP_Risk_Adj_Parameters_forBas
 run;
 
 data TP_Risk_Adj_Parameters_baseline;
-	set ref.TP_Risk_Parameters_MY3;
+	set ref.TP_Risk_Parameters_baseline_MY3;
 
 	if Clinical_Episode_Category = "Disorders Of Liver Except Malignancy, Cirrhosis Or Alcoholic Hepatitis" then
 		Clinical_Episode_Category = "Disorders of liver except malignancy, cirrhosis or alcoholic hepatitis" ;
@@ -204,9 +210,21 @@ data TP_Risk_Adj_Parameters_baseline;
 		Clinical_Episode_Category = "Endovascular Cardiac Valve Replacement" ;
 run;
 
-%MACRO TP(label);
+%MACRO TP(label, type);
 
 %MACRO RunHosp(id1,id2,bpid1,bpid2,prov,reconref);
+
+%if &type = P AND (&bpid1. = 1075 or &bpid1. = 2048 or &bpid1. = 2049 or &bpid1. = 2589 or &bpid1. = 5037) %then %do;
+%let label = &label_quarterly.;
+%end;
+
+%else %if &type = P %then %do;
+%let label = &label_monthly.; 
+%end;
+
+%else %if &type = B %then %do;
+%let label = ybase; 
+%end;
 
 data temp0;
 	format BPID $9. EPI_ID_MILLIMAN $32. ;
@@ -224,11 +242,7 @@ data temp0;
 	DISABLED_HCC54=0;
 	DISABLED_HCC55=0;
 
-	%if &reconref. = 1 %then %do;
-		drop TKA_FLAG;
-	%end;
-
-	drop EPI_DROPPED_FLAG TARGET_PRICE TARGET_PRICE_REAL;
+	drop TKA_FLAG PRIOR_HOSP_W_ANY_IP_FLAG_90 EPI_DROPPED_FLAG TARGET_PRICE TARGET_PRICE_REAL;
 run;
 
 proc sql;
@@ -394,7 +408,10 @@ proc sql;
 			b.EPI_INDEX,
 			b.BPID_CHANGE,
 			b.EPI_DROPPED_FLAG,
-			b.TIME_PERIOD
+			b.TIME_PERIOD,
+			b.Prelim_TP,
+	b.Final_TP,
+	b.TP_Difference
 		from temp3a as a 
 			left join TP_Components as b
 				on a.BPID = b.INITIATOR_BPID
@@ -439,7 +456,10 @@ proc sql;
 			b.EPI_INDEX,
 			b.BPID_CHANGE,
 			b.EPI_DROPPED_FLAG,
-			b.TIME_PERIOD
+			b.TIME_PERIOD,
+			b.Prelim_TP,
+	b.Final_TP,
+	b.TP_Difference
 		from temp3a as a 
 			left join TP_Components_forBase as b
 				on a.BPID = b.INITIATOR_BPID
@@ -1108,7 +1128,7 @@ run;
 proc sql;
 	create table temp2b as
 	select a.*, b.*
-	from temp1b as a left join TP_Risk_Adj_Parameters_forbase as b
+	from temp1b as a left join TP_Risk_Adj_Parameters_baseline as b
 	on a.EPISODE_GROUP_NAME = b.Clinical_Episode_Category
 		and a.anchor_type_upper = b.Clinical_Episode_Type;
 		/*and b.epi_start <= a.ANCHOR_END_DT <= b.epi_end;*/
@@ -1934,8 +1954,8 @@ data t4;
 		NATURAL_DISASTER_MONTHLY='Yes';
 %if &label. ^= ybase %then %do ;
 		if EPI_STD_PMT_FCTR_WIN_1_99>TARGET_PRICE then do;
-			EPI_STD_PMT_FCTR_WIN_1_99=0;
-			TP_Adj=0;
+			EPI_STD_PMT_FCTR_WIN_1_99=.;
+			TP_Adj=.;
 		end;
 %end ;
 	end;
@@ -1968,7 +1988,7 @@ quit;
 	 
 data out.tp_&label._&bpid1._&bpid2._MY3;
 	set t6 (rename=(anchor_ccn=anchor_ccn_orig EPI_STD_PMT_FCTR_WIN_1_99=EPI_STD_PMT_FCTR_WIN_1_99_orig)) ;
-	format HAS_TP PERFORMANCE_PERIOD $3.;
+	format HAS_TP $100. PERFORMANCE_PERIOD $3.;
 
 	PGP_Offset_Amt_Real=0;
 	if PGP_Offset < 1 and PGP_Offset ^= . then PGP_Offset_Amt_Real = TP_Adj / .97 * (1-(PGP_Offset/PGP_Offset_Adj)) * PAYMENT_RATIO;
@@ -2005,17 +2025,20 @@ data out.tp_&label._&bpid1._&bpid2._MY3;
 		PAT_Amt_Real = .;
 	end;
 
-	HAS_TP="Yes";
-	if Adjusted_TP_Real=. then HAS_TP='No';
+		HAS_TP="Yes";
+
+	if Adjusted_TP_Real=. and NATURAL_DISASTER_MONTHLY ne 'Yes' then HAS_TP='No: Baseline Volume';
+	if Adjusted_TP_Real=. and NATURAL_DISASTER_MONTHLY =  'Yes' then HAS_TP='No: Natural Disaster Policy';
 
 	if PERFORMANCE_PERIOD_EPI = 1 then PERFORMANCE_PERIOD = 'Yes';
 	else PERFORMANCE_PERIOD = 'No';
 
 run;
 
+
 data out2.tp_&label._&bpid1._&bpid2._MY3;
 	set out.tp_&label._&bpid1._&bpid2._MY3 (rename=(ORIGDS=ORIGDS_orig LTI=LTI_orig FRACTURE_FLAG=FRACTURE_FLAG_orig ANY_DUAL=ANY_DUAL_orig KNEE_ARTHRO_FLAG=KNEE_ARTHRO_FLAG_orig PRIOR_HOSP_W_NON_PAC_IP_FLAG_90=PRIOR_HOSP_W_NON_PAC_IP_FLAG_ori PRIOR_PAC_FLAG=PRIOR_PAC_FLAG_orig
-											HCC18=HCC18_orig HCC19=HCC19_orig HCC40=HCC40_orig HCC58=HCC58_orig HCC84=HCC84_orig HCC85=HCC85_orig HCC86=HCC86_orig HCC88=HCC88_orig HCC96=HCC96_orig HCC108=HCC108_orig HCC111=HCC111_orig %if &reconref. = 1 %then %do; PRIOR_HOSP_W_ANY_IP_FLAG_90=PRIOR_HOSP_W_ANY_IP_FLAG_90_orig %end;));
+											HCC18=HCC18_orig HCC19=HCC19_orig HCC40=HCC40_orig HCC58=HCC58_orig HCC84=HCC84_orig HCC85=HCC85_orig HCC86=HCC86_orig HCC88=HCC88_orig HCC96=HCC96_orig HCC108=HCC108_orig HCC111=HCC111_orig));
 	format ORIGDS LTI FRACTURE_FLAG ANY_DUAL KNEE_ARTHRO_FLAG TKA_FLAG PRIOR_HOSP_W_NON_PAC_IP_FLAG_90 PRIOR_HOSP_W_ANY_IP_FLAG_90
 			 HCC18 HCC19 HCC40 HCC58 HCC84 HCC85 HCC86 HCC88 HCC96 HCC108 HCC111 $3. HCC_COUNT $6. ;
 
@@ -2024,19 +2047,10 @@ data out2.tp_&label._&bpid1._&bpid2._MY3;
 	if FRACTURE_FLAG_orig=1 then FRACTURE_FLAG='Yes'; else FRACTURE_FLAG='No';
 	if ANY_DUAL_orig=1 then ANY_DUAL='Yes'; else ANY_DUAL='No';
 	if KNEE_ARTHRO_FLAG_orig=1 then KNEE_ARTHRO_FLAG='Yes'; else KNEE_ARTHRO_FLAG='No';
-	*if KNEE_ARTHRO_FLAG_orig=1 then TKA_FLAG='Yes'; *else TKA_FLAG = 'No';
-	TKA_FLAG = KNEE_ARTHRO_FLAG;
+	if KNEE_ARTHRO_FLAG_orig=1 then TKA_FLAG='Yes'; else TKA_FLAG = 'No';
 	if PRIOR_HOSP_W_NON_PAC_IP_FLAG_ori=1 then PRIOR_HOSP_W_NON_PAC_IP_FLAG_90='Yes'; else PRIOR_HOSP_W_NON_PAC_IP_FLAG_90='No';
+	if PRIOR_HOSP_W_NON_PAC_IP_FLAG_ori=1 then PRIOR_HOSP_W_ANY_IP_FLAG_90='Yes'; else PRIOR_HOSP_W_ANY_IP_FLAG_90='No';
 	if PRIOR_PAC_FLAG_orig=1 then PRIOR_PAC_FLAG='Yes'; else PRIOR_PAC_FLAG='No';
-
-	%if &reconref. = 1 %then %do;
-		if PRIOR_HOSP_W_ANY_IP_FLAG_90_orig = 1 then PRIOR_HOSP_W_ANY_IP_FLAG_90 = 'Yes';
-		else PRIOR_HOSP_W_ANY_IP_FLAG_90 = 'No';
-	%end;
-	%else %do;
-		PRIOR_HOSP_W_ANY_IP_FLAG_90 = PRIOR_HOSP_W_NON_PAC_IP_FLAG_90;
-	%end;
-
 	if HCC_CNT=0 then HCC_COUNT='0';
 	else if HCC_CNT<=3 then HCC_COUNT='1 to 3';
 	else if HCC_CNT<=6 then HCC_COUNT='4 to 6';
@@ -2061,8 +2075,12 @@ data out2.tp_&label._&bpid1._&bpid2._MY3;
 		 PAT PAT_Adj PCMA PCMA_Adj PGP_ACH_PCMA PGP_PCMA_Adj CASE_MIX PGP_ACH_Ratio PGP_Offset PGP_Offset_Adj PAYMENT_RATIO 
 		 HAS_TP PERFORMANCE_PERIOD
 		 HCC_COUNT HCC18 HCC19 HCC40 HCC58 HCC84 HCC85 HCC86 HCC88 HCC96 HCC108 HCC111 NATURAL_DISASTER_MONTHLY TKA_FLAG
-		;
+	Prelim_TP
+	Final_TP
+	TP_Difference
+;
 run;
+
 
 
 %mend;
@@ -2084,12 +2102,15 @@ run;
 %runhosp(1931_0001,5479_0001,5479,0002,310051);
 */
 
-%runhosp(2586_0001,2586_0001,2586,0002,360027,0);
-%runhosp(2586_0001,2586_0001,2586,0005,360082,0);
-%runhosp(2586_0001,2586_0001,2586,0006,360077,0);
-%runhosp(2586_0001,2586_0001,2586,0007,360230,0);
-%runhosp(2586_0001,2586_0001,2586,0010,360143,0);
-%runhosp(2586_0001,2586_0001,2586,0013,360180,0);
+*%runhosp(1028_0000,1028_0000,1028,0000,100008,0);
+
+%runhosp(2586_0001,2586_0001,2586,0002,360027,1);
+
+%runhosp(2586_0001,2586_0001,2586,0005,360082,1);
+%runhosp(2586_0001,2586_0001,2586,0006,360077,1);
+%runhosp(2586_0001,2586_0001,2586,0007,360230,1);
+%runhosp(2586_0001,2586_0001,2586,0010,360143,1);
+%runhosp(2586_0001,2586_0001,2586,0013,360180,1);
 %runhosp(2586_0001,2586_0001,2586,0025,360364,0);
 %runhosp(2586_0001,2586_0001,2586,0026,100289,0);
 %runhosp(2586_0001,2586_0001,2586,0028,360087,0);
@@ -2192,11 +2213,12 @@ run;
 %runhosp(2974_0001,2974_0001,2974,0003,251716306,0);
 %runhosp(2974_0001,2974_0001,2974,0007,232730785,0);
 
+
 %MEND TP;
 
-%TP(ybase);
-%TP(y202003);
-*%TP(pp1Initial);
+%TP(ybase, B);
+%TP(&label_monthly., P);
+*%TP(pp1Initial, R);
 /*
 data All_Target_Prices;
 	format BPID EPI_ID_MILLIMAN EPISODE_ID EPISODE_INITIATOR EPISODE_GROUP_NAME ANCHOR_TYPE ANCHOR_CODE ANCHOR_CCN
