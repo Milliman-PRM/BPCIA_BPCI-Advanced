@@ -1,11 +1,19 @@
 %let _sdtm=%sysfunc(datetime());
 
 %let label = y202003; *Recon label;
-%let Prev_label = y202002; *Previous Recon label;
-%let Perf_label = y202003; *Most recent performance label;
+*%let Prev_label = y202002; *Previous Recon label;
+*%let Perf_label = y202003; *Most recent performance label;
 %let Recon_label = pp1Initial; *Most recent performance label;
 %let transmit_date = '13MAR2020'd;*Change for every Update*; 
-
+%let Perf_label_monthly = y202003; *Most recent performance label;
+%let Perf_label_quarterly = y202002;
+/*
+quarterly
+Y if quarterly
+N if not quarterly
+next quarterly is month 202004
+*/
+%let quarterly = N; 
 proc printto;run;
 proc printto log="H:\BPCIA_BPCI Advanced\50 - BPCI Advanced Ongoing Reporting - 2020\Work Papers\SAS\logs\310A - Qlikview Code_&label._&sysdate..log" print=print new;
 
@@ -32,6 +40,14 @@ libname cjrref "H:\Nonclient\Medicare Bundled Payment Reference\Program - CJR\SA
 
 %macro FutureRecon(id,reconref);
 
+%if &id. = 1075_0000 or &id. = 2048_0000 or &id. = 2049_0000 or &id. = 2589_0000 or &id. = 5037_0000 %then %do;
+%let label = &Perf_label_quarterly.;
+%end;
+
+%else %do;
+%let label = &Perf_label_monthly.; 
+%end;
+
 data tp_stack;
 set out.tp_&label._&id.: (Drop=Census_Pre);
 run;
@@ -51,12 +67,12 @@ run;
 proc sql;
 create table future_recon1A_pre as 
 	select a.*
-		  ,b.BPCI_Episode_Idx
+/*		  ,b.BPCI_Episode_Idx*/
 		  ,case when (&transmit_date. - A.POST_DSCH_END_DT) >= 60 then "Yes" else "No" end as COMP_EP_FLAG 
  /* from out.tp_y202001_1148_0000 AS A */   
  from tp_&label._&id.  AS A 
-	left join bpciaref.BPCIA_DRG_Mapping as b
-	on a.ANCHOR_CODE = b.code
+/*	left join bpciaref.BPCIA_DRG_Mapping as b*/
+/*	on a.ANCHOR_CODE = b.code */
 where has_tp = 'Yes' 
 and (&transmit_date. - A.POST_DSCH_END_DT) >= 60
 ;
@@ -67,6 +83,34 @@ data future_recon1A;
 	drop Clinical_Episode clinical_episode_abbr clinical_episode_abbr2 BPID_ClinicalEp;
 run;
 
+/*****
+bpcia_clinical_episode_names
+bpcia_clinical_episode_names_my3
+*******/
+data bpcia_clin_epi_names_v2;
+	set bpciaref.bpcia_clinical_episode_names;
+	drop short_name short_name_2;
+	format MEASURE_YEAR $10.;
+	short_name_V2 = input(short_name, $30.);
+	short_name_2_V2 = input(short_name_2, $11.);
+MEASURE_YEAR = 'MY1 & MY2';
+run;
+
+data bpcia_clin_epi_names_my3_v2;
+	set bpciaref.bpcia_clinical_episode_names_my3;
+	drop short_name short_name_2;
+	format MEASURE_YEAR $10.;
+	short_name_V2 = input(short_name, $30.);
+	short_name_2_V2 = input(short_name_2, $11.);
+MEASURE_YEAR = 'MY3';
+run;
+
+data bpcia_clin_epi_names_combined;
+set bpcia_clin_epi_names_v2 bpcia_clin_epi_names_my3_v2;
+short_name = short_name_v2;
+short_name_2 = short_name_2_v2;
+run;
+
 proc sql;
 create table future_recon1B as
   select a.*
@@ -75,8 +119,9 @@ create table future_recon1B as
 		  ,b.Short_name_2 as clinical_episode_abbr2
 		  ,strip(BPID)||" - "||strip(b.Short_name) as BPID_ClinicalEp
 	from future_recon1A as a
-	left join bpciaref.BPCIA_Clinical_Episode_Names as b
+	left join bpcia_clin_epi_names_combined as b
 	on a.BPCI_Episode_Idx = b.BPCI_Episode_Index
+	AND A.MEASURE_YEAR = B.MEASURE_YEAR
 ;
 quit;
 
@@ -89,8 +134,9 @@ create table future_recon1B_all as
 		  ,b.Short_name_2 as clinical_episode_abbr2
 		  ,strip(BPID)||" - "||strip(b.Short_name) as BPID_ClinicalEp
 	from future_recon1A as a
-	left join bpciaref.BPCIA_Clinical_Episode_Names as b
+	left join bpcia_clin_epi_names_combined as b
 	on a.BPCI_Episode_Idx = b.BPCI_Episode_Index
+	AND A.MEASURE_YEAR = B.MEASURE_YEAR
 ;
 quit;
 
@@ -198,14 +244,14 @@ quit;
 	proc sql;
 	create table clinical_episode_names_1 as 
 	select distinct short_name
-	from bpciaref.BPCIA_Clinical_Episode_Names
+	from bpcia_clin_epi_names_combined
 	;
 	quit;
 
 	proc sql;
 	create table clinical_episode_names_2 as 
 	select distinct 'All Episodes' as short_name
-	from bpciaref.BPCIA_Clinical_Episode_Names
+	from bpcia_clin_epi_names_combined
 	;
 	quit;
 
@@ -408,7 +454,6 @@ quit;
 
 *%FutureRecon(5746_0002,1);
 
-
 %FutureRecon(2586_0002,1);
 %FutureRecon(2586_0005,1);
 %FutureRecon(2586_0006,1);
@@ -537,14 +582,20 @@ quit;
 %FutureRecon(2974_0007,0);
 %FutureRecon(5916_0002,1);
 
-
+%macro future_recon_outfiles;
 data out.TP_Var_&label. out.TP_Var_pmr_&label. out.TP_Var_oth_&label. out.TP_Var_ccf_&label.;
-	set out.TP_Var_&label._: ;
+	set out.TP_Var_&Perf_label_monthly._: 
+				%if &quarterly = N %then %do;
+			out.TP_Var_&Perf_label_quarterly._:
+			%end;
+			 ;
 	output out.TP_Var_&label.;
 	if BPID in (&PMR_EI_lst.) then output out.TP_Var_pmr_&label.;
 	else if BPID in (&NON_PMR_EI_lst.) then output out.TP_Var_oth_&label.;
 	else if BPID in (&CCF_lst.) then output out.TP_Var_ccf_&label.;
 run;
+%mend;
+%future_recon_outfiles;
 
 %sas_2_csv(out.TP_Var_&label.,TP_Variability.csv);
 %sas_2_csv(out.TP_Var_pmr_&label.,TP_Variability_pmr.csv);
