@@ -16,7 +16,7 @@ Generate Hospital Data from:
 options mprint mlogic spool;
 
 ****** USER INPUTS **********************************************************************************;
-%let dte = 202003;
+%let dte = 202004;
 
 %let label = y&dte.; 
 /*
@@ -204,10 +204,11 @@ quit;
 %call(Other,1688-0001,1688_0001,&label.,123);
 %call(Other,1696-0001,1696_0001,&label.,12);
 %call(Other,1710-0001,1710_0001,&label.,123);
-%call(Other,2586-0001,2586_0001,&label.,3);
+%call(Other,2586-0001,2586_0001,&label.,123);
 %call(Other,2941-0001,2941_0001,&label.,3);
 %call(Other,2956-0001,2956_0001,&label.,3);
 %call(Other,2974-0001,2974_0001,&label.,3);
+%call(Other,5916-0001,5916_0001,&label.,12);
 %call(Other,6049-0001,6049_0001,&label.,123);
 %call(Other,6050-0001,6050_0001,&label.,12);
 %call(Other,6051-0001,6051_0001,&label.,123);
@@ -218,8 +219,7 @@ quit;
 %call(Other,6056-0001,6056_0001,&label.,123);
 %call(Other,6057-0001,6057_0001,&label.,123);
 %call(Other,6058-0001,6058_0001,&label.,123);
-*%call(Other,6059-0001,6059_0001,&label.,123);
-%call(Other,6059-0001,6059_0001,&label.,12);
+%call(Other,6059-0001,6059_0001,&label.,123);
 %call(Other,7310-0001,7310_0001,&label.,3);
 %call(Other,7312-0001,7312_0001,&label.,3);
 %call(Premier,1028-0000,1028_0000,&label.,3);
@@ -234,7 +234,7 @@ quit;
 %call(Premier,1368-0000,1368_0000,&label.,123);
 %call(Premier,1461-0000,1461_0000,&label.,3);
 %call(Premier,1634-0000,1634_0000,&label.,123);
-*%call(Premier,1803-0000,1803_0000,&label.,3);
+%call(Premier,1803-0000,1803_0000,&label.,3);
 %call(Premier,1958-0000,1958_0000,&label.,123);
 %call(Premier,2070-0000,2070_0000,&label.,123);
 %call(Premier,2214-0000,2214_0000,&label.,3);
