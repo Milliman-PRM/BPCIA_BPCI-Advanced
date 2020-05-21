@@ -56,12 +56,17 @@ data tp_&label._&id. ;
     set tp_stack (in=a) 
 tp_stack (in=b where=(max(DROPFLAG_PRELIM_CJR_OVERLAP, DROPFLAG_PRELIM_BPCI_A_OVERLAP)=0))
 tp_stack (in=c where=(DROPFLAG_PRELIM_CJR_OVERLAP=0))
-tp_stack (in=d where=(DROPFLAG_PRELIM_BPCI_A_OVERLAP=0));
+tp_stack (in=d where=(DROPFLAG_PRELIM_BPCI_A_OVERLAP=0))
+tp_stack (in=e where=(MULT_ATTR_PROVS=0))
+tp_stack (in=f where=(MULT_ATTR_PROVS=0 and DROPFLAG_PRELIM_CJR_OVERLAP=0 and DROPFLAG_PRELIM_BPCI_A_OVERLAP=0));
     format FUTURE_RECON_OVERLAP_FLAG $30.;
     if a=1 then FUTURE_RECON_OVERLAP_FLAG = 'None';
 	else if b=1 then FUTURE_RECON_OVERLAP_FLAG = 'Both BPCIA and CJR Episodes';
 	else if c=1 then FUTURE_RECON_OVERLAP_FLAG = 'CJR Episodes';
 	else if d=1 then FUTURE_RECON_OVERLAP_FLAG = 'BPCIA Episodes';
+	else if e=1 then FUTURE_RECON_OVERLAP_FLAG = 'Multiple Providers';
+	else if f=1 then FUTURE_RECON_OVERLAP_FLAG = 'All Potential Overlaps';
+
 run;
 
 proc sql;
@@ -446,13 +451,14 @@ data out.TP_Var_&label._&id.;
 run;
 
 *delete work datasets*;
-proc datasets lib=work memtype=data kill;
-run;
-quit;
+*proc datasets lib=work memtype=data kill;
+*run;
+*quit;
 
 %mend FutureRecon;
 
 *%FutureRecon(5746_0002,1);
+*%FutureRecon(1191_0002,1);
 
 %FutureRecon(2586_0002,1);
 %FutureRecon(2586_0005,1);
@@ -599,7 +605,7 @@ run;
 
 %sas_2_csv(out.TP_Var_&label.,TP_Variability.csv);
 %sas_2_csv(out.TP_Var_pmr_&label.,TP_Variability_pmr.csv);
-%sas_2_csv(out.TP_Var_oth_&label.,TP_Variability_oth.csv);
+%sas_2_csv(out.TP_Var_oth_&label.,TP_Variability_mil.csv);
 %sas_2_csv(out.TP_Var_ccf_&label.,TP_Variability_ccf.csv);
 
 
