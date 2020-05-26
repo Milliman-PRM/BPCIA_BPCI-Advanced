@@ -26,24 +26,25 @@ SET UP
 
 ****** USER INPUTS ******************************************************************************************;
 * TURN ON FOR BASELINE / TURN OFF FOR PERFORMANCE *****;
-%let label = ybase; *Update with change in period;
-%let prevlabel = ybase;
-%let reporting_period=201806;*Change for every Update*; 
-%let transmit_date = '13MAR2020'd;*Change for every Update;
-%let vers = B;
-%let mode = main; *main=main interface, base = baseline interface;
+*%let label = ybase; *Update with change in period;
+*%let prevlabel = ybase;
+*%let reporting_period=201806;*Change for every Update*; 
+*%let transmit_date = '13MAR2020'd;*Change for every Update;
+*%let vers = B;
+*%let mode = main; *main=main interface, base = baseline interface;
 
 * TURN ON FOR PERFORMANCE / TURN OFF FOR BASELINE *****;
-*%let label_monthly = y202003; *Update with change in period;
-*%let prevlabel_monthly = y202002; *Update with the prior period;
-*%let reporting_period_monthly =202004;*Change for every Update*; 
-*%let transmit_date_monthly = '13MAR2020'd;*Change for every Update*; 
-*%let label_quarterly = y202002; *Update with change in period;
-*%let prevlabel_quarterly = y202001; *Update with the prior period;
-*%let reporting_period_quarterly =202003;*Change for every Update*; 
-*%let transmit_date_quarterly = '07FEB2020'd;*Change for every Update*; 
-*%let vers = P;
-*%let mode = main; *main=main interface, base = baseline interface;
+%let label_monthly = y202004; *Update with change in period;
+%let prevlabel_monthly = y202003; *Update with the prior period;
+%let reporting_period_monthly =202005;*Change for every Update*; 
+%let transmit_date_monthly = '17APR2020'd;*Change for every Update*; 
+%let label_quarterly = y202002; *Update with change in period;
+%let prevlabel_quarterly = y202001; *Update with the prior period;
+%let reporting_period_quarterly =202003;*Change for every QUARTERLY Update*; 
+%let transmit_date_quarterly = '07FEB2020'd;*Change for every QUARTERLY Update*; 
+%let label = &label_monthly.;
+%let vers = P;
+%let mode = main; *main=main interface, base = baseline interface;
 
 
 proc printto;run;
@@ -58,6 +59,7 @@ proc printto;run;
 
 %let main2 = H:\Nonclient\Medicare Bundled Payment Reference\General\SAS Code;
 %include "&main2.\009 - Formats - Clinical Visits.sas";
+%include "&main2.\000 - NPI Format.sas";
 
 ****** LIBRARY ASSIGNMENTS **********************************************************************************;
 %let dataDir = R:\data\HIPAA\BPCIA_BPCI Advanced;
@@ -1733,6 +1735,17 @@ create table ccn_enc5 as
 		left join ref.hcpcs as e
 		on a.hcpcs_cd=e.proc
 ;
+quit;
+
+/* adds provider info */
+data ccn_enc8_formats ;
+set ccn_enc8 ;
+at_npi_char = strip(put(at_npi,best12.));
+Provider_Organization_Name__Leg = put(at_npi_char, $NPI_ORG.);
+Provider_First_Name = put(at_npi_char, $NPI_FNAME.);
+Provider_Last_Name__Legal_Name_ = put(at_npi_char, $NPI_LNAME.);
+drop at_npi_char;
+run;
 
 proc sql;
 create table ccn_enc10 as
@@ -1786,14 +1799,12 @@ create table ccn_enc10 as
 					when type in ('OP_Cardiovascular') then  'Outpatient - Cardiovascular'
 					when type in ('DME') then  'Outpatient - DME'
 					end as CareType length =50
-			  ,case when type in ('OP_ER') and a.at_npi = . and b.Provider_Last_Name__Legal_Name_ = "" then "Unknown ()"
-			   	  when type in ('OP_ER') and a.at_npi ^= . and b.Provider_Last_Name__Legal_Name_ = ""  and Provider_Organization_Name__Leg ^="" then strip(propcase(Provider_Organization_Name__Leg))||" ("||strip(put(a.at_npi,best12.))||")"
-			      when type in ('OP_ER') and a.at_npi ^= . and b.Provider_Last_Name__Legal_Name_ = ""  then "Unknown"||" ("||strip(put(a.at_npi,best12.))||")" 
-				  when type in ('OP_ER') then strip(propcase(b.Provider_Last_Name__Legal_Name_))||", "||strip(propcase(b.Provider_First_Name))||" ("||strip(put(a.at_npi,best12.))||")" 
+			  ,case when type in ('OP_ER') and a.at_npi = . and Provider_Last_Name__Legal_Name_ = "" then "Unknown ()"
+			   	  when type in ('OP_ER') and a.at_npi ^= . and Provider_Last_Name__Legal_Name_ = ""  and Provider_Organization_Name__Leg ^="" then strip(propcase(Provider_Organization_Name__Leg))||" ("||strip(put(a.at_npi,best12.))||")"
+			      when type in ('OP_ER') and a.at_npi ^= . and Provider_Last_Name__Legal_Name_ = ""  then "Unknown"||" ("||strip(put(a.at_npi,best12.))||")" 
+				  when type in ('OP_ER') then strip(propcase(Provider_Last_Name__Legal_Name_))||", "||strip(propcase(Provider_First_Name))||" ("||strip(put(a.at_npi,best12.))||")" 
 			   end as ER_Physician
-		from ccn_enc8 as a
-		left join ref.npi_data_v2 as b
-			on strip(put(a.at_npi,best12.))=b.npi
+		from ccn_enc8_formats as a
 ;
 quit ; 
 
@@ -1856,14 +1867,15 @@ proc sql ;
 /*      				when type in ('OP_ER') then 'Unknown/other'*/
 /*					end as ERDischargeStatus*/
 			,case when type in ('IP_s','IP_d','IP_Idx') then prim_diag_with_desc end as readmit_prim_diag format=$255.
-			,case when type in ('OP_ER') and strip(put(a.at_npi,best12.)) = "" and b.Provider_Last_Name__Legal_Name_ = "" then "Unknown ()"
-			   	  when type in ('OP_ER') and strip(put(a.at_npi,best12.)) ^= "" and b.Provider_Last_Name__Legal_Name_ = ""  and Provider_Organization_Name__Leg ^="" then strip(propcase(Provider_Organization_Name__Leg))||" ("||strip(put(a.at_npi,best12.))||")"
-			      when type in ('OP_ER') and strip(put(a.at_npi,best12.)) ^= "" and b.Provider_Last_Name__Legal_Name_ = ""  then "Unknown"||" ("||strip(put(a.at_npi,best12.))||")" 
-				  when type in ('OP_ER') then strip(propcase(b.Provider_Last_Name__Legal_Name_))||", "||strip(propcase(b.Provider_First_Name))||" ("||strip(put(a.at_npi,best12.))||")" 
-			   end as ER_Physician
+/*			,case when type in ('OP_ER') and strip(put(a.at_npi,best12.)) = "" and b.Provider_Last_Name__Legal_Name_ = "" then "Unknown ()"*/
+/*			   	  when type in ('OP_ER') and strip(put(a.at_npi,best12.)) ^= "" and b.Provider_Last_Name__Legal_Name_ = ""  and Provider_Organization_Name__Leg ^="" then strip(propcase(Provider_Organization_Name__Leg))||" ("||strip(put(a.at_npi,best12.))||")"*/
+/*			      when type in ('OP_ER') and strip(put(a.at_npi,best12.)) ^= "" and b.Provider_Last_Name__Legal_Name_ = ""  then "Unknown"||" ("||strip(put(a.at_npi,best12.))||")" */
+/*				  when type in ('OP_ER') then strip(propcase(b.Provider_Last_Name__Legal_Name_))||", "||strip(propcase(b.Provider_First_Name))||" ("||strip(put(a.at_npi,best12.))||")" */
+/*			   end as ER_Physician*/
 		from ccn_enc10b as a
-		left join ref.npi_data_v2 as b
-			on strip(put(a.at_npi,best12.))=b.npi;
+/*		left join ref.npi_data_v2 as b*/
+/*			on strip(put(a.at_npi,best12.))=b.npi*/
+;
 
 quit;
 
@@ -2052,8 +2064,19 @@ proc sql ;
 	and a.BPID = b.BPID
 	and a.measure_year=b.measure_year
 	;
+quit;
+
+/* adds provider info */
+data npi_level_b_formats ;
+set npi_level_b ;
+Provider_Organization_Name__Leg = put(PRFNPI_A, $NPI_ORG.);
+Provider_First_Name = put(PRFNPI_A, $NPI_FNAME.);
+Provider_Last_Name__Legal_Name_ = put(PRFNPI_A, $NPI_LNAME.);
+run;
+
 
 /*create various descriptive information information and attach provider names*/
+proc sql;
 	create table npi_level1a as
 		select a.ANCHOR_BEG_DT
 			  ,a.anchor_CCN
@@ -2074,15 +2097,15 @@ proc sql ;
 			  ,a.DGNSCD02,a.DGNSCD03,a.DGNSCD04,a.DGNSCD05,a.DGNSCD06,a.DGNSCD07,a.DGNSCD08,a.DGNSCD09,a.DGNSCD10,a.DGNSCD11,a.DGNSCD12
 			  ,a.hcpcs_cd_A as hcpcs_cd
 			  ,case when a.PRFNPI_A in ("",".") then "Unknown ()"	/*20170522 Update: Change name logic and add last 4 digits of NPI to physician abbreviation*/
-					when a.PRFNPI_A ^= "" and b.Provider_Last_Name__Legal_Name_ ^= "" then strip(propcase(b.Provider_Last_Name__Legal_Name_))||", "||strip(propcase(b.Provider_First_Name))||" ("||strip(a.PRFNPI_A)||")" 
-				    when a.PRFNPI_A ^= "" and b.Provider_Last_Name__Legal_Name_ = ""  and Provider_Organization_Name__Leg ^= "" then strip(propcase(Provider_Organization_Name__Leg))||" ("||strip(a.PRFNPI_A)||")"
-					when a.PRFNPI_A ^= "" and b.Provider_Last_Name__Legal_Name_ = "" and Provider_Organization_Name__Leg = "" then "("||strip(a.PRFNPI_A)||")"
+					when a.PRFNPI_A ^= "" and Provider_Last_Name__Legal_Name_ ^= "" then strip(propcase(Provider_Last_Name__Legal_Name_))||", "||strip(propcase(Provider_First_Name))||" ("||strip(a.PRFNPI_A)||")" 
+				    when a.PRFNPI_A ^= "" and Provider_Last_Name__Legal_Name_ = ""  and Provider_Organization_Name__Leg ^= "" then strip(propcase(Provider_Organization_Name__Leg))||" ("||strip(a.PRFNPI_A)||")"
+					when a.PRFNPI_A ^= "" and Provider_Last_Name__Legal_Name_ = "" and Provider_Organization_Name__Leg = "" then "("||strip(a.PRFNPI_A)||")"
 				    else "Unknown ()" end as Physician
 
   				,case when a.PRFNPI_A in ("",".") then "Unknown ()"	/*20170522 Update: Change name logic and add last 4 digits of NPI to physician abbreviation*/
-					when a.PRFNPI_A ^= "" and b.Provider_Last_Name__Legal_Name_ ^= "" then strip(propcase(b.Provider_Last_Name__Legal_Name_))||", "||strip(upcase(substr(b.Provider_First_Name,1,1)))||". - "||substr(a.PRFNPI_A,7,4)
-				    when a.PRFNPI_A ^= "" and b.Provider_Last_Name__Legal_Name_ = ""  and Provider_Organization_Name__Leg ^= "" then strip(propcase(Provider_Organization_Name__Leg))||". - "||substr(a.PRFNPI_A,7,4)
-					when a.PRFNPI_A ^= "" and b.Provider_Last_Name__Legal_Name_ = "" and Provider_Organization_Name__Leg = "" then "("||strip(a.PRFNPI_A)||")"
+					when a.PRFNPI_A ^= "" and Provider_Last_Name__Legal_Name_ ^= "" then strip(propcase(Provider_Last_Name__Legal_Name_))||", "||strip(upcase(substr(Provider_First_Name,1,1)))||". - "||substr(a.PRFNPI_A,7,4)
+				    when a.PRFNPI_A ^= "" and Provider_Last_Name__Legal_Name_ = ""  and Provider_Organization_Name__Leg ^= "" then strip(propcase(Provider_Organization_Name__Leg))||". - "||substr(a.PRFNPI_A,7,4)
+					when a.PRFNPI_A ^= "" and Provider_Last_Name__Legal_Name_ = "" and Provider_Organization_Name__Leg = "" then "("||strip(a.PRFNPI_A)||")"
 				    else "Unknown ()" end as physician_abbr
 			  ,a.PRFNPI_A as provider_npi
 			  ,a.timeframe
@@ -2105,9 +2128,7 @@ proc sql ;
 					else 0
 					end as prov_timeframe_all	
 			  ,a.edac_flag
-	from npi_level_b as a
-	left join ref.npi_data_v2 as b
-	on a.PRFNPI_A=b.npi
+	from npi_level_b_formats as a
 	;
 quit;
 
@@ -4886,156 +4907,6 @@ quit;
 
 *MACRO RUNS;
 
-*%Dashboard(5264,0000,0);
-*%Dashboard(5282,0000,0);
-*%Dashboard(5746,0002,1);
-/* 
-dev runs 
-*/
-/*
-%Dashboard(1148,0000,0);
-%Dashboard(1167,0000,0);
-%Dashboard(1343,0000,0);
-%Dashboard(1368,0000,0);
-%Dashboard(2379,0000,0);
-%Dashboard(2587,0000,0);
-%Dashboard(2607,0000,0);
-%Dashboard(5479,0002,0);
-*/
-/*
-%Dashboard(2586,0002,1);
-%Dashboard(2586,0005,1);
-%Dashboard(2586,0006,1);
-%Dashboard(2586,0007,1);
-%Dashboard(2586,0010,1);
-%Dashboard(2586,0013,1);
-%Dashboard(2586,0025,1);
-%Dashboard(2586,0026,1);
-%Dashboard(2586,0028,1);
-%Dashboard(2586,0029,1);
-%Dashboard(2586,0030,1);
-%Dashboard(2586,0031,1);
-%Dashboard(2586,0032,1);
-%Dashboard(2586,0033,1);
-%Dashboard(2586,0034,1);
-%Dashboard(2586,0035,1);
-*%Dashboard(2586,0036,1);
-*%Dashboard(2586,0038,1);
-%Dashboard(2586,0039,1);
-*%Dashboard(2586,0040,1);
-*%Dashboard(2586,0041,1);
-*%Dashboard(2586,0042,1);
-*%Dashboard(2586,0043,1);
-%Dashboard(2586,0044,1);
-%Dashboard(2586,0045,1);
-%Dashboard(2586,0046,1);
-%Dashboard(1374,0004,0);
-%Dashboard(1374,0008,0);
-%Dashboard(1374,0009,0);
-%Dashboard(1374,0012,1);
-%Dashboard(1374,0013,1);
-%Dashboard(1374,0014,1);
-%Dashboard(1374,0015,1);
-%Dashboard(1374,0017,1);
-%Dashboard(1374,0018,1);
-%Dashboard(1191,0002,0);
-%Dashboard(7310,0002,1);
-%Dashboard(7310,0003,1);
-%Dashboard(7310,0004,1);
-%Dashboard(7310,0005,1);
-%Dashboard(7310,0006,1);
-%Dashboard(7310,0007,1);
-%Dashboard(7312,0002,1);
-%Dashboard(6054,0002,0);
-%Dashboard(6055,0002,0);
-%Dashboard(6056,0002,0);
-%Dashboard(6057,0002,0);
-%Dashboard(6058,0002,0);
-%Dashboard(6059,0002,0);
-%Dashboard(1209,0000,0);
-%Dashboard(1028,0000,1);
-%Dashboard(1075,0000,0);
-%Dashboard(1102,0000,0);
-%Dashboard(1103,0000,0);
-%Dashboard(1104,0000,0);
-%Dashboard(1105,0000,0);
-%Dashboard(1106,0000,0);
-%Dashboard(1148,0000,0);
-%Dashboard(1167,0000,0);
-%Dashboard(1343,0000,0);
-%Dashboard(1368,0000,0);
-%Dashboard(1461,0000,1);
-%Dashboard(1634,0000,0);
-*%Dashboard(1803,0000,1);
-%Dashboard(1958,0000,0);
-%Dashboard(2048,0000,0);
-%Dashboard(2049,0000,0);
-%Dashboard(2070,0000,0);
-%Dashboard(2214,0000,1);
-%Dashboard(2215,0000,1);
-%Dashboard(2216,0000,1);
-%Dashboard(2302,0000,0);
-%Dashboard(2317,0000,1);
-%Dashboard(2374,0000,0);
-%Dashboard(2376,0000,0);
-%Dashboard(2378,0000,0);
-%Dashboard(2379,0000,0);
-%Dashboard(2451,0000,1);
-%Dashboard(2452,0000,1);
-%Dashboard(2461,0000,1);
-%Dashboard(2468,0000,1);
-%Dashboard(2587,0000,0);
-%Dashboard(2589,0000,0);
-%Dashboard(2594,0000,0);
-%Dashboard(2607,0000,0);
-%Dashboard(5037,0000,0);
-%Dashboard(5038,0000,0);
-%Dashboard(5043,0000,0);
-%Dashboard(5050,0000,0);
-%Dashboard(5154,0000,0);
-%Dashboard(5215,0002,0);
-%Dashboard(5215,0003,0);
-%Dashboard(5229,0000,0);
-%Dashboard(5263,0000,0);
-%Dashboard(5264,0000,0);
-%Dashboard(5282,0000,0);
-%Dashboard(5392,0004,0);
-%Dashboard(5394,0000,0);
-%Dashboard(5395,0000,0);
-%Dashboard(5397,0002,0);
-%Dashboard(5397,0003,0);
-%Dashboard(5397,0004,0);
-%Dashboard(5397,0005,0);
-%Dashboard(5397,0006,0);
-%Dashboard(5397,0007,0);
-%Dashboard(5397,0008,0);
-%Dashboard(5397,0009,0);
-%Dashboard(5397,0010,0);
-%Dashboard(5478,0002,0);
-%Dashboard(5479,0002,0);
-%Dashboard(5480,0002,0);
-%Dashboard(5481,0002,0);
-%Dashboard(5746,0002,0);
-%Dashboard(1686,0002,0);
-%Dashboard(1688,0002,0);
-%Dashboard(1696,0002,0);
-%Dashboard(1710,0002,0);
-%Dashboard(2941,0002,1);
-%Dashboard(2956,0002,1);
-%Dashboard(6049,0002,0);
-%Dashboard(6050,0002,0);
-%Dashboard(6051,0002,0);
-%Dashboard(6052,0002,0);
-%Dashboard(6053,0002,0);
-%Dashboard(2974,0003,1);
-%Dashboard(2974,0007,1);
-%Dashboard(5916,0002,0);
-*/
-
-***********************************;
-*****Baseline*****;
-*%Dashboard(1028,0000,1);
-
 %Dashboard(2586,0002,1);
 %Dashboard(2586,0005,1);
 %Dashboard(2586,0006,1);
@@ -5082,6 +4953,7 @@ dev runs
 %Dashboard(6054,0002,1);
 %Dashboard(6055,0002,1);
 %Dashboard(6056,0002,1);
+
 %Dashboard(6057,0002,1);
 %Dashboard(6058,0002,1);
 %Dashboard(6059,0002,1);
@@ -5099,7 +4971,7 @@ dev runs
 %Dashboard(1368,0000,1);
 %Dashboard(1461,0000,1);
 %Dashboard(1634,0000,1);
-*%Dashboard(1803,0000,1);
+%Dashboard(1803,0000,1);
 %Dashboard(1958,0000,1);
 %Dashboard(2048,0000,1);
 %Dashboard(2049,0000,1);
@@ -5122,6 +4994,7 @@ dev runs
 %Dashboard(2594,0000,1);
 %Dashboard(2607,0000,1);
 %Dashboard(5037,0000,1);
+
 %Dashboard(5038,0000,1);
 %Dashboard(5043,0000,1);
 %Dashboard(5050,0000,1);
