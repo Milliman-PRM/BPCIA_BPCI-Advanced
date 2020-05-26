@@ -18,7 +18,7 @@ Setup
 
 %let label = pp1Initial; *Recon label;
 %let Prev_label = pp1Initial; *Previous Recon label;
-%let Perf_label_monthly = y202003; *Most recent performance label;
+%let Perf_label_monthly = y202004; *Most recent performance label;
 %let Perf_label_quarterly = y202002;
 %let Perf_label = &Perf_label_monthly.;
 
@@ -36,6 +36,9 @@ run;
 %include "&main.\000 - BPCIA_Interface_BPIDs.sas";
 %include "H:\_HealthLibrary\SAS\000 - General SAS Macros.sas";
 %include "H:\_HealthLibrary\SAS\000 - General SAS Macros_64bit.sas";
+
+%let main2 = H:\Nonclient\Medicare Bundled Payment Reference\General\SAS Code;
+%include "&main2.\000 - NPI Format.sas";
 
 ***** LIBRARY ASSIGNMENTS **********************************************************************************;
 %let dataDir = R:\data\HIPAA\BPCIA_BPCI Advanced;
@@ -644,6 +647,21 @@ create table recon_pre15 as
 ;
 quit;
 
+/* adds provider info */
+data recon_pre15_formats ;
+set recon_pre15 ;
+op_npi_char = strip(put(anchor_op_NPI,best12.));
+Provider_Org_Name_op = put(op_npi_char, $NPI_ORG.);
+Provider_First_Name_op = put(op_npi_char, $NPI_FNAME.);
+Provider_Last_Name_op = put(op_npi_char, $NPI_LNAME.);
+at_npi_char = strip(put(anchor_at_NPI,best12.));
+Provider_Org_Name_at = put(at_npi_char, $NPI_ORG.);
+Provider_First_Name_at = put(at_npi_char, $NPI_FNAME.);
+Provider_Last_Name_at = put(at_npi_char, $NPI_LNAME.);
+drop op_npi_char at_npi_char ;
+run;
+
+
 proc sql;
 create table recon_pre16a as
   select a.*
@@ -651,17 +669,13 @@ create table recon_pre16a as
 		  		when a.anchor_ccn  ^= "" and a.Anchor_Facility_name = "" then "Unknown ("||strip(a.anchor_ccn )||")"
 		  		else strip(a.Anchor_facility_name)||" ("||strip(a.anchor_ccn )||")"
 				end as Anchor_Fac_Code_Name
-  		 , b.Provider_Organization_Name__Leg as at_npi_org_nm 
-         , b.provider_first_name as at_npi_first_nm
-		 , b.Provider_Last_Name__Legal_Name_ as at_npi_last_nm
-		 , c.Provider_Organization_Name__Leg as op_npi_org_nm 
-		 , c.provider_first_name as op_npi_first_nm
-		 , c.Provider_Last_Name__Legal_Name_ as op_npi_last_nm
-	from recon_pre15 as a
-		left join ref.npi_data_v2 as b
-			on a.ANCHOR_AT_NPI = input(b.npi,best12.)
-		left join ref.npi_data_v2 as c
-			on a.ANCHOR_OP_NPI = input(c.npi,best12.)
+  		 , Provider_Org_Name_at as at_npi_org_nm 
+         , provider_first_name_at as at_npi_first_nm
+		 , Provider_Last_Name_at as at_npi_last_nm
+		 , Provider_Org_Name_op as op_npi_org_nm 
+		 , provider_first_name_op as op_npi_first_nm
+		 , Provider_Last_Name_op as op_npi_last_nm
+	from recon_pre15_formats as a
 ;
 quit;
 
@@ -1026,12 +1040,12 @@ run;
 
 %sas_2_csv(out.All_Recon_&label.,Recon.csv);
 %sas_2_csv(out.All_Epi_Join_&label.,Epi_Detail_Recon_Join.csv);
-%sas_2_csv(out.All_Recon_pmr_&label.,Recon_pmr.csv);
-%sas_2_csv(out.All_Epi_Join_pmr_&label.,Epi_Detail_Recon_Join_pmr.csv);
-%sas_2_csv(out.All_Recon_oth_&label.,Recon_oth.csv);
-%sas_2_csv(out.All_Epi_Join_oth_&label.,Epi_Detail_Recon_Join_oth.csv);
-%sas_2_csv(out.All_Recon_ccf_&label.,Recon_ccf.csv);
-%sas_2_csv(out.All_Epi_Join_ccf_&label.,Epi_Detail_Recon_Join_ccf.csv);
+%sas_2_csv(out.All_Recon_pmr_&label.,Recon_PMR.csv);
+%sas_2_csv(out.All_Epi_Join_pmr_&label.,Epi_Detail_Recon_Join_PMR.csv);
+%sas_2_csv(out.All_Recon_oth_&label.,Recon_MIL.csv);
+%sas_2_csv(out.All_Epi_Join_oth_&label.,Epi_Detail_Recon_Join_MIL.csv);
+%sas_2_csv(out.All_Recon_ccf_&label.,Recon_CCF.csv);
+%sas_2_csv(out.All_Epi_Join_ccf_&label.,Epi_Detail_Recon_Join_CCF.csv);
 
 
 ******************* Create Demo Output *************************;
