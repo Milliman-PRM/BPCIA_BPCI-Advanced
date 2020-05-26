@@ -62,12 +62,16 @@ Step 1 - Map updated BPIDs onto archived versions of the TP_Component and Peer G
 		else if INITIATOR_BPID_old='5128-0002' then do; BPID_change=1; INITIATOR_BPID='1191-0002'; CONVENER_ID='1191_0001'; EPI_INDEX=tranwrd(EPI_INDEX_OLD,'5128-0002','1191-0002'); end;
 		else do; BPID_change=0; INITIATOR_BPID=INITIATOR_BPID_old; CONVENER_ID=CONVENER_ID_old; EPI_INDEX=EPI_INDEX_OLD; end;
 
+			format ccn_join $6.;
+		ccn_join = ASSOC_ACH_CCN;
+		if ccn_join = '' then ccn_join = CCN_TIN;
+		if length(compress(ccn_join)) = 5 then ccn_join = '0' || ccn_join;
 
 	run;
 		
 	proc sql;
 		create table arch_TP_Components_&client. as
-		select a.*
+		select a.*, 2 AS TP_Priority
 		from arch_pre_&client._tp_comp as a
 		inner join ref.bpcia_episode_initiator_info as b
 		on a.initiator_bpid = b.BPCI_Advanced_ID_number_2
@@ -439,8 +443,8 @@ Step 2 - Stack current and archived versions of of the TP_Component and Peer Gro
 
 %mend RECON;
 
-%RECON(Premier, 20190101, '01/01/2019 - 06/30/2019', mdy(1,1,2019), mdy(6,30,2019),CY19_FY19_TP_Components);
-%RECON(Other, 20190101, '01/01/2019 - 06/30/2019', mdy(1,1,2019), mdy(6,30,2019),CY19_FY19_TP_Components);
+%RECON(Premier, 20181231, '01/01/2019 - 09/30/2019', mdy(1,1,2019), mdy(9,30,2019),CY19_FY19_TP_Components);
+%RECON(Other, 20181231, '01/01/2019 - 09/30/2019', mdy(1,1,2019), mdy(9,30,2019),CY19_FY19_TP_Components);
 %RECON(Premier, 20181001, '10/01/2018 - 12/31/2018', mdy(10,1,2018), mdy(12,31,2018),CY18_FY19_TP_Components);
 %RECON(Other, 20181001, '10/01/2018 - 12/31/2018', mdy(10,1,2018), mdy(12,31,2018),CY18_FY19_TP_Components);
 
@@ -456,8 +460,8 @@ run;
 		* stack premier over other to capture switchers;
 		set tp_com_Premier_prelm:	(in=a)		/* new premier */
 			arch_TP_Components_Premier		(in=b)		/* archive premier */
-			tp_com_Other_prelm:		(in=a)		/* new other */
-			arch_TP_Components_Other		(in=b)		/* archive other */
+			tp_com_other_prelm:		(in=a)		/* new other */
+			arch_TP_Components_other		(in=b)		/* archive other */
 		;
 
 		format epi_dropped_flag 1. ;
@@ -486,7 +490,8 @@ run;
 
 	PROC SQL;
 	create table TP_Components_Combine_V3 AS 
-	SELECT A.*, B.TARGET_PRICE_REAL AS PRELIM, C.TARGET_PRICE_REAL AS FINAL_TP, C.TARGET_PRICE_REAL-B.TARGET_PRICE_REAL AS TP_DIFFERENCE
+	SELECT A.*, B.TARGET_PRICE_REAL AS PRELIM_TP
+ , C.TARGET_PRICE_REAL AS FINAL_TP, C.TARGET_PRICE_REAL-B.TARGET_PRICE_REAL AS TP_DIFFERENCE 
 	FROM TP_Components_Combine_V2 A
 		LEFT JOIN TP_Components_Combine B
 			ON A.INITIATOR_BPID = B.INITIATOR_BPID
@@ -502,6 +507,7 @@ run;
 			AND A.ccn_join = C.ccn_join
 			AND A.epi_start = C.epi_start
 			AND C.TP_PRIORITY = 1
+		
 			;
 			quit;
 
@@ -520,8 +526,8 @@ run;
 		* stack premier over other to capture switchers;
 		set pg_comb_Premier_pre:		(in=a)		/* new premier */
 			arch_Peer_Group_Premier		(in=b)		/* archive premier */
-			pg_comb_Other_pre:			(in=a)		/* new other */
-			arch_Peer_Group_Other		(in=b)		/* archive other */
+			pg_comb_other_pre:			(in=a)		/* new other */
+			arch_Peer_Group_other		(in=b)		/* archive other */
 		;
 
 		format epi_dropped_flag 1. ;
@@ -565,10 +571,10 @@ Step 3 - out tables, limit TP_Components to BPIDs in the Data Tracker, and expor
 			title "&table."; select count(distinct initiator_bpid) as distinct_bpid from out.&table._all; 
 		quit;
 		/* partition to decrease interface size */
-		data out.&table._pmr out.&table._oth out.&table._ccf out.&table._dev;
+		data out.&table._pmr out.&table._MIL out.&table._ccf out.&table._dev;
 			set out.&table._all;
 			if initiator_bpid in (&PMR_EI_lst.) then output out.&table._pmr;
-			else if initiator_bpid in (&NON_PMR_EI_lst.) then output out.&table._oth;
+			else if initiator_bpid in (&NON_PMR_EI_lst.) then output out.&table._MIL;
 			else if initiator_bpid in (&CCF_lst.) then output out.&table._ccf;
 			
 			if initiator_bpid in (&DEV_EI_lst.) then output out.&table._dev;
@@ -576,25 +582,25 @@ Step 3 - out tables, limit TP_Components to BPIDs in the Data Tracker, and expor
 		/* Export partitions */
 		proc export
 			data=out.&table._pmr
-			outfile="R:\data\HIPAA\BPCIA_BPCI Advanced\08 - Target Price Data\&table._pmr.csv"
+			outfile="R:\data\HIPAA\BPCIA_BPCI Advanced\08 - Target Price Data\&table._PMR.csv"
 			dbms=CSV 
 			replace;
 		run;
 		proc export
-			data=out.&table._oth
-			outfile="R:\data\HIPAA\BPCIA_BPCI Advanced\08 - Target Price Data\&table._oth.csv"
+			data=out.&table._MIL
+			outfile="R:\data\HIPAA\BPCIA_BPCI Advanced\08 - Target Price Data\&table._MIL.csv"
 			dbms=CSV 
 			replace;
 		run;
 		proc export
 			data=out.&table._dev
-			outfile="R:\data\HIPAA\BPCIA_BPCI Advanced\08 - Target Price Data\&table._dev.csv"
+			outfile="R:\data\HIPAA\BPCIA_BPCI Advanced\08 - Target Price Data\&table._DEV.csv"
 			dbms=CSV 
 			replace;
 		run;
 		proc export
 			data=out.&table._ccf
-			outfile="R:\data\HIPAA\BPCIA_BPCI Advanced\08 - Target Price Data\&table._ccf.csv"
+			outfile="R:\data\HIPAA\BPCIA_BPCI Advanced\08 - Target Price Data\&table._CCF.csv"
 			dbms=CSV 
 			replace;
 		run;
