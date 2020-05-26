@@ -18,7 +18,7 @@ options minoperator mlogic;
 
 ****** USER INPUTS ******************************************************************************************;
 %let mode = main; *main = main interface, base = baseline interface;
-%let label_monthly = y202003; 
+%let label_monthly = y202004; 
 %let label_quarterly = y202002; 
 %let label = &label_monthly.; 
 
@@ -209,7 +209,7 @@ run;
 %Selection(1368,0000,0);
 %Selection(1461,0000,1);
 %Selection(1634,0000,0);
-*%Selection(1803,0000,1);
+%Selection(1803,0000,1);
 %Selection(1958,0000,0);
 %Selection(2048,0000,0);
 %Selection(2049,0000,0);
@@ -305,7 +305,7 @@ run;
 	            dbms=csv replace; 
 	run;
 	proc export data= All_Target_Prices_NonPremier
-	            outfile= "R:\data\HIPAA\BPCIA_BPCI Advanced\08 - Target Price Data\Target Prices_oth.csv"
+	            outfile= "R:\data\HIPAA\BPCIA_BPCI Advanced\08 - Target Price Data\Target Prices_MIL.csv"
 	            dbms=csv replace; 
 	run;
 	proc export data= All_Target_Prices_Dev
@@ -334,7 +334,7 @@ run;
 	            dbms=csv replace; 
 	run;
 	proc export data= All_Target_Prices_NonPremier
-	            outfile= "R:\data\HIPAA\BPCIA_BPCI Advanced\08 - Target Price Data\Baseline Target Prices_oth.csv"
+	            outfile= "R:\data\HIPAA\BPCIA_BPCI Advanced\08 - Target Price Data\Baseline Target Prices_MIL.csv"
 	            dbms=csv replace; 
 	run;
 	proc export data= All_Target_Prices_Dev
@@ -362,7 +362,7 @@ run;
 	            dbms=csv replace; 
 	run;
 	proc export data= All_Target_Prices_NonPremier
-	            outfile= "R:\data\HIPAA\BPCIA_BPCI Advanced\08 - Target Price Data\Recon Target Prices_oth.csv"
+	            outfile= "R:\data\HIPAA\BPCIA_BPCI Advanced\08 - Target Price Data\Recon Target Prices_MIL.csv"
 	            dbms=csv replace; 
 	run;
 	proc export data= All_Target_Prices_Dev
