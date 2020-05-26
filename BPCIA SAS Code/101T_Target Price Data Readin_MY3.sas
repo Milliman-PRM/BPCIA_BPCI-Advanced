@@ -28,7 +28,7 @@ Step 1 - Map updated BPIDs onto archived versions of the TP_Component and Peer G
 		set arch.TP_Components(rename=(EPI_INDEX=EPI_INDEX_OLD CONVENER_ID=CONVENER_ID_OLD INITIATOR_BPID=INITIATOR_BPID_OLD));
 		length EPI_INDEX $132. CONVENER_ID INITIATOR_BPID $9. time_period $32.;
 		format BPID_change 1. time_period $32. epi_start epi_end MMDDYY10.;
-		time_period='Baseline MY3';
+		time_period='Baseline - MY3';
 		rel_dt=0;
 		epi_start=mdy(10,1,2014);
 		epi_end=mdy(9,30,2018);
@@ -44,7 +44,7 @@ Step 1 - Map updated BPIDs onto archived versions of the TP_Component and Peer G
 		
 	proc sql;
 		create table arch_TP_Components_&client. as
-		select a.*
+		select a.* , 2 AS TP_Priority
 		from arch_pre_&client._tp_comp as a
 		inner join ref.bpcia_episode_initiator_info as b
 		on a.initiator_bpid = b.BPCI_Advanced_ID_number_2
@@ -53,9 +53,11 @@ Step 1 - Map updated BPIDs onto archived versions of the TP_Component and Peer G
 		;
 	quit;
 
+	/*
 	data arch_TP_Components_&client.;
 		set arch_pre_&client._tp_comp;
 	run;
+	*/
 	/* Peer Group */
 /*	data arch_Peer_Group_&client.;*/
 /*		set arch.Peer_Group(rename=(CONVENER_ID=CONVENER_ID_OLD INITIATOR_BPID=INITIATOR_BPID_OLD));*/
@@ -157,7 +159,7 @@ Step 2 - Stack current and archived versions of of the TP_Component and Peer Gro
 	* limit the new TP data;
 	proc sql;
 		create table tp_com_&client._pre_lim_&rel_date. as
-		select a.*
+		select a.*, 2 as TP_PRIORITY
 		from tpcomp_comb_&client._pre as a
 		inner join ref.bpcia_episode_initiator_info as b
 		on a.initiator_bpid = b.BPCI_Advanced_ID_number_2
@@ -166,10 +168,11 @@ Step 2 - Stack current and archived versions of of the TP_Component and Peer Gro
 		;
 	quit;
 
+	/*
 	data tp_com_&client._pre_lim_&rel_date.;
 		set tpcomp_comb_&client._pre;
 	run;
-
+*/
 	proc sql;
 		create table active_epi_&client._&rel_date. as
 		select distinct time_period, CONVENER_ID, INITIATOR_BPID, EPI_TYPE, EPI_CAT_adj, EPI_CAT_Short 
@@ -250,12 +253,32 @@ Step 2 - Stack current and archived versions of of the TP_Component and Peer Gro
 		if a then do;
 			epi_dropped_flag=0;
 		end;
-
-		proc sort; by INITIATOR_BPID EPI_CAT EPI_TYPE ccn_join descending rel_dt;
 	run;
 
+	proc sort data=TP_Components_Combine;
+	by INITIATOR_BPID EPI_CAT EPI_TYPE ccn_join epi_start epi_end TP_Priority;
+run;
+
+proc sort nodupkey data=TP_Components_Combine out=TP_Components_Combine_V2;
+	by INITIATOR_BPID EPI_CAT EPI_TYPE ccn_join epi_start epi_end;
+run;
+
+	PROC SQL;
+	create table TP_Components_Combine_V3 AS 
+	SELECT A.*, B.TARGET_PRICE_REAL AS PRELIM_TP, . AS FINAL_TP, . AS TP_DIFFERENCE
+	FROM TP_Components_Combine_V2 A
+		LEFT JOIN TP_Components_Combine B
+			ON A.INITIATOR_BPID = B.INITIATOR_BPID
+			AND A.EPI_CAT = B.EPI_CAT
+			AND A.EPI_TYPE = B.EPI_TYPE
+			AND A.ccn_join = B.ccn_join
+			AND A.epi_start = B.epi_start
+			AND B.TP_PRIORITY = 2
+			;
+			quit;
+
 	data TP_Components;
-		set TP_Components_Combine;
+		set TP_Components_Combine_V3;
 	run;
 
 	proc sql;
@@ -332,12 +355,12 @@ Step 3 - out tables, limit TP_Components to BPIDs in the Data Tracker, and expor
 			
 		run;
 		*/
-		data out.&table._MY3_Premier out.&table._MY3_NonPremier out.&table._MY3_CCF out.&table._MY3_Dev;
+		data out.&table._MY3_PMR out.&table._MY3_MIL out.&table._MY3_CCF out.&table._MY3_Dev;
 			set out.&table._MY3_all;
 
 			if initiator_bpid in (&DEV_EI_lst.) then output out.&table._MY3_Dev;
-			if initiator_bpid in (&PMR_EI_lst.) then output out.&table._MY3_Premier;
-			else if initiator_bpid in (&NON_PMR_EI_lst.) then output out.&table._MY3_NonPremier;
+			if initiator_bpid in (&PMR_EI_lst.) then output out.&table._MY3_PMR;
+			else if initiator_bpid in (&NON_PMR_EI_lst.) then output out.&table._MY3_MIL;
 			else if initiator_bpid in (&CCF_lst.) then output out.&table._MY3_CCF;
 
 		run;
@@ -366,8 +389,8 @@ Step 3 - out tables, limit TP_Components to BPIDs in the Data Tracker, and expor
 		%EXPRT(uspi);
 		%EXPRT(wsp);
 		*/
-		%EXPRT(Premier);
-		%EXPRT(NonPremier);
+		%EXPRT(PMR);
+		%EXPRT(MIL);
 		%EXPRT(CCF);
 		%EXPRT(Dev);
 	%end;
@@ -444,7 +467,7 @@ run;
 
 
 data Demo.TP_Components_demo;
-	set out.TP_Components_pmr (rename=(CCN_TIN=CCN_TIN_o ASSOC_ACH_CCN=ASSOC_ACH_CCN_o 
+	set out.TP_Components_pmr_comb (rename=(CCN_TIN=CCN_TIN_o ASSOC_ACH_CCN=ASSOC_ACH_CCN_o 
 									   INITIATOR_BPID=INITIATOR_BPID_o CONVENER_ID=CONVENER_ID_o
 									   EPI_INDEX=EPI_INDEX_o EPI_INDEX_2=EPI_INDEX_2_o));
 	if INITIATOR_BPID_o in ("&bpid1.","&bpid2.","&bpid3.","&bpid4.","&bpid5.","&bpid6.","&bpid7.","&bpid8.");
@@ -486,7 +509,7 @@ run;
 
 %mend create_demo;
 
-*%create_demo(1148-0000,1167-0000,1343-0000,1368-0000,2379-0000,2587-0000,2607-0000,5479-0002);  
+%create_demo(1148-0000,1167-0000,1343-0000,1368-0000,2379-0000,2587-0000,2607-0000,5479-0002);  
 
 
 *********************************************;
@@ -507,25 +530,25 @@ run;
 		/* Export partitions */
 		proc export
 			data=out.TP_Components_pmr_comb
-			outfile="R:\data\HIPAA\BPCIA_BPCI Advanced\08 - Target Price Data\TP_Components_pmr_comb.csv"
+			outfile="R:\data\HIPAA\BPCIA_BPCI Advanced\08 - Target Price Data\TP_Components_PMR_comb.csv"
 			dbms=CSV 
 			replace;
 		run;
 		proc export
 			data=out.TP_Components_oth_comb
-			outfile="R:\data\HIPAA\BPCIA_BPCI Advanced\08 - Target Price Data\TP_Components_oth_comb.csv"
+			outfile="R:\data\HIPAA\BPCIA_BPCI Advanced\08 - Target Price Data\TP_Components_MIL_comb.csv"
 			dbms=CSV 
 			replace;
 		run;
 		proc export
 			data=out.TP_Components_dev_comb
-			outfile="R:\data\HIPAA\BPCIA_BPCI Advanced\08 - Target Price Data\TP_Components_dev_comb.csv"
+			outfile="R:\data\HIPAA\BPCIA_BPCI Advanced\08 - Target Price Data\TP_Components_DEV_comb.csv"
 			dbms=CSV 
 			replace;
 		run;
 		proc export
 			data=out.TP_Components_ccf_comb
-			outfile="R:\data\HIPAA\BPCIA_BPCI Advanced\08 - Target Price Data\TP_Components_ccf_comb.csv"
+			outfile="R:\data\HIPAA\BPCIA_BPCI Advanced\08 - Target Price Data\TP_Components_CCF_comb.csv"
 			dbms=CSV 
 			replace;
 		run;
