@@ -1,11 +1,11 @@
 %let _sdtm=%sysfunc(datetime());
 
-%let label = y202003; *Recon label;
+%let label = y202004; *Recon label;
 *%let Prev_label = y202002; *Previous Recon label;
 *%let Perf_label = y202003; *Most recent performance label;
 %let Recon_label = pp1Initial; *Most recent performance label;
-%let transmit_date = '13MAR2020'd;*Change for every Update*; 
-%let Perf_label_monthly = y202003; *Most recent performance label;
+%let transmit_date = '17APR2020'd;*Change for every Update*; 
+%let Perf_label_monthly = y202004; *Most recent performance label;
 %let Perf_label_quarterly = y202002;
 /*
 quarterly
@@ -56,16 +56,16 @@ data tp_&label._&id. ;
     set tp_stack (in=a) 
 tp_stack (in=b where=(max(DROPFLAG_PRELIM_CJR_OVERLAP, DROPFLAG_PRELIM_BPCI_A_OVERLAP)=0))
 tp_stack (in=c where=(DROPFLAG_PRELIM_CJR_OVERLAP=0))
-tp_stack (in=d where=(DROPFLAG_PRELIM_BPCI_A_OVERLAP=0))
-tp_stack (in=e where=(MULT_ATTR_PROVS=0))
-tp_stack (in=f where=(MULT_ATTR_PROVS=0 and DROPFLAG_PRELIM_CJR_OVERLAP=0 and DROPFLAG_PRELIM_BPCI_A_OVERLAP=0));
+tp_stack (in=d where=(DROPFLAG_PRELIM_BPCI_A_OVERLAP=0));
+/*tp_stack (in=e where=(MULT_ATTR_PROVS=0))*/
+/*tp_stack (in=f where=(MULT_ATTR_PROVS=0 and DROPFLAG_PRELIM_CJR_OVERLAP=0 and DROPFLAG_PRELIM_BPCI_A_OVERLAP=0));*/
     format FUTURE_RECON_OVERLAP_FLAG $30.;
     if a=1 then FUTURE_RECON_OVERLAP_FLAG = 'None';
 	else if b=1 then FUTURE_RECON_OVERLAP_FLAG = 'Both BPCIA and CJR Episodes';
 	else if c=1 then FUTURE_RECON_OVERLAP_FLAG = 'CJR Episodes';
 	else if d=1 then FUTURE_RECON_OVERLAP_FLAG = 'BPCIA Episodes';
-	else if e=1 then FUTURE_RECON_OVERLAP_FLAG = 'Multiple Providers';
-	else if f=1 then FUTURE_RECON_OVERLAP_FLAG = 'All Potential Overlaps';
+/*	else if e=1 then FUTURE_RECON_OVERLAP_FLAG = 'Multiple Providers';*/
+/*	else if f=1 then FUTURE_RECON_OVERLAP_FLAG = 'All Potential Overlaps';*/
 
 run;
 
@@ -458,7 +458,7 @@ run;
 %mend FutureRecon;
 
 *%FutureRecon(5746_0002,1);
-*%FutureRecon(1191_0002,1);
+%FutureRecon(1191_0002,1);
 
 %FutureRecon(2586_0002,1);
 %FutureRecon(2586_0005,1);
@@ -604,9 +604,9 @@ run;
 %future_recon_outfiles;
 
 %sas_2_csv(out.TP_Var_&label.,TP_Variability.csv);
-%sas_2_csv(out.TP_Var_pmr_&label.,TP_Variability_pmr.csv);
-%sas_2_csv(out.TP_Var_oth_&label.,TP_Variability_mil.csv);
-%sas_2_csv(out.TP_Var_ccf_&label.,TP_Variability_ccf.csv);
+%sas_2_csv(out.TP_Var_pmr_&label.,TP_Variability_PMR.csv);
+%sas_2_csv(out.TP_Var_oth_&label.,TP_Variability_MIL.csv);
+%sas_2_csv(out.TP_Var_ccf_&label.,TP_Variability_CCF.csv);
 
 
 
