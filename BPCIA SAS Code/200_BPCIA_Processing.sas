@@ -13,23 +13,19 @@ options mprint;
 
 /*turn on for performance */
 *%let mode = main; *main = main interface, base = baseline interface, recon = reconciliation;
-*%let label_monthly = y202003; *Turn off for baseline data, turn on for quarterly data;
+*%let label_monthly = y202004; *Turn off for baseline data, turn on for quarterly data;
 *%let label_quarterly = y202002; *Turn off for baseline data, turn on for quarterly data;
 *%let label = &label_monthly.; *Turn off for baseline data, turn on for quarterly data;
 *%let vers = P; *B for baseline, P for Performance;
+
+
+%let quarterly = N; /* Y if quarterly; N if not quarterly */
 
 /*turn on for recon */
 *%let mode = recon; *main = main interface, base = baseline interface, recon = reconciliation;
 *%let label = pp1Initial; *Turn off for baseline data, turn on for quarterly data;
 *%let vers = P; *B for baseline, P for Performance;
 
-/*
-quarterly
-Y if quarterly
-N if not quarterly
-next quarterly is month 202004
-*/
-%let quarterly = N; 
 
 ***** REFERENCE PROGRAMS ***********************************************************************************;
 %include "H:\_HealthLibrary\SAS\000 - General SAS Macros.sas";
@@ -50,6 +46,7 @@ next quarterly is month 202004
 %let main2 = H:\Nonclient\Medicare Bundled Payment Reference\General\SAS Code;
 %include "&main2.\000 - CMMI - Formats - Map ServiceCats.sas";
 %include "&main2.\001 - CMMI - Formats - Remap ServiceCats_CJR.sas";
+%include "&main2.\000 - NPI Format.sas";
 
 %let main3 = H:\Nonclient\Medicare Bundled Payment Reference\Program - CJR\SAS Code;
 %include "&main3.\006_Formats_Complications_ICD9_D12-D18.sas";
@@ -1573,24 +1570,42 @@ proc sql ;
 quit; 
 
 *** merge on NPI names and STUS_CD description onto episode summary file ***;
+/* adds provider info */
+data epi_post1_formats ;
+set epi_post1 ;
+anchor_at_NPI_char = strip(put(anchor_at_NPI,best12.));
+Provider_Org_Name__Leg_at = put(anchor_at_NPI_char, $NPI_ORG.);
+Provider_First_Name_at = put(anchor_at_NPI_char, $NPI_FNAME.);
+Provider_Last_Name_at = put(anchor_at_NPI_char, $NPI_LNAME.);
+drop anchor_at_NPI_char;
+run;
+
 proc sql ;
 	create table epi_post2 as
 	select a.*
-		, b.Provider_Organization_Name__Leg as at_npi_org_nm 
-		, b.provider_first_name as at_npi_first_nm
-		, b.Provider_Last_Name__Legal_Name_ as at_npi_last_nm
-	from epi_post1 as a left join ref.npi_data_v2 as b
-	on a.anchor_at_NPI = input(b.npi,best12.);
+		, Provider_Org_Name__Leg_at as at_npi_org_nm 
+		, provider_first_name_at as at_npi_first_nm
+		, Provider_Last_Name_at as at_npi_last_nm
+	from epi_post1_formats as a;
 quit;
+
+/* adds provider info */
+data epi_post2_formats ;
+set epi_post2 ;
+anchor_op_NPI_char = strip(put(anchor_op_NPI,best12.));
+Provider_Org_Name__Leg_op = put(anchor_op_NPI_char, $NPI_ORG.);
+Provider_First_Name_op = put(anchor_op_NPI_char, $NPI_FNAME.);
+Provider_Last_Name_op = put(anchor_op_NPI_char, $NPI_LNAME.);
+drop anchor_op_NPI_char;
+run;
 
 proc sql;
 	create table epi_post3 as
 	select a.*
-		, b.Provider_Organization_Name__Leg as op_npi_org_nm
-		, b.provider_first_name as op_npi_first_nm
-		, b.Provider_Last_Name__Legal_Name_ as op_npi_last_nm
-	from epi_post2 as a left join ref.npi_data_v2 as b
-	on a.anchor_op_NPI = input(b.npi,best12.);
+		, Provider_Org_Name__Leg_op as op_npi_org_nm
+		, provider_first_name_op as op_npi_first_nm
+		, Provider_Last_Name_op as op_npi_last_nm
+	from epi_post2_formats as a ;
 quit;
 
 proc sql;
@@ -2048,7 +2063,7 @@ quit;
 %runhosp(1368_0000,1368_0000,1368,0000,390049);
 %runhosp(1461_0000,1461_0000,1461,0000,100296);
 %runhosp(1634_0000,1634_0000,1634,0000,310012);
-*%runhosp(1803_0000,1803_0000,1803,0000,070017);
+%runhosp(1803_0000,1803_0000,1803,0000,070017);
 %runhosp(1958_0000,1958_0000,1958,0000,390183);
 %runhosp(2048_0000,2048_0000,2048,0000,360079);
 %runhosp(2049_0000,2049_0000,2049,0000,360239);
