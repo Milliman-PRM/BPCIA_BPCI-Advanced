@@ -25,7 +25,7 @@ Setup
 ********************;
 ****** USER INPUTS ******************************************************************************************;
 /*%let label = ybase; *Baseline/Performance data label;*/
-%let label_monthly = y202003;
+%let label_monthly = y202004;
 %let label_quarterly = y202002;
 %let label = &label_monthly.;
 %let mode=main; *Base=Baseline Interface, Main=Main Interface;
@@ -47,7 +47,7 @@ next quarterly is month 202004
 %macro modesetup;
 %if &mode.=main %then %do;
 libname out "&dataDir.\07 - Processed Data";
-*proc printto log="H:\BPCIA_BPCI Advanced\50 - BPCI Advanced Ongoing Reporting - 2020\Work Papers\SAS\logs\302 - Qlikview Stacking Code_&label._&sysdate..log" print=print new;
+proc printto log="H:\BPCIA_BPCI Advanced\50 - BPCI Advanced Ongoing Reporting - 2020\Work Papers\SAS\logs\302 - Qlikview Stacking Code_&label._&sysdate..log" print=print new;
 run;
 %end;
 %else %if &mode.=base %then %do;
@@ -93,6 +93,10 @@ libname bench2 "R:\client work\CMS_PAC_Bundle_Processing\Benchmark Releases\v.20
 			if primary_proc_with_desc1 = '' then primary_proc_with_desc1 = '-';
 			if flag_overlap = '' then flag_overlap = '-';
 			if mult_attr_provs = '' then mult_attr_provs = '-';
+		%end;
+
+		%else %if &file = pat_detail %then %do;
+		service_provider = tranwrd(service_provider, '','-');
 		%end;
 	run;
 
@@ -437,6 +441,39 @@ run;
 			else if substr(v_name[i],1,2)="HH" then v_name[i] = "HH: Provider (123456): MM/DD/YY";
 			else if substr(v_name[i],1,8)="Deceased" then v_name[i] = "Deceased: MM/DD/YY";
 		end;
+
+				format ANCHOR_BEG_DT0 mmddyy10. ; 
+		ANCHOR_BEG_DT0 = ANCHOR_BEG_DT;
+
+		ANCHOR_BEG_DT = intnx('month', ANCHOR_BEG_DT, 3,'sameday');
+		ANCHOR_BEG_DT = intnx('year', ANCHOR_BEG_DT, 11,'sameday');
+		
+	if DAY(ANCHOR_BEG_DT) > 20 THEN ANCHOR_BEG_DT = ANCHOR_BEG_DT-15;
+	if DAY(ANCHOR_BEG_DT) > 15 THEN ANCHOR_BEG_DT = ANCHOR_BEG_DT-9;	
+	if DAY(ANCHOR_BEG_DT) > 10 THEN ANCHOR_BEG_DT = ANCHOR_BEG_DT-3;
+	if DAY(ANCHOR_BEG_DT) < 15 THEN ANCHOR_BEG_DT = ANCHOR_BEG_DT+5;
+	
+	  	Anchor_Year = put(year(ANCHOR_BEG_DT), 4.);
+	   	Anchor_YearQtr = put(year(ANCHOR_BEG_DT), 4.)||' Q'||strip(qtr(ANCHOR_BEG_DT));
+	  	if month(ANCHOR_BEG_DT) < 10 then Anchor_YearMo = put(year(ANCHOR_BEG_DT), 4.)||' M0'||strip(month(ANCHOR_BEG_DT));
+	  	else Anchor_YearMo = put(year(ANCHOR_BEG_DT), 4.)||' M'||strip(month(ANCHOR_BEG_DT));
+
+	  increment = ANCHOR_BEG_DT - ANCHOR_BEG_DT0;
+
+  	%macro date(date);
+format &date.0  mmddyy10.;
+		 &date.0 = &date. ;
+
+		&date. = &date.0 + increment;
+
+	%mend date;
+	%date(d_first_admit_date);
+	%date(d_first_disch_date);
+	%date(d_second_admit_date);
+	%date(d_second_disch_date);
+	%date(d_third_admit_date);
+	%date(d_third_disch_date);
+
 	%end;
 	%if &file = pjourneyagg %then %do;
 		/*	*20170821 Update: mask names;*/
@@ -771,16 +808,16 @@ run;
 /*%stacking(R:\data\HIPAA\BPCIA_BPCI Advanced\80 - Qlikview\Outfiles\Development);*/
 
 *** PREMIER RUN ***;
-%stacking_pre_other(R:\data\HIPAA\BPCIA_BPCI Advanced\80 - Qlikview\Outfiles\Premier, PMR);
+%stacking_pre_other(R:\data\HIPAA\BPCIA_BPCI Advanced\80 - Qlikview\Outfiles\PMR, PMR);
 
 *** MILLIMAN RUN ***;
-%stacking_pre_other(R:\data\HIPAA\BPCIA_BPCI Advanced\80 - Qlikview\Outfiles\Milliman, MIL);
+%stacking_pre_other(R:\data\HIPAA\BPCIA_BPCI Advanced\80 - Qlikview\Outfiles\MIL, MIL);
 
 *** CCF RUN ***;
 %stacking_pre_other(R:\data\HIPAA\BPCIA_BPCI Advanced\80 - Qlikview\Outfiles\CCF, CCF);
 
 *** DEMO RUN ***;
-%stackingdemo(R:\data\HIPAA\BPCIA_BPCI Advanced\80 - Qlikview\Outfiles,1148,1167,1343,1368,2379,2587,2607,5479);
+%stackingdemo(R:\data\HIPAA\BPCIA_BPCI Advanced\80 - Qlikview\Outfiles\Demo,1148,1167,1343,1368,2379,2587,2607,5479);
 
 *** BASELINE DEMO RUN ***;
 /*%stackingdemo(R:\data\HIPAA\BPCIA_BPCI Advanced\80 - Qlikview\Outfiles\Baseline Demo,1148,1167,1343,1368,2379,2587,2607,5479);*/
