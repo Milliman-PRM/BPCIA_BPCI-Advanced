@@ -11,10 +11,12 @@ proc printto;run;
 
 ***** USER INPUTS ******************************************************************************************;
 %let mode = main; *main = main interface, base = baseline interface;
-%let label_monthly = y202003;
+%let label_monthly = y202004;
 %let label_quarterly = y202002;
 %let label = &label_monthly.;
 
+*%let mode = recon; *main = main interface, base = baseline interface;
+*%let recon_label = pp1Initial;
 ****** REFERENCE PROGRAMS ***********************************************************************************;
 %include "H:\_HealthLibrary\SAS\000 - General SAS Macros.sas";
 %include "H:\_HealthLibrary\SAS\000 - General SAS Macros_64bit.sas";
@@ -224,6 +226,10 @@ run;
 
 %else %if &type = B %then %do;
 %let label = ybase; 
+%end;
+
+%else %if &type = R %then %do;
+%let label = &recon_label.; 
 %end;
 
 data temp0;
@@ -1934,10 +1940,20 @@ data COVID;
 	incident_end_date = mdy(12,31,2999);
 run;
 
+/*proc sql;*/
+/*	create table disaster3 as*/
+/*	select distinct a.*, */
+/*	 b.Disaster_Number as NATURAL_DISASTER_MONTHLY_NUM2*/
+/*	from disaster2 as a left join COVID as b*/
+/*	on sum(b.incident_start_date,-29) <= a.anchor_beg_dt <= sum(b.incident_end_date,29)*/
+/*	and a.state = b.state*/
+/*		;*/
+/*quit;*/
+
 proc sql;
 	create table disaster3 as
 	select distinct a.*, 
-	 b.Disaster_Number as NATURAL_DISASTER_MONTHLY_NUM2
+	0 as NATURAL_DISASTER_MONTHLY_NUM2
 	from disaster2 as a left join COVID as b
 	on sum(b.incident_start_date,-29) <= a.anchor_beg_dt <= sum(b.incident_end_date,29)
 	and a.state = b.state
@@ -2160,7 +2176,7 @@ run;
 %runhosp(1368_0000,1368_0000,1368,0000,390049,1);
 %runhosp(1461_0000,1461_0000,1461,0000,100296,0);
 %runhosp(1634_0000,1634_0000,1634,0000,310012,1);
-*%runhosp(1803_0000,1803_0000,1803,0000,070017,0);
+%runhosp(1803_0000,1803_0000,1803,0000,070017,0);
 %runhosp(1958_0000,1958_0000,1958,0000,390183,1);
 %runhosp(2070_0000,2070_0000,2070,0000,100084,1);
 %runhosp(2214_0000,2214_0000,2214,0000,100285,0);
@@ -2218,7 +2234,8 @@ run;
 
 %TP(ybase, B);
 %TP(&label_monthly., P);
-*%TP(pp1Initial, R);
+%TP(&recon_label, R); 
+
 /*
 data All_Target_Prices;
 	format BPID EPI_ID_MILLIMAN EPISODE_ID EPISODE_INITIATOR EPISODE_GROUP_NAME ANCHOR_TYPE ANCHOR_CODE ANCHOR_CCN
@@ -2287,11 +2304,11 @@ run;
 	            dbms=csv replace; 
 	run;
 	proc export data= All_Target_Prices_NonPremier
-	            outfile= "R:\data\HIPAA\BPCIA_BPCI Advanced\08 - Target Price Data\Target Prices_oth.csv"
+	            outfile= "R:\data\HIPAA\BPCIA_BPCI Advanced\08 - Target Price Data\Target Prices_MIL.csv"
 	            dbms=csv replace; 
 	run;
 	proc export data= All_Target_Prices_Dev
-	            outfile= "R:\data\HIPAA\BPCIA_BPCI Advanced\08 - Target Price Data\Target Prices_Dev.csv"
+	            outfile= "R:\data\HIPAA\BPCIA_BPCI Advanced\08 - Target Price Data\Target Prices_DEV.csv"
 	            dbms=csv replace; 
 	run;
 
@@ -2316,11 +2333,11 @@ run;
 	            dbms=csv replace; 
 	run;
 	proc export data= All_Target_Prices_NonPremier
-	            outfile= "R:\data\HIPAA\BPCIA_BPCI Advanced\08 - Target Price Data\Baseline Target Prices_oth.csv"
+	            outfile= "R:\data\HIPAA\BPCIA_BPCI Advanced\08 - Target Price Data\Baseline Target Prices_MIL.csv"
 	            dbms=csv replace; 
 	run;
 	proc export data= All_Target_Prices_Dev
-	            outfile= "R:\data\HIPAA\BPCIA_BPCI Advanced\08 - Target Price Data\Target Prices_Dev.csv"
+	            outfile= "R:\data\HIPAA\BPCIA_BPCI Advanced\08 - Target Price Data\Target Prices_DEV.csv"
 	            dbms=csv replace; 
 	run;
 	proc export data= All_Target_Prices_CCF
@@ -2344,11 +2361,11 @@ run;
 	            dbms=csv replace; 
 	run;
 	proc export data= All_Target_Prices_NonPremier
-	            outfile= "R:\data\HIPAA\BPCIA_BPCI Advanced\08 - Target Price Data\Recon Target Prices_oth.csv"
+	            outfile= "R:\data\HIPAA\BPCIA_BPCI Advanced\08 - Target Price Data\Recon Target Prices_MIL.csv"
 	            dbms=csv replace; 
 	run;
 	proc export data= All_Target_Prices_Dev
-	            outfile= "R:\data\HIPAA\BPCIA_BPCI Advanced\08 - Target Price Data\Target Prices_Dev.csv"
+	            outfile= "R:\data\HIPAA\BPCIA_BPCI Advanced\08 - Target Price Data\Target Prices_DEV.csv"
 	            dbms=csv replace; 
 	run;
 	proc export data= All_Target_Prices_CCF
