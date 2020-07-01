@@ -16,7 +16,7 @@ Generate Hospital Data from:
 options mprint mlogic spool;
 
 ****** USER INPUTS **********************************************************************************;
-%let dte = PP1Initial;
+%let dte = PP1T_PP2I;
 
 %let label = &dte.; 
 %let pth =R:\data\HIPAA\BPCIA_BPCI Advanced\03 - Reconciliation Data\&dte. ;
@@ -125,6 +125,8 @@ quit;
 %call(Other,1688-0001,1688_0001,&label.);
 %call(Other,1696-0001,1696_0001,&label.);
 %call(Other,1710-0001,1710_0001,&label.);
+%call(Other,2586-0001,2586_0001,&label.);
+%call(Other,5916-0001,5916_0001,&label.);
 %call(Other,6049-0001,6049_0001,&label.);
 %call(Other,6050-0001,6050_0001,&label.);
 %call(Other,6051-0001,6051_0001,&label.);
