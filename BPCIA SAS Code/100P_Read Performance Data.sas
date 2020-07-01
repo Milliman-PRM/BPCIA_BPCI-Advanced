@@ -986,6 +986,10 @@ DISABLED_HCC110 :
 DISABLED_HCC176 :
 WINSORIZE_EPI_1_99 :
 EPI_STD_PMT_FCTR_WIN_1_99 :
+%if &MY. = MY3 %then %do; PERIOP_EPI_DENOM_FLAG : %end;
+%if &MY. = MY3 %then %do; PERIOP_EPI_NUM_FLAG : %end;
+%if &MY. = MY3 %then %do; ACP_EPI_DENOM_FLAG : %end;
+%if &MY. = MY3 %then %do; ACP_EPI_NUM_FLAG : %end;
 ANCHOR_CLAIMNO : $50.
 MULT_ATTR_PROVS :
 CNT_ATTR_PGP :
@@ -1010,6 +1014,3 @@ MEASURE_YEAR = 'MY3';
 %end;
 run ;
 %mend EPI;
-
-
-
