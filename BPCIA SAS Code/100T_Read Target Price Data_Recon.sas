@@ -12,19 +12,25 @@ Step 0 - Library assignment
 ****************************************************************************************************************/
 libname ref "H:\Nonclient\Medicare Bundled Payment Reference\Program - BPCIA\SAS Datasets";
 
+%let dataDir = R:\data\HIPAA\BPCIA_BPCI Advanced;
+libname tp "&dataDir.\08 - Target Price Data";
+
 /****************************************************************************************************************
 Step 1 - Read in Target Price CSV files and adjust variables as needed
 ****************************************************************************************************************/
-%macro read_in(in);
 
+%macro read_in(in, time);
+
+	%let timeperiod = &time.;
 	libname tempdir "&in.";
 
 	data TP_Components_1;
-		infile "&in.\CY19_FY19_TP_Components.csv" dlm=',' dsd lrecl=4096 truncover firstobs=2;
+		infile "&in.\&timeperiod._TP_Components.csv" dlm=',' dsd lrecl=4096 truncover firstobs=2;
 		input
 				INDEX :5.
 				CONVENER_ID :$9.
 				INITIATOR_BPID :$9.
+				PERFORMANCE_PERIOD : $4.
 				PGP_ACH :$3.
 				CCN_TIN :$12.
 				ASSOC_ACH_CCN :$12.
@@ -104,7 +110,7 @@ Step 1 - Read in Target Price CSV files and adjust variables as needed
 	quit; 
 
 	* create numeric variables from text fields;
-	data tempdir.CY19_FY19_TP_Components;
+	data tempdir.&timeperiod._TP_Components;
 		length EPI_INDEX $50;
 		set TP_Components_3 (rename= (AMT=AMT_o ACH_EFF=ACH_EFF_o SBS=SBS_o 
 									Prelim_PCMA=Prelim_PCMA_o Final_PCMA=Final_PCMA_o PAT=PAT_o Prelim_HBP=Prelim_HBP_o Final_HBP=Final_HBP_o PGP_EFF=PGP_EFF_o 
@@ -146,32 +152,98 @@ Step 1 - Read in Target Price CSV files and adjust variables as needed
 
 	run;
 
+%mend read_in;
+
+/* winsor values */
+%macro read_in_wins_values(in, client);
+
+	libname tempdir "&in.";
+
+	data tp.wins_value_&client.;
+		infile "&in.\wins_values.csv" dlm=',' dsd lrecl=4096 truncover firstobs=2;
+		input
+				INDEX :5.
+				CONVENER_ID :$9.
+				PERFORMANCE_PERIOD : $4.
+				EPI_TYPE :$3.
+				EPI_CAT :$70.
+				DRG_APC :$7.
+				Low_Pct :$15.
+				High_Pct :$15.
+
+		;
+	run;
+
+	%mend read_in_wins_values;
+
+
+/* recon report */
+%macro read_in_recon_report(in, client);
+	libname tempdir "&in.";
 
 	data tempdir.Reconciliation_Report;
-		infile "&in.\Reconciliation_Report.csv" dlm=',' dsd lrecl=4096 truncover firstobs=2;
+		infile "&in.\reconciliation_report.csv" dlm=',' dsd lrecl=4096 truncover firstobs=2;
 		input
 				INDEX :5.
 				CONVENER_ID :$9.
 				INITIATOR_BPID :$9.
-				PGP_ACH :$3.
-				Total_Recon_Amount :
-				CQS :
-				CQS_Adjustment_Percent :
-				CQS_Adjustment_Amount :
-				Adj_Total_Recon_Amount :
-				_20pct_Total_Perf_Target_Amount :
-				Stop_Loss_Stop_Gain :$1.
-				Cap_Adj_Total_Recon_Amount :
-				EI_Repayment_Amount :
-				EI_Post_Epi_Spending_Amount :
-				SRS_Reduction_Agreement_Signed :$1.
-				Potential_Reduction_Amount :
+				PERFORMANCE_PERIOD : $4.
+				PGP_ACH : $3.
+Total_Recon_Amount : Best12.
+CQS : Best12.
+CQS_Adjustment_Percent : Best12.
+CQS_Adjustment_Amount : Best12.
+Adj_Total_Recon_Amount : Best12.
+_20pct_Total_Perf_Target_Amount : Best12.
+Stop_Loss_Stop_Gain : $1.
+Cap_Adj_Total_Recon_Amount : Best12.
+EI_Repayment_Amount : Best12.
+EI_Post_Epi_Spending_Amount : Best12.
+SRS_Reduction_Agreement_Signed : $1.
+Potential_Reduction_Amount : Best12.
+
 		;
-		run;
+	run;
 
-%mend read_in;
+	%mend read_in_recon_report;
 
+	
+/* winsor values */
+%macro read_in_trued_UP_amounts(in, client);
 
-%read_in(R:\data\HIPAA\BPCIA_BPCI Advanced\09 - Reconciliation Reports\PP1 Initial\Other\Stacked Files);
-%read_in(R:\data\HIPAA\BPCIA_BPCI Advanced\09 - Reconciliation Reports\PP1 Initial\Premier\Stacked Files);
+	libname tempdir "&in.";
 
+	data tp.True_Up_Amt_&client.;
+		infile "&in.\True_Up_Amount.csv" dlm=',' dsd lrecl=4096 truncover firstobs=2;
+		input
+				INDEX :5.
+				CONVENER_ID :$9.
+				PARENT_BPID :$9.
+				PERFORMANCE_PERIOD : $4.
+				PARTICIPANT_NAME :$70.
+CURRENT : Best12.
+PREVIOUS : Best12.
+DIFFERENCE : Best12.
+
+		;
+	run;
+
+	%mend read_in_trued_UP_amounts;
+
+%read_in(R:\data\HIPAA\BPCIA_BPCI Advanced\09 - Reconciliation Reports\PP1T_PP2I\Other\Stacked Files, CY18_FY19);
+%read_in(R:\data\HIPAA\BPCIA_BPCI Advanced\09 - Reconciliation Reports\PP1T_PP2I\Premier\Stacked Files, CY18_FY19);
+
+%read_in(R:\data\HIPAA\BPCIA_BPCI Advanced\09 - Reconciliation Reports\PP1T_PP2I\Other\Stacked Files, CY19_FY19);
+%read_in(R:\data\HIPAA\BPCIA_BPCI Advanced\09 - Reconciliation Reports\PP1T_PP2I\Premier\Stacked Files, CY19_FY19);
+
+%read_in(R:\data\HIPAA\BPCIA_BPCI Advanced\09 - Reconciliation Reports\PP1T_PP2I\Other\Stacked Files, CY19_FY20);
+%read_in(R:\data\HIPAA\BPCIA_BPCI Advanced\09 - Reconciliation Reports\PP1T_PP2I\Premier\Stacked Files, CY19_FY20);
+
+%read_in_wins_values(R:\data\HIPAA\BPCIA_BPCI Advanced\09 - Reconciliation Reports\PP1T_PP2I\Other\Stacked Files, Other);
+%read_in_wins_values(R:\data\HIPAA\BPCIA_BPCI Advanced\09 - Reconciliation Reports\PP1T_PP2I\Premier\Stacked Files, Premier);
+
+%read_in_recon_report(R:\data\HIPAA\BPCIA_BPCI Advanced\09 - Reconciliation Reports\PP1T_PP2I\Other\Stacked Files, Other);
+%read_in_recon_report(R:\data\HIPAA\BPCIA_BPCI Advanced\09 - Reconciliation Reports\PP1T_PP2I\Premier\Stacked Files, Premier);
+
+%read_in_trued_UP_amounts(R:\data\HIPAA\BPCIA_BPCI Advanced\09 - Reconciliation Reports\PP1T_PP2I\Other\Stacked Files, Other);
+%read_in_trued_UP_amounts(R:\data\HIPAA\BPCIA_BPCI Advanced\09 - Reconciliation Reports\PP1T_PP2I\Premier\Stacked Files, Premier);
