@@ -15,6 +15,8 @@ libname out "R:\data\HIPAA\BPCIA_BPCI Advanced\08 - Target Price Data";
 libname Demo "R:\data\HIPAA\BPCIA_BPCI Advanced\08 - Target Price Data\Demo";
 %include "H:\Nonclient\Medicare Bundled Payment Reference\Program - BPCIA\SAS Code\000 - BPCIA_Interface_BPIDs.sas"; 
 
+%let dataDir = R:\data\HIPAA\BPCIA_BPCI Advanced;
+libname tp "&dataDir.\08 - Target Price Data";
 
 /****************************************************************************************************************
 Step 1 - Map updated BPIDs onto archived versions of the TP_Component and Peer Group files
@@ -62,12 +64,16 @@ Step 1 - Map updated BPIDs onto archived versions of the TP_Component and Peer G
 		else if INITIATOR_BPID_old='5128-0002' then do; BPID_change=1; INITIATOR_BPID='1191-0002'; CONVENER_ID='1191_0001'; EPI_INDEX=tranwrd(EPI_INDEX_OLD,'5128-0002','1191-0002'); end;
 		else do; BPID_change=0; INITIATOR_BPID=INITIATOR_BPID_old; CONVENER_ID=CONVENER_ID_old; EPI_INDEX=EPI_INDEX_OLD; end;
 
+			format ccn_join $6.;
+		ccn_join = ASSOC_ACH_CCN;
+		if ccn_join = '' then ccn_join = CCN_TIN;
+		if length(compress(ccn_join)) = 5 then ccn_join = '0' || ccn_join;
 
 	run;
 		
 	proc sql;
 		create table arch_TP_Components_&client. as
-		select a.*
+		select a.*, 2 AS TP_Priority, 'B' AS TP_TYPE
 		from arch_pre_&client._tp_comp as a
 		inner join ref.bpcia_episode_initiator_info as b
 		on a.initiator_bpid = b.BPCI_Advanced_ID_number_2
@@ -123,7 +129,7 @@ Step 1 - Map updated BPIDs onto archived versions of the TP_Component and Peer G
 /****************************************************************************************************************
 Step 2 - Stack current and archived versions of of the TP_Component and Peer Group files
 ****************************************************************************************************************/
-%macro PERFORMANCE(client, rel_date, timeper, epi_start, epi_end, filename);
+%macro PERFORMANCE(client, rel_date, timeper, epi_start, epi_end, filename, split,PP,TP_Priority_var);
 
 	libname perf "R:\data\HIPAA\BPCIA_BPCI Advanced\04 - Target Price Reports\Distributed &rel_date.\&client.\Stacked Files";
 
@@ -131,7 +137,7 @@ Step 2 - Stack current and archived versions of of the TP_Component and Peer Gro
 	* create _old versions of BPID and Convener ID so new data set will stack onto old;
 	data tpcomp_comb_&client._pre;
 		set perf.&filename.(rename=(EPI_INDEX=EPI_INDEX_OLD CONVENER_ID=CONVENER_ID_OLD INITIATOR_BPID=INITIATOR_BPID_OLD));
-		length EPI_INDEX $50 CONVENER_ID INITIATOR_BPID $9. time_period $32.;
+		length EPI_INDEX $50 CONVENER_ID INITIATOR_BPID $9. time_period $32. performance_period $10.;
 		EPI_INDEX=EPI_INDEX_OLD; CONVENER_ID=CONVENER_ID_OLD; INITIATOR_BPID=INITIATOR_BPID_OLD;
 		EPI_INDEX_OLD=''; CONVENER_ID_OLD=''; INITIATOR_BPID_OLD='';
 		format BPID_change 1. time_period $32. epi_start epi_end MMDDYY10.;
@@ -139,7 +145,8 @@ Step 2 - Stack current and archived versions of of the TP_Component and Peer Gro
 		rel_dt=&rel_date.;
 		epi_start=&epi_start.;
 		epi_end=&epi_end.;
-		
+		performance_period = &PP.;
+
 			 if INITIATOR_BPID='1374-0004' then BPID_change=1;
 		else if INITIATOR_BPID='1374-0008' then BPID_change=1;
 		else if INITIATOR_BPID='1374-0009' then BPID_change=1;
@@ -176,20 +183,20 @@ Step 2 - Stack current and archived versions of of the TP_Component and Peer Gro
 
 	* limit the new TP data;
 	proc sql;
-		create table tp_com_&client._prelm_&rel_date._2 as
-		select a.*, 2 AS TP_Priority
+		create table tp_com_&client._prelm_&rel_date._2&split. as
+		select a.*, &TP_Priority_var. AS TP_Priority, 'P' AS TP_TYPE
 		from tpcomp_comb_&client._pre as a
 		inner join ref.bpcia_episode_initiator_info as b
 		on a.initiator_bpid = b.BPCI_Advanced_ID_number_2
 		;
-		title "current_bpids_&client."; select count(distinct initiator_bpid) as distinct_bpid from tp_com_&client._prelm_&rel_date._2; 
+		title "current_bpids_&client."; select count(distinct initiator_bpid) as distinct_bpid from tp_com_&client._prelm_&rel_date._2&split.; 
 		;
 	quit;
 
 	proc sql;
-		create table active_epi_&client._&rel_date. as
+		create table active_epi_&client._&rel_date._2&split. as
 		select distinct time_period, CONVENER_ID, INITIATOR_BPID, EPI_TYPE, EPI_CAT_adj, EPI_CAT_Short 
-		from tp_com_&client._prelm_&rel_date._2;
+		from tp_com_&client._prelm_&rel_date._2&split.;
 	quit;
 
 	/* Peer Group */
@@ -245,12 +252,17 @@ Step 2 - Stack current and archived versions of of the TP_Component and Peer Gro
 */
 %mend PERFORMANCE;
 
-%PERFORMANCE(Premier, 20181001, '10/01/2018 - 12/31/2018', mdy(10,1,2018), mdy(12,31,2018),TP_Components);
-%PERFORMANCE(Other, 20181001, '10/01/2018 - 12/31/2018', mdy(10,1,2018), mdy(12,31,2018),TP_Components);
-%PERFORMANCE(Premier, 20181231, '01/01/2019 - 09/30/2019', mdy(1,1,2019), mdy(9,30,2019),TP_Components);
-%PERFORMANCE(Other, 20181231, '01/01/2019 - 09/30/2019', mdy(1,1,2019), mdy(9,30,2019),TP_Components);
-%PERFORMANCE(Premier, 20191121, '10/01/2019 - 12/31/2019', mdy(10,1,2019), mdy(12,31,2019),TP_Components);
-%PERFORMANCE(Other, 20191121, '10/01/2019 - 12/31/2019', mdy(10,1,2019), mdy(12,31,2019),TP_Components);
+%PERFORMANCE(Premier, 20181001, '10/01/2018 - 12/31/2018', mdy(10,1,2018), mdy(12,31,2018),TP_Components,1,'PP1',2);
+%PERFORMANCE(Other, 20181001, '10/01/2018 - 12/31/2018', mdy(10,1,2018), mdy(12,31,2018),TP_Components,1,'PP1',2);
+%PERFORMANCE(Premier, 20181231, '01/01/2019 - 06/30/2019', mdy(1,1,2019), mdy(9,30,2019),TP_Components,1,'PP1',2);
+%PERFORMANCE(Other, 20181231, '01/01/2019 - 06/30/2019', mdy(1,1,2019), mdy(9,30,2019),TP_Components,1,'PP1',2);
+%PERFORMANCE(Premier, 20181231, '07/01/2019 - 09/30/2019', mdy(1,1,2019), mdy(9,30,2019),TP_Components,2,'PP2',2);
+%PERFORMANCE(Other, 20181231, '07/01/2019 - 09/30/2019', mdy(1,1,2019), mdy(9,30,2019),TP_Components,2,'PP2',2);
+%PERFORMANCE(Premier, 20191121, '10/01/2019 - 12/31/2019', mdy(10,1,2019), mdy(12,31,2019),TP_Components,1,'PP2',2);
+%PERFORMANCE(Other, 20191121, '10/01/2019 - 12/31/2019', mdy(10,1,2019), mdy(12,31,2019),TP_Components,1,'PP2',2);
+%PERFORMANCE(Premier, 20191121, '10/01/2019 - 12/31/2019', mdy(10,1,2019), mdy(12,31,2019),TP_Components,2,'PP3',2);
+%PERFORMANCE(Other, 20191121, '10/01/2019 - 12/31/2019', mdy(10,1,2019), mdy(12,31,2019),TP_Components,2,'PP3',2);
+
 
 %macro PERFORMANCE2(client, rel_date, timeper, epi_start, epi_end, filename);
 
@@ -311,9 +323,9 @@ Step 2 - Stack current and archived versions of of the TP_Component and Peer Gro
 %PERFORMANCE2(Premier, 20191121, '10/01/2019 - 12/31/2019', mdy(10,1,2019), mdy(12,31,2019),Peer_Group);
 %PERFORMANCE2(Other, 20191121, '10/01/2019 - 12/31/2019', mdy(10,1,2019), mdy(12,31,2019),Peer_Group);
 
-%macro RECON(client, rel_date, timeper, epi_start, epi_end, filename);
+%macro RECON(client, rel_date, timeper, epi_start, epi_end, filename, PP, split);
 
-	libname perf "R:\data\HIPAA\BPCIA_BPCI Advanced\09 - Reconciliation Reports\PP1 Initial\&client.\Stacked Files";
+	libname perf "R:\data\HIPAA\BPCIA_BPCI Advanced\09 - Reconciliation Reports\PP1T_PP2I\&client.\Stacked Files";
 
 	/* TP Components */
 	* create _old versions of BPID and Convener ID so new data set will stack onto old;
@@ -327,7 +339,8 @@ Step 2 - Stack current and archived versions of of the TP_Component and Peer Gro
 		rel_dt=&rel_date.;
 		epi_start=&epi_start.;
 		epi_end=&epi_end.;
-		
+		if performance_period = &PP.;
+
 			 if INITIATOR_BPID='1374-0004' then BPID_change=1;
 		else if INITIATOR_BPID='1374-0008' then BPID_change=1;
 		else if INITIATOR_BPID='1374-0009' then BPID_change=1;
@@ -370,20 +383,20 @@ Step 2 - Stack current and archived versions of of the TP_Component and Peer Gro
 
 	* limit the new TP data;
 	proc sql;
-		create table tp_com_&client._prelm_&rel_date._1 as
-		select a.*, 1 AS TP_Priority
+		create table tp_com_&client._prelm_&rel_date._1&split. as
+		select a.*, 1 AS TP_Priority, 'R' AS TP_TYPE
 		from tpcomp_comb_&client._pre as a
 		inner join ref.bpcia_episode_initiator_info as b
 		on a.initiator_bpid = b.BPCI_Advanced_ID_number_2
 		;
-		title "current_bpids_&client."; select count(distinct initiator_bpid) as distinct_bpid from tp_com_&client._prelm_&rel_date._1; 
+		title "current_bpids_&client."; select count(distinct initiator_bpid) as distinct_bpid from tp_com_&client._prelm_&rel_date._1&split.; 
 		;
 	quit;
 
 	proc sql;
-		create table active_epi_&client._&rel_date. as
+		create table active_epi_&client._&rel_date._1&split. as
 		select distinct time_period, CONVENER_ID, INITIATOR_BPID, EPI_TYPE, EPI_CAT_adj, EPI_CAT_Short 
-		from tp_com_&client._prelm_&rel_date._1;
+		from tp_com_&client._prelm_&rel_date._1&split.;
 	quit;
 
 	/* Peer Group */
@@ -439,11 +452,39 @@ Step 2 - Stack current and archived versions of of the TP_Component and Peer Gro
 
 %mend RECON;
 
-%RECON(Premier, 20190101, '01/01/2019 - 06/30/2019', mdy(1,1,2019), mdy(6,30,2019),CY19_FY19_TP_Components);
-%RECON(Other, 20190101, '01/01/2019 - 06/30/2019', mdy(1,1,2019), mdy(6,30,2019),CY19_FY19_TP_Components);
-%RECON(Premier, 20181001, '10/01/2018 - 12/31/2018', mdy(10,1,2018), mdy(12,31,2018),CY18_FY19_TP_Components);
-%RECON(Other, 20181001, '10/01/2018 - 12/31/2018', mdy(10,1,2018), mdy(12,31,2018),CY18_FY19_TP_Components);
+%RECON(Premier, 20191121, '10/01/2019 - 12/31/2019', mdy(10,1,2019), mdy(12,31,2019),CY19_FY20_TP_Components, 'PP2',1);
+%RECON(Other, 20191121, '10/01/2019 - 12/31/2019', mdy(10,1,2019), mdy(12,31,2019),CY19_FY20_TP_Components, 'PP2',1);
 
+%RECON(Premier, 20181231, '07/01/2019 - 09/30/2019', mdy(1,1,2019), mdy(9,30,2019),CY19_FY19_TP_Components, 'PP2',2);
+%RECON(Other, 20181231, '07/01/2019 - 09/30/2019', mdy(1,1,2019), mdy(9,30,2019),CY19_FY19_TP_Components, 'PP2',2);
+
+%RECON(Premier, 20181231, '01/01/2019 - 06/30/2019', mdy(1,1,2019), mdy(9,30,2019),CY19_FY19_TP_Components, 'PP1',1);
+%RECON(Other, 20181231, '01/01/2019 - 06/30/2019', mdy(1,1,2019), mdy(9,30,2019),CY19_FY19_TP_Components, 'PP1',1);
+
+%RECON(Premier, 20181001, '10/01/2018 - 12/31/2018', mdy(10,1,2018), mdy(12,31,2018),CY18_FY19_TP_Components, 'PP1',1);
+%RECON(Other, 20181001, '10/01/2018 - 12/31/2018', mdy(10,1,2018), mdy(12,31,2018),CY18_FY19_TP_Components, 'PP1',1);
+
+/* combine recon win values */
+data wins_combined;
+set tp.wins_value_other tp.wins_value_premier;
+run;
+
+proc sort data=wins_combined;
+	by Performance_Period DRG_APC;
+run;
+
+proc sort nodupkey data=wins_combined out=wins_values;
+	by Performance_Period DRG_APC;
+run;
+
+data tp.BPCIA_Winsorization;
+set wins_values (keep = Performance_Period DRG_APC Low_Pct High_Pct);
+run;
+
+/* combine true_up_amount */
+data tp.RECON_True_Up_Amt;
+set tp.True_Up_Amt_other tp.True_Up_Amt_premier;
+run;
 
 data out.active_epis;
 	set active_epi_:;
@@ -456,8 +497,8 @@ run;
 		* stack premier over other to capture switchers;
 		set tp_com_Premier_prelm:	(in=a)		/* new premier */
 			arch_TP_Components_Premier		(in=b)		/* archive premier */
-			tp_com_Other_prelm:		(in=a)		/* new other */
-			arch_TP_Components_Other		(in=b)		/* archive other */
+			tp_com_other_prelm:		(in=a)		/* new other */
+			arch_TP_Components_other		(in=b)		/* archive other */
 		;
 
 		format epi_dropped_flag 1. ;
@@ -477,16 +518,17 @@ run;
 	run;
 
 	proc sort data=TP_Components_Combine;
-	by INITIATOR_BPID EPI_CAT EPI_TYPE ccn_join epi_start epi_end TP_Priority;
+	by INITIATOR_BPID EPI_CAT EPI_TYPE ccn_join epi_start epi_end Performance_period TP_Priority;
 run;
 
 proc sort nodupkey data=TP_Components_Combine out=TP_Components_Combine_V2;
-	by INITIATOR_BPID EPI_CAT EPI_TYPE ccn_join epi_start epi_end;
+	by INITIATOR_BPID EPI_CAT EPI_TYPE ccn_join epi_start epi_end Performance_period;
 run;
 
 	PROC SQL;
 	create table TP_Components_Combine_V3 AS 
-	SELECT A.*, B.TARGET_PRICE_REAL AS PRELIM, C.TARGET_PRICE_REAL AS FINAL_TP, C.TARGET_PRICE_REAL-B.TARGET_PRICE_REAL AS TP_DIFFERENCE
+	SELECT A.*, B.TARGET_PRICE_REAL AS PRELIM_TP
+ , C.TARGET_PRICE_REAL AS FINAL_TP, C.TARGET_PRICE_REAL-B.TARGET_PRICE_REAL AS TP_DIFFERENCE 
 	FROM TP_Components_Combine_V2 A
 		LEFT JOIN TP_Components_Combine B
 			ON A.INITIATOR_BPID = B.INITIATOR_BPID
@@ -494,6 +536,7 @@ run;
 			AND A.EPI_TYPE = B.EPI_TYPE
 			AND A.ccn_join = B.ccn_join
 			AND A.epi_start = B.epi_start
+			AND A.performance_period = B.performance_period
 			AND B.TP_PRIORITY = 2
 		LEFT JOIN TP_Components_Combine C
 			ON A.INITIATOR_BPID = C.INITIATOR_BPID
@@ -501,7 +544,9 @@ run;
 			AND A.EPI_TYPE = C.EPI_TYPE
 			AND A.ccn_join = C.ccn_join
 			AND A.epi_start = C.epi_start
+			AND A.performance_period = C.performance_period
 			AND C.TP_PRIORITY = 1
+		
 			;
 			quit;
 
@@ -520,8 +565,8 @@ run;
 		* stack premier over other to capture switchers;
 		set pg_comb_Premier_pre:		(in=a)		/* new premier */
 			arch_Peer_Group_Premier		(in=b)		/* archive premier */
-			pg_comb_Other_pre:			(in=a)		/* new other */
-			arch_Peer_Group_Other		(in=b)		/* archive other */
+			pg_comb_other_pre:			(in=a)		/* new other */
+			arch_Peer_Group_other		(in=b)		/* archive other */
 		;
 
 		format epi_dropped_flag 1. ;
@@ -565,10 +610,10 @@ Step 3 - out tables, limit TP_Components to BPIDs in the Data Tracker, and expor
 			title "&table."; select count(distinct initiator_bpid) as distinct_bpid from out.&table._all; 
 		quit;
 		/* partition to decrease interface size */
-		data out.&table._pmr out.&table._oth out.&table._ccf out.&table._dev;
+		data out.&table._pmr out.&table._MIL out.&table._ccf out.&table._dev;
 			set out.&table._all;
 			if initiator_bpid in (&PMR_EI_lst.) then output out.&table._pmr;
-			else if initiator_bpid in (&NON_PMR_EI_lst.) then output out.&table._oth;
+			else if initiator_bpid in (&NON_PMR_EI_lst.) then output out.&table._MIL;
 			else if initiator_bpid in (&CCF_lst.) then output out.&table._ccf;
 			
 			if initiator_bpid in (&DEV_EI_lst.) then output out.&table._dev;
@@ -576,25 +621,25 @@ Step 3 - out tables, limit TP_Components to BPIDs in the Data Tracker, and expor
 		/* Export partitions */
 		proc export
 			data=out.&table._pmr
-			outfile="R:\data\HIPAA\BPCIA_BPCI Advanced\08 - Target Price Data\&table._pmr.csv"
+			outfile="R:\data\HIPAA\BPCIA_BPCI Advanced\08 - Target Price Data\&table._PMR.csv"
 			dbms=CSV 
 			replace;
 		run;
 		proc export
-			data=out.&table._oth
-			outfile="R:\data\HIPAA\BPCIA_BPCI Advanced\08 - Target Price Data\&table._oth.csv"
+			data=out.&table._MIL
+			outfile="R:\data\HIPAA\BPCIA_BPCI Advanced\08 - Target Price Data\&table._MIL.csv"
 			dbms=CSV 
 			replace;
 		run;
 		proc export
 			data=out.&table._dev
-			outfile="R:\data\HIPAA\BPCIA_BPCI Advanced\08 - Target Price Data\&table._dev.csv"
+			outfile="R:\data\HIPAA\BPCIA_BPCI Advanced\08 - Target Price Data\&table._DEV.csv"
 			dbms=CSV 
 			replace;
 		run;
 		proc export
 			data=out.&table._ccf
-			outfile="R:\data\HIPAA\BPCIA_BPCI Advanced\08 - Target Price Data\&table._ccf.csv"
+			outfile="R:\data\HIPAA\BPCIA_BPCI Advanced\08 - Target Price Data\&table._CCF.csv"
 			dbms=CSV 
 			replace;
 		run;
