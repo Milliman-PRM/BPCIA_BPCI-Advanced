@@ -7,32 +7,36 @@ options mprint;
 
 ***** USER INPUTS ******************************************************************************************;
 /* turn on for baseline */
-%let mode = main; *main = main interface, base = baseline interface, recon = reconciliation;
-%let label = ybase; *Turn on for baseline data, turn off for quarterly data;
-%let vers = B; *B for baseline, P for Performance;
+*%let mode = main; *main = main interface, base = baseline interface, recon = reconciliation;
+*%let label = ybase; *Turn on for baseline data, turn off for quarterly data;
+*%let vers = B; *B for baseline, P for Performance;
 
 /*turn on for performance */
-*%let mode = main; *main = main interface, base = baseline interface, recon = reconciliation;
-*%let label_monthly = y202004; *Turn off for baseline data, turn on for quarterly data;
-*%let label_quarterly = y202002; *Turn off for baseline data, turn on for quarterly data;
-*%let label = &label_monthly.; *Turn off for baseline data, turn on for quarterly data;
-*%let vers = P; *B for baseline, P for Performance;
+%let mode = main; *main = main interface, base = baseline interface, recon = reconciliation;
+%let label_monthly = y202005; *Turn off for baseline data, turn on for quarterly data;
+%let label_quarterly = y202004; *Turn off for baseline data, turn on for quarterly data;
+%let label_semi_annual = y202004; *Turn off for baseline data, turn on for quarterly data;
+%let label = &label_monthly.; *Turn off for baseline data, turn on for quarterly data;
+%let vers = P; *B for baseline, P for Performance;
 
 
 %let quarterly = N; /* Y if quarterly; N if not quarterly */
+%let semi_annual = N; /* Y if quarterly; N if not quarterly */
+
 
 /*turn on for recon */
 *%let mode = recon; *main = main interface, base = baseline interface, recon = reconciliation;
-*%let label = pp1Initial; *Turn off for baseline data, turn on for quarterly data;
+*%let label = PP1T_PP2I; *Turn off for baseline data, turn on for quarterly data;
 *%let vers = P; *B for baseline, P for Performance;
 
 
-***** REFERENCE PROGRAMS ***********************************************************************************;
+/****** REFERENCE PROGRAMS ***********************************************************************************;*/
 %include "H:\_HealthLibrary\SAS\000 - General SAS Macros.sas";
 %include "H:\_HealthLibrary\SAS\000 - General SAS Macros_64bit.sas";
 
 %let main = H:\Nonclient\Medicare Bundled Payment Reference\Program - BPCIA\SAS Code;
 %include "&main.\000 - Formats - BPCIA.sas";
+%include "&main.\000 - Formats - COVID.sas";
 %include "&main.\000 - Formats - BPCIA_MY3.sas";
 %include "&main.\000 - Formats_PartB_ICD9_Excl.sas";
 %include "&main.\000 - Formats_PartB_ICD10_Excl.sas";
@@ -133,6 +137,10 @@ quit;
 %let label = &label_quarterly.;
 %end;
 
+%else %if &vers. = P and &mode.= main and (&bpid1. = 1148) %then %do;
+%let label = &label_semi_annual.;
+%end;
+
 %else %if &vers. = P and &mode.= main %then %do;
 %let label = &label_monthly.; 
 %end;
@@ -176,7 +184,7 @@ proc sort nodupkey data=TP_Components out=TP_Components_forBase;
 run;
 
 proc sort nodupkey data=TP_Components;
-	by MEASURE_YEAR INITIATOR_BPID EPI_CAT EPI_TYPE ccn_join rel_dt epi_start epi_end;
+	by MEASURE_YEAR INITIATOR_BPID EPI_CAT EPI_TYPE ccn_join rel_dt epi_start epi_end Performance_period;
 run;
 
 data bpcia_performance_episodes_v2;
@@ -400,9 +408,20 @@ data epi0 out.epiexc_&label._&bpid1._&bpid2. perf_epis0;
 	*/
 	%end;
 
-	format anc_ccn $6.;
+	format anc_ccn $6. epi_period_short $100.;
 	anc_ccn = put(ANCHOR_CCN,$6.);
 	if length(compress(ANCHOR_CCN))=5 then anc_ccn = put('0' || compress(ANCHOR_CCN),$6.);
+
+		if '01OCT2018'd le POST_DSCH_END_DT le '30JUN2019'd then epi_period_short = "PP1";
+	if '01JUL2019'd le POST_DSCH_END_DT le '31DEC2019'd then epi_period_short = "PP2";
+	if '01JAN2020'd le POST_DSCH_END_DT le '30JUN2020'd then epi_period_short = "PP3";
+	if '01JUL2020'd le POST_DSCH_END_DT le '31DEC2020'd then epi_period_short = "PP4";
+	if '01JAN2021'd le POST_DSCH_END_DT le '30JUN2021'd then epi_period_short = "PP5";
+	if '01JUL2021'd le POST_DSCH_END_DT le '31DEC2021'd then epi_period_short = "PP6";
+	if '01JAN2022'd le POST_DSCH_END_DT le '30JUN2022'd then epi_period_short = "PP7";
+	if '01JUL2022'd le POST_DSCH_END_DT le '31DEC2022'd then epi_period_short = "PP8";
+	if '01JAN2023'd le POST_DSCH_END_DT le '30JUN2023'd then epi_period_short = "PP9";
+	if '01JUL2023'd le POST_DSCH_END_DT le '31DEC2023'd then epi_period_short = "PP10";
 
 	DROPFLAG_NON_PERF_EPI=0;
 	%if %substr(&label.,1,5) ^= ybase %then %do;
@@ -456,7 +475,8 @@ run;
 			and a.EPISODE_GROUP_NAME = b.EPI_CAT
 			and a.anchor_type_upper = b.EPI_TYPE
 			and a.anc_ccn = b.ccn_join
-			and b.epi_start <= a.ANCHOR_END_DT <= b.epi_end
+			 and b.epi_start <= a.ANCHOR_END_DT <= b.epi_end
+			 AND STRIP(A.epi_period_short) = STRIP(B.performance_period)
 			and A.MEASURE_YEAR = B.MEASURE_YEAR;
 	quit;
 %end;
@@ -473,6 +493,21 @@ run;
 	quit;
 %end;
 
+%if %substr(&label.,1,5) ^= ybase %then %do;
+proc sql;
+	create table tempepi_preb2 as
+	select a.*, b.TARGET_PRICE_REAL, b.TARGET_PRICE 
+	from tempepi_preb as a left join TP_Components as b
+		on a.BPID = b.INITIATOR_BPID
+		and a.EPISODE_GROUP_NAME = b.EPI_CAT
+		and a.anchor_type_upper = b.EPI_TYPE
+		and a.anc_ccn = b.ccn_join
+		and b.epi_start <= a.ANCHOR_END_DT <= b.epi_end
+		AND A.epi_period_short = B.performance_period
+		and A.MEASURE_YEAR = B.MEASURE_YEAR;
+quit;
+%end;
+%else %do;
 proc sql;
 	create table tempepi_preb2 as
 	select a.*, b.TARGET_PRICE_REAL, b.TARGET_PRICE 
@@ -482,7 +517,8 @@ proc sql;
 		and a.anchor_type_upper = b.EPI_TYPE
 		and a.anc_ccn = b.ccn_join
 		and A.MEASURE_YEAR = B.MEASURE_YEAR;
-quit;
+	quit;
+%end;
 
 data epi_pre;
 	set tempepi_prea2 tempepi_preb2;
@@ -597,6 +633,20 @@ data ip_&label._&bpid1._&bpid2. out.FrChk_&label._&bpid1._&bpid2. readexc_&label
 	else if dos - ANCHOR_END_DT le 29 then timeframe = 1 ;
 	else if dos - ANCHOR_END_DT le 59 then timeframe = 2 ;
 	else if dos - ANCHOR_END_DT le 89 then timeframe = 3 ;
+
+	COVID_FLAG = .;
+	if STAY_dschrgdt >= MDY(1,27,2020) THEN COVID_FLAG = 0;
+	array dx2(*) DGNSCD01-DGNSCD25;
+	do i = 1 to dim(dx2);
+			if put(dx2[i],$COVID_ONE.)='Y' and STAY_dschrgdt >= MDY(1,27,2020) then do;
+				if timeframe = 0 then COVID_FLAG = 3;
+				else COVID_FLAG = 2;
+			end;
+			if put(dx2[i],$COVID_TWO.)='Y' and STAY_dschrgdt >= MDY(1,27,2020) then do;
+				if timeframe = 0 then COVID_FLAG = 3;
+				else COVID_FLAG = 2;
+			end;
+	end;
 
 	* sequestration *;
 	if not missing(STAY_dschrgdt) and STAY_dschrgdt <= mdy(3,31,2013) then do;
@@ -747,9 +797,7 @@ data snf3 ;
 	if dschrgdt=. then dschrgdt = thru_dt;
 
 	std_allowed_calc = std_allowed;
-	*%if %substr(&label.,1,5) ^= ybase %then %do;
 		std_allowed = std_cost_epi_total;
-	*%end;
 	if std_allowed <= 0 then delete;
 
 	std_allowed_wage = std_allowed*wage_index;
@@ -800,6 +848,20 @@ data out.snf_&label._&bpid1._&bpid2. ;
 	if THRU_DT gt POST_DSCH_END_DT then do ;
 		days1 = POST_DSCH_END_DT - admsn_dt + 1;
 		days2 = THRU_DT - POST_DSCH_END_DT;
+	end;
+
+	COVID_FLAG = .;
+	if dschrgdt >= MDY(1,27,2020) THEN COVID_FLAG = 0;
+	array dx(*) DGNSCD01-DGNSCD25;
+	do i = 1 to dim(dx);
+			if put(dx[i],$COVID_ONE.)='Y' and dschrgdt >= MDY(1,27,2020) then do;
+				if timeframe = 0 then COVID_FLAG = 3;
+				else COVID_FLAG = 2;
+			end;
+			if put(dx[i],$COVID_TWO.)='Y' and dschrgdt >= MDY(1,27,2020) then do;
+				if timeframe = 0 then COVID_FLAG = 3;
+				else COVID_FLAG = 2;
+			end;
 	end;
 
 run;
@@ -860,6 +922,20 @@ data out.hha_&label._&bpid1._&bpid2. nohhaccn;
 	prorate_day = POST_DSCH_END_DT - FROM_DT + 1;
 	*Proration;
 
+	COVID_FLAG = .;
+	if thru_dt >= MDY(1,27,2020) THEN COVID_FLAG = 0;
+	array dx(*) DGNSCD01-DGNSCD25;
+	do i = 1 to dim(dx);
+			if put(dx[i],$COVID_ONE.)='Y' and thru_dt >= MDY(1,27,2020) then do;
+				if timeframe = 0 then COVID_FLAG = 3;
+				else COVID_FLAG = 2;
+			end;
+			if put(dx[i],$COVID_TWO.)='Y' and thru_dt >= MDY(1,27,2020) then do;
+				if timeframe = 0 then COVID_FLAG = 3;
+				else COVID_FLAG = 2;
+			end;
+	end;
+
 	days1 = THRU_DT - FROM_DT + 1;
 	days2 = POST_DSCH_END_DT - THRU_DT;
 
@@ -894,9 +970,7 @@ data out.hha_&label._&bpid1._&bpid2. nohhaccn;
 	end;
 
 	std_allowed_calc = std_allowed;
-	*%if %substr(&label.,1,5) ^= ybase %then %do;
 		std_allowed = std_cost_epi_total;
-	*%end;
 	if std_allowed <= 0 then delete;
 
 	std_allowed_wage = std_allowed*wage_index;
@@ -996,6 +1070,20 @@ data 	op_pre_&label._&bpid1._&bpid2.
 	else if dos - ANCHOR_END_DT le 59 then timeframe = 2 ;
 	else if dos - ANCHOR_END_DT le 89 then timeframe = 3 ;	
 
+	COVID_FLAG = .;
+	if dos >= MDY(1,27,2020) THEN COVID_FLAG = 0;
+	array dx(*) DGNSCD01-DGNSCD25;
+	do i = 1 to dim(dx);
+			if put(dx[i],$COVID_ONE.)='Y' and dos >= MDY(1,27,2020) then do;
+				if timeframe = 0 then COVID_FLAG = 3;
+				else COVID_FLAG = 2;
+			end;
+			if put(dx[i],$COVID_TWO.)='Y' and dos >= MDY(1,27,2020) then do;
+				if timeframe = 0 then COVID_FLAG = 3;
+				else COVID_FLAG = 2;
+			end;
+	end;
+
 	ER_flag_Line=0;
 	if new_rev in (450,451,452,456,459,981) then do;
 		if dos=ANCHOR_BEG_DT or dos=(ANCHOR_BEG_DT-1) then do;
@@ -1007,9 +1095,7 @@ data 	op_pre_&label._&bpid1._&bpid2.
 	end;
 
 	std_allowed_calc = std_allowed;
-	*%if %substr(&label.,1,5) ^= ybase %then %do;
 		std_allowed = std_cost_epi_total;
-	*%end;
 	if std_allowed <= 0 then delete;
 
 	std_allowed_wage = std_allowed*wage_index;
@@ -1187,10 +1273,20 @@ data out.pb_&label._&bpid1._&bpid2.
 	else if dos - ANCHOR_END_DT le 59 then timeframe = 2 ;
 	else if dos - ANCHOR_END_DT le 89 then timeframe = 3 ;
 	
+	COVID_FLAG = .;
+	if dos >= MDY(1,27,2020) THEN COVID_FLAG = 0;
+	array dx(*) DGNSCD01-DGNSCD25;
+	do i = 1 to dim(dx);
+			if put(dx[i],$COVID_ONE.)='Y' and dos >= MDY(1,27,2020) then do;
+				COVID_FLAG = 1;
+			end;
+			if put(dx[i],$COVID_TWO.)='Y' and dos >= MDY(1,27,2020) then do;
+				COVID_FLAG = 1;
+			end;
+	end;
+
 	std_allowed_calc = std_allowed;
-	*%if %substr(&label.,1,5) ^= ybase %then %do;
 		std_allowed = std_cost_epi_total;
-	*%end;
 	if std_allowed <= 0 then delete;
 
 	std_allowed_wage = std_allowed*wage_index;
@@ -1268,10 +1364,20 @@ data out.dme_&label._&bpid1._&bpid2.
 	else if dos - ANCHOR_END_DT le 59 then timeframe = 2 ;
 	else if dos - ANCHOR_END_DT le 89 then timeframe = 3 ;
 
+	COVID_FLAG = .;
+	if dos >= MDY(1,27,2020) THEN COVID_FLAG = 0;
+	array dx(*) DGNSCD01-DGNSCD25;
+	do i = 1 to dim(dx);
+			if put(dx[i],$COVID_ONE.)='Y' and dos >= MDY(1,27,2020) then do;
+				COVID_FLAG = 1;
+			end;
+			if put(dx[i],$COVID_TWO.)='Y' and dos >= MDY(1,27,2020) then do;
+				COVID_FLAG = 1;
+			end;
+	end;
+
 	std_allowed_calc = std_allowed;
-	*%if %substr(&label.,1,5) ^= ybase %then %do;
 		std_allowed = std_cost_epi_total;
-	*%end;
 	if std_allowed <= 0 then delete;
 
 	std_allowed_wage = std_allowed*wage_index;
@@ -1328,6 +1434,20 @@ data out.hs_&label._&bpid1._&bpid2. hsexcl_&label._&bpid1._&bpid2. ;
 	else if dos - ANCHOR_END_DT le 59 then timeframe = 2 ;
 	else if dos - ANCHOR_END_DT le 89 then timeframe = 3 ;
 
+	COVID_FLAG = .;
+	if THRU_DT >= MDY(1,27,2020) THEN COVID_FLAG = 0;
+	array dx(*) DGNSCD01-DGNSCD25;
+	do i = 1 to dim(dx);
+			if put(dx[i],$COVID_ONE.)='Y' and THRU_DT >= MDY(1,27,2020) then do;
+				if timeframe = 0 then COVID_FLAG = 3;
+				else COVID_FLAG = 2;
+			end;
+			if put(dx[i],$COVID_TWO.)='Y' and THRU_DT >= MDY(1,27,2020) then do;
+				if timeframe = 0 then COVID_FLAG = 3;
+				else COVID_FLAG = 2;
+			end;
+	end;
+
 	days1 = THRU_DT - FROM_DT + 1;
 	days2 = POST_DSCH_END_DT - THRU_DT;
 
@@ -1343,9 +1463,7 @@ data out.hs_&label._&bpid1._&bpid2. hsexcl_&label._&bpid1._&bpid2. ;
 	end ;
 
 	std_allowed_calc = std_allowed;
-	*%if %substr(&label.,1,5) ^= ybase %then %do;
 		std_allowed = std_cost_epi_total;
-	*%end;
 	if std_allowed <= 0 then delete;
 
 	std_allowed_wage = std_allowed*wage_index;
@@ -1992,7 +2110,7 @@ quit;
 %CLINEPI;
 
 
-*delete work datasets;
+delete work datasets;
 proc datasets lib=work memtype=data kill;
 run;
 quit;
@@ -2000,6 +2118,10 @@ quit;
 %mend;
 
 /* Run Calls */
+%runhosp(6051_0001,6051_0001,6051,0002,030112);
+%runhosp(1209_0000,1209_0000,1209,0000,420004);
+%runhosp(6055_0001,6055_0001,6055,0002,330194);
+%runhosp(1191_0001,1191_0001,1191,0002,61440790);
 %runhosp(2586_0001,2586_0001,2586,0002,360027);
 %runhosp(2586_0001,2586_0001,2586,0005,360082);
 %runhosp(2586_0001,2586_0001,2586,0006,360077);
@@ -2137,6 +2259,9 @@ quit;
 			set out.clinepi_&label_monthly.: 
 				%if &quarterly = N %then %do;
 			out.clinepi_&label_quarterly.:
+			%end;
+					%if &label_semi_annual. != &label_quarterly. %then %do;
+			out.clinepi_&label_semi_annual.:
 			%end;
 			;
 		run;
