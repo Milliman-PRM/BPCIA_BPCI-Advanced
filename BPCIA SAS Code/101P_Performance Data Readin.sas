@@ -16,16 +16,17 @@ Generate Hospital Data from:
 options mprint mlogic spool;
 
 ****** USER INPUTS **********************************************************************************;
-%let dte = 202004;
+%let dte = 202005;
 
 %let label = y&dte.; 
 /*
 quarterly
 Y if quarterly
 N if not quarterly
-next quarterly is month 202004
 */
 %let quarterly = N; 
+%let semi_annual= N;
+
 ****** REFERENCE PROGRAMS **********************************************************************************;
 %let path = H:\BPCIA_BPCI Advanced\50 - BPCI Advanced Ongoing Reporting - 2020\Work Papers\SAS;
 
@@ -179,10 +180,6 @@ quit;
 
 %mend call;
 
-*%call(Premier,1167-0000,1167_0000,&label.,123);
-*%call(Premier,1075-0000,1075_0000,&label.,123);
-*%call(Other,1374-0001,1374_0001,&label.,123);
-
 ********************************************************* ;
 ********************************************************* ;
 
@@ -195,6 +192,10 @@ quit;
 %call(Premier,2049-0000,2049_0000,&label.,12);
 %call(Premier,2589-0000,2589_0000,&label.,12);
 %call(Premier,5037-0000,5037_0000,&label.,12);
+%end;
+
+%if &semi_annual. = Y %then %do;
+%call(Premier,1148-0000,1148_0000,&label.,12);
 %end;
 
 %call(Other,1191-0001,1191_0001,&label.,12);
@@ -228,7 +229,6 @@ quit;
 %call(Premier,1104-0000,1104_0000,&label.,12);
 %call(Premier,1105-0000,1105_0000,&label.,12);
 %call(Premier,1106-0000,1106_0000,&label.,12);
-%call(Premier,1148-0000,1148_0000,&label.,12);
 %call(Premier,1167-0000,1167_0000,&label.,123);
 %call(Premier,1343-0000,1343_0000,&label.,12);
 %call(Premier,1368-0000,1368_0000,&label.,123);
@@ -271,6 +271,7 @@ quit;
 %call(Premier,5480-0001,5480_0001,&label.,123);
 %call(Premier,5481-0001,5481_0001,&label.,123);
 %call(Premier,5746-0001,5746_0001,&label.,123);
+%call(Premier,1803-0000,1803_0000,&label.,3);
 
 %mend readin;
 
