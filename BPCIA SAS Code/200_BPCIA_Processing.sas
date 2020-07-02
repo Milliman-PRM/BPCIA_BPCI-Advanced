@@ -2110,7 +2110,11 @@ quit;
 %CLINEPI;
 
 
+<<<<<<< Updated upstream
 delete work datasets;
+=======
+/*delete work datasets;*/
+>>>>>>> Stashed changes
 proc datasets lib=work memtype=data kill;
 run;
 quit;
@@ -2274,6 +2278,7 @@ quit;
 %end;
 %mend;
 %CLINOUT;
+
 
 
 proc printto;run;
