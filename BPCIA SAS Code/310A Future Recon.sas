@@ -1,12 +1,13 @@
 %let _sdtm=%sysfunc(datetime());
 
-%let label = y202004; *Recon label;
+%let label = y202005; *Recon label;
 *%let Prev_label = y202002; *Previous Recon label;
 *%let Perf_label = y202003; *Most recent performance label;
-%let Recon_label = pp1Initial; *Most recent performance label;
-%let transmit_date = '17APR2020'd;*Change for every Update*; 
-%let Perf_label_monthly = y202004; *Most recent performance label;
-%let Perf_label_quarterly = y202002;
+%let Recon_label = PP1T_PP2I; *Most recent performance label;
+%let transmit_date = '15MAY2020'd;*Change for every Update*; 
+%let Perf_label_monthly = y202005; *Most recent performance label;
+%let Perf_label_semi_annual = y202004; *Most recent performance label;
+%let Perf_label_quarterly = y202004;
 /*
 quarterly
 Y if quarterly
@@ -44,6 +45,10 @@ libname cjrref "H:\Nonclient\Medicare Bundled Payment Reference\Program - CJR\SA
 %let label = &Perf_label_quarterly.;
 %end;
 
+%else %if &id. = 1148_0000 %then %do;
+%let label = &Perf_label_semi_annual.;
+%end;
+
 %else %do;
 %let label = &Perf_label_monthly.; 
 %end;
@@ -56,15 +61,13 @@ data tp_&label._&id. ;
     set tp_stack (in=a) 
 tp_stack (in=b where=(max(DROPFLAG_PRELIM_CJR_OVERLAP, DROPFLAG_PRELIM_BPCI_A_OVERLAP)=0))
 tp_stack (in=c where=(DROPFLAG_PRELIM_CJR_OVERLAP=0))
-tp_stack (in=d where=(DROPFLAG_PRELIM_BPCI_A_OVERLAP=0));
-/*tp_stack (in=e where=(MULT_ATTR_PROVS=0))*/
+tp_stack (in=d where=(max(DROPFLAG_PRELIM_BPCI_A_OVERLAP, MULT_ATTR_PROVS)=0));
 /*tp_stack (in=f where=(MULT_ATTR_PROVS=0 and DROPFLAG_PRELIM_CJR_OVERLAP=0 and DROPFLAG_PRELIM_BPCI_A_OVERLAP=0));*/
     format FUTURE_RECON_OVERLAP_FLAG $30.;
     if a=1 then FUTURE_RECON_OVERLAP_FLAG = 'None';
 	else if b=1 then FUTURE_RECON_OVERLAP_FLAG = 'Both BPCIA and CJR Episodes';
 	else if c=1 then FUTURE_RECON_OVERLAP_FLAG = 'CJR Episodes';
 	else if d=1 then FUTURE_RECON_OVERLAP_FLAG = 'BPCIA Episodes';
-/*	else if e=1 then FUTURE_RECON_OVERLAP_FLAG = 'Multiple Providers';*/
 /*	else if f=1 then FUTURE_RECON_OVERLAP_FLAG = 'All Potential Overlaps';*/
 
 run;
@@ -318,6 +321,7 @@ StopLoss_StopGain,
 Capped_adj_recon_Amt
 */
  from out.recon_&recon_label._&id.
+  where epi_id_Milliman not like 'XXX%'
 /* from out.recon_pp1initial_1148_0000 */
 ;
 quit;
@@ -336,6 +340,7 @@ StopLoss_StopGain,
 Capped_adj_recon_Amt,
 ALLEPI_CMS_EPI_COUNT
  from out.recon_&recon_label._&id.
+ where epi_id_Milliman not like 'XXX%'
 /* from out.recon_pp1initial_1148_0000 */
 ;
 quit;
@@ -451,13 +456,15 @@ data out.TP_Var_&label._&id.;
 run;
 
 *delete work datasets*;
-*proc datasets lib=work memtype=data kill;
-*run;
-*quit;
+proc datasets lib=work memtype=data kill;
+run;
+quit;
 
 %mend FutureRecon;
 
 *%FutureRecon(5746_0002,1);
+%FutureRecon(1209_0000,1);
+
 %FutureRecon(1191_0002,1);
 
 %FutureRecon(2586_0002,1);
@@ -587,12 +594,16 @@ run;
 %FutureRecon(2974_0003,0);
 %FutureRecon(2974_0007,0);
 %FutureRecon(5916_0002,1);
+%FutureRecon(1803_0000,0);
 
 %macro future_recon_outfiles;
 data out.TP_Var_&label. out.TP_Var_pmr_&label. out.TP_Var_oth_&label. out.TP_Var_ccf_&label.;
 	set out.TP_Var_&Perf_label_monthly._: 
 				%if &quarterly = N %then %do;
 			out.TP_Var_&Perf_label_quarterly._:
+			%end;
+				%if &Perf_label_quarterly. != &Perf_label_semi_annual. %then %do;
+			out.TP_Var_&Perf_label_semi_annual._:
 			%end;
 			 ;
 	output out.TP_Var_&label.;
@@ -614,7 +625,7 @@ run;
 DEMO
 *********************************************/
 proc format; value $masked_bpid
-'1148-0000'='1111-0000'
+'1634-0000'='1111-0000'
 '1167-0000'='2222-0000'
 '1343-0000'='3333-0000'
 '1368-0000'='4444-0000'
@@ -644,7 +655,7 @@ run;
 
 %mend;
 
-%runhosp2(1148_0000);
+%runhosp2(1634_0000);
 %runhosp2(1167_0000);
 %runhosp2(1343_0000);
 %runhosp2(1368_0000);
