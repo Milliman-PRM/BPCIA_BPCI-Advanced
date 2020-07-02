@@ -10,13 +10,14 @@ options mprint;
 proc printto;run;
 
 ***** USER INPUTS ******************************************************************************************;
-*%let mode = main; *main = main interface, base = baseline interface;
-*%let label_monthly = y202004;
-*%let label_quarterly = y202002;
-*%let label = &label_monthly.;
+%let mode = main; *main = main interface, base = baseline interface;
+%let label_monthly = y202005;
+%let label_quarterly = y202004;
+%let label_semi_annual = y202004;
+%let label = &label_monthly.;
 
-%let mode = recon; *main = main interface, base = baseline interface;
-%let recon_label = pp1Initial;
+*%let mode = recon; *main = main interface, base = baseline interface;
+*%let recon_label = pp1T_pp2I;
 
 ****** REFERENCE PROGRAMS ***********************************************************************************;
 %include "H:\_HealthLibrary\SAS\000 - General SAS Macros.sas";
@@ -158,7 +159,7 @@ proc sort nodupkey data=TP_Components out=TP_Components_forBase;
 run;
 
 proc sort nodupkey data=TP_Components;
-	by INITIATOR_BPID EPI_CAT EPI_TYPE ccn_join rel_dt epi_start epi_end;
+	by INITIATOR_BPID EPI_CAT EPI_TYPE ccn_join rel_dt epi_start epi_end performance_period;
 run;
 
 data TP_Risk_Adj_Parameters;
@@ -185,6 +186,10 @@ run;
 
 %if &type = P AND (&bpid1. = 1075 or &bpid1. = 2048 or &bpid1. = 2049 or &bpid1. = 2589 or &bpid1. = 5037) %then %do;
 %let label = &label_quarterly.;
+%end;
+
+%else %if &type = P and &bpid1.=1148 %then %do;
+%let label = &label_semi_annual.; 
 %end;
 
 %else %if &type = P %then %do;
@@ -389,7 +394,8 @@ proc sql;
 				and a.EPISODE_GROUP_NAME = b.EPI_CAT
 				and a.anchor_type_upper = b.EPI_TYPE
 				and a.anc_ccn = b.ccn_join
-				and b.epi_start <= a.ANCHOR_END_DT <= b.epi_end;
+				and b.epi_start <= a.ANCHOR_END_DT <= b.epi_end
+				and a.epi_period_short = B.performance_period;
 	quit;
 %end;
 %else %do;
@@ -1062,6 +1068,96 @@ proc sql;
 		/*and b.epi_start <= a.ANCHOR_END_DT <= b.epi_end;*/
 quit;
 
+%if &label. ^= ybase %then %do;
+proc sql;
+	create table temp4b as
+	select a.*, 
+		b.PGP_ACH,
+		b.CCN_TIN,
+		b.ASSOC_ACH_CCN,
+		b.CCN_JOIN,
+		b.EPI_TYPE,
+		b.EPI_CAT,
+		b.EPI_COUNT,
+		b.COUNT_GT_40,
+		b.EPI_CAT_ADJ,
+		b.EPI_CAT_SHORT,
+		b.EPI_CAT_2,
+		b.EPI_SPEND,
+		b.AMT,
+		b.ACH_EFF,
+		b.SBS,
+		b.PCMA,
+		b.PAT,
+		b.HBP,
+		b.PGP_EFF,
+		b.PGP_OFFSET,
+		b.PGP_OFFSET_ADJ,
+		b.PGP_ACH_PCMA,
+		b.CASE_MIX,
+		b.PGP_ACH_BNCHMRK,
+		b.TARGET_PRICE,
+		b.PAYMENT_RATIO,
+		b.TARGET_PRICE_REAL,
+		b.EPI_INDEX,
+		b.BPID_CHANGE,
+		b.EPI_DROPPED_FLAG,
+		b.TIME_PERIOD
+	from temp3b as a 
+		left join TP_Components as b
+			on a.BPID = b.INITIATOR_BPID
+			and a.EPISODE_GROUP_NAME = b.EPI_CAT
+			and a.anchor_type_upper = b.EPI_TYPE
+			and a.anc_ccn = b.ccn_join
+			and b.epi_start <= a.ANCHOR_END_DT <= b.epi_end
+			and A.epi_period_short = B.performance_period;
+quit;
+%end;
+%else %do;
+proc sql;
+	create table temp4b as
+	select a.*, 
+		b.PGP_ACH,
+		b.CCN_TIN,
+		b.ASSOC_ACH_CCN,
+		b.CCN_JOIN,
+		b.EPI_TYPE,
+		b.EPI_CAT,
+		b.EPI_COUNT,
+		b.COUNT_GT_40,
+		b.EPI_CAT_ADJ,
+		b.EPI_CAT_SHORT,
+		b.EPI_CAT_2,
+		b.EPI_SPEND,
+		b.AMT,
+		b.ACH_EFF,
+		b.SBS,
+		b.PCMA,
+		b.PAT,
+		b.HBP,
+		b.PGP_EFF,
+		b.PGP_OFFSET,
+		b.PGP_OFFSET_ADJ,
+		b.PGP_ACH_PCMA,
+		b.CASE_MIX,
+		b.PGP_ACH_BNCHMRK,
+		b.TARGET_PRICE,
+		b.PAYMENT_RATIO,
+		b.TARGET_PRICE_REAL,
+		b.EPI_INDEX,
+		b.BPID_CHANGE,
+		b.EPI_DROPPED_FLAG,
+		b.TIME_PERIOD
+	from temp3b as a 
+		left join TP_Components_forBase as b
+			on a.BPID = b.INITIATOR_BPID
+			and a.EPISODE_GROUP_NAME = b.EPI_CAT
+			and a.anchor_type_upper = b.EPI_TYPE
+			and a.anc_ccn = b.ccn_join;
+quit;
+
+%end;
+/*
 proc sql;
 	create table temp4b as
 	select a.*, 
@@ -1102,8 +1198,8 @@ proc sql;
 			and a.EPISODE_GROUP_NAME = b.EPI_CAT
 			and a.anchor_type_upper = b.EPI_TYPE
 			and a.anc_ccn = b.ccn_join;
-			/*and b.epi_start <= a.ANCHOR_END_DT <= b.epi_end;*/
 quit;
+*/
 
 data temp5b;
 	set temp4b;
@@ -1674,9 +1770,40 @@ Pred_Price = (N1_P1 * EXP(
 		;
 run;
 
-data temp6;
+data temp6 (rename=(EPI_SPEND=EPI_SPEND_ERROR));
 	set temp5a temp5b;
 run;
+
+data TP_Components2;
+	set tp.TP_Components_all;
+	format ccn_join $6.;
+	ccn_join = ASSOC_ACH_CCN;
+	if ccn_join = '' then ccn_join = CCN_TIN;
+	if length(compress(ccn_join)) = 5 then ccn_join = '0' || ccn_join;
+
+	if EPI_CAT = "Disorders Of Liver Except Malignancy, Cirrhosis Or Alcoholic Hepatitis" then
+		EPI_CAT = "Disorders of liver except malignancy, cirrhosis or alcoholic hepatitis" ;
+	if epi_spend <> .;
+run; 
+
+proc sort data=TP_Components2;
+	by INITIATOR_BPID EPI_CAT EPI_TYPE ccn_join descending rel_dt descending epi_start descending epi_end;
+run;
+
+proc sort nodupkey data=TP_Components2 out=TP_Components_forBase2;
+	by INITIATOR_BPID EPI_CAT EPI_TYPE ccn_join;
+run;
+
+proc sql;
+	create table temp6B as
+	select a.*, b.EPI_SPEND
+	from temp6 as a 
+		left join TP_Components_forBase2 as b
+			on a.BPID = b.INITIATOR_BPID
+			and a.EPISODE_GROUP_NAME = b.EPI_CAT
+			and a.anchor_type_upper = b.EPI_TYPE
+			and a.anc_ccn = b.ccn_join;
+quit;
 
 data tp_components_original;
 	set tp.TP_Components_all;
@@ -1693,7 +1820,7 @@ run;
 proc sql;
 	create table temp7 as
 	select a.*, b.EPI_SPEND as EPI_SPEND_original
-	from temp6 as a 
+	from temp6B as a 
 		left join tp_components_original as b
 			on a.BPID = b.INITIATOR_BPID
 			and a.EPISODE_GROUP_NAME = b.EPI_CAT
@@ -1744,7 +1871,7 @@ proc sql;
 	create table disaster2 as
 	select distinct a.*, 
 	 b.Disaster_Number as NATURAL_DISASTER_MONTHLY_NUM1
-	from disaster as a left join cjrref.disasterarealist_Milliman as b
+	from disaster as a left join cjrref.disasterarealist_milliman_0612 as b
 	on sum(b.incident_start_date,-29) <= a.anchor_beg_dt <= sum(b.incident_end_date,29)
 	and a.state = b.state
 	and a.county = strip(b.county)
@@ -1752,7 +1879,7 @@ proc sql;
 quit;
 
 data COVID;
-	set cjrref.disasterarealist_Millimancvd;
+	set cjrref.disasterarealist_milliman_0612;
 	where county='';
 	incident_end_date = mdy(12,31,2999);
 run;
@@ -1929,7 +2056,7 @@ run;
 %runhosp(2607_0000,2607_0000,2607,0000,223700669);
 %runhosp(1931_0001,5479_0001,5479,0002,310051);
 */
-*%runhosp(1191_0001,1191_0001,1191,0002,61440790);
+%runhosp(1191_0001,1191_0001,1191,0002,61440790);
 
 %runhosp(2586_0001,2586_0001,2586,0002,360027);
 %runhosp(2586_0001,2586_0001,2586,0005,360082);
@@ -2014,150 +2141,9 @@ run;
 
 %MEND TP;
 
-*%TP(ybase, B);
-*%TP(&label., P);
-%TP(&recon_label, R); 
-
-/*
-data All_Target_Prices;
-	format BPID EPI_ID_MILLIMAN EPISODE_ID EPISODE_INITIATOR EPISODE_GROUP_NAME ANCHOR_TYPE ANCHOR_CODE ANCHOR_CCN
-		 DRG_CODE PERF_APC ORIGDS LTI FRACTURE_FLAG ANY_DUAL TKA_FLAG TKA_FRACTURE_FLAG PRIOR_HOSP_W_ANY_IP_FLAG_90
-		 EPI_STD_PMT_FCTR_WIN_1_99_Real Adjusted_TP_Real Discount_Real PGP_Offset_Amt_Real PAT_Amt_Real 
-		 PAT PAT_Adj PCMA PCMA_Adj PGP_ACH_PCMA PGP_PCMA_Adj CASE_MIX PGP_ACH_Ratio PGP_Offset PGP_Offset_Adj PAYMENT_RATIO 
-		 HAS_TP PERFORMANCE_PERIOD 
-		 HCC_COUNT HCC18 HCC19 HCC40 HCC58 HCC84 HCC85 HCC86 HCC88 HCC96 HCC108 HCC111
-		 NATURAL_DISASTER_MONTHLY
-		 ;
-	set out2.tp_: ;
-	if EPISODE_GROUP_NAME = "Disorders Of Liver Except Malignancy, Cirrhosis Or Alcoholic Hepatitis" then 
-		EPISODE_GROUP_NAME = "Disorders of liver except malignancy, cirrhosis or alcoholic hepatitis";
-run;
-
-*Should be 0 observations;
-data check;
-	set All_Target_Prices;
-	if (Adjusted_TP_Real > 0 and EPI_STD_PMT_FCTR_WIN_1_99_Real = .) or 
-		(Adjusted_TP_Real = . and EPI_STD_PMT_FCTR_WIN_1_99_Real > 0) ;
-run;
-proc sql;
-	create table check2 as
-	select BPID, EPISODE_INITIATOR, ANCHOR_CCN, EPISODE_GROUP_NAME, ANCHOR_TYPE, count(*) as Episodes
-	from check
-	group by BPID, EPISODE_INITIATOR, ANCHOR_CCN, EPISODE_GROUP_NAME, ANCHOR_TYPE;
-quit;
-proc sql;
-	create table check3 as
-	select BPID, count(*) as BPID_Episodes
-	from All_Target_Prices
-	group by BPID;
-quit;
-proc sql;
-	create table check4 as
-	select a.*, b.BPID_Episodes, a.Episodes/b.BPID_Episodes as Percent_BPID_Epis
-	from check2 as a left join check3 as b
-	on a.BPID=b.BPID;
-quit;
-
-data All_Target_Prices_1 All_Target_Prices_Premier All_Target_Prices_NonPremier All_Target_Prices_CCF All_Target_Prices_Dev;
-	set All_Target_Prices;
-
-	if BPID in (&PMR_EI_lst.) or BPID in (&NON_PMR_EI_lst.) then output All_Target_Prices_1;
-	if BPID in (&DEV_EI_lst.) then output All_Target_Prices_Dev;
-	if BPID in (&PMR_EI_lst.) then output All_Target_Prices_Premier;
-	else if BPID in (&NON_PMR_EI_lst.) then output All_Target_Prices_NonPremier;
-	else if BPID in (&CCF_lst.) then output All_Target_Prices_CCF;
-
-run;
-*/
-/*%MACRO EXPORT;*/
-/*%if &mode.=main %then %do;*/
-/*	/**/
-/*	proc export data= All_Target_Prices*/
-/*	            outfile= "R:\data\HIPAA\BPCIA_BPCI Advanced\08 - Target Price Data\Target Prices.csv"*/
-/*	            dbms=csv replace; */
-/*	run;*/
-/*	*/*/
-/*	proc export data= All_Target_Prices_1*/
-/*	            outfile= "R:\data\HIPAA\BPCIA_BPCI Advanced\08 - Target Price Data\Target Prices_1.csv"*/
-/*	            dbms=csv replace; */
-/*	run;*/
-/*	proc export data= All_Target_Prices_Premier*/
-/*	            outfile= "R:\data\HIPAA\BPCIA_BPCI Advanced\08 - Target Price Data\Target Prices_PMR.csv"*/
-/*	            dbms=csv replace; */
-/*	run;*/
-/*	proc export data= All_Target_Prices_NonPremier*/
-/*	            outfile= "R:\data\HIPAA\BPCIA_BPCI Advanced\08 - Target Price Data\Target Prices_MIL.csv"*/
-/*	            dbms=csv replace; */
-/*	run;*/
-/*	proc export data= All_Target_Prices_Dev*/
-/*	            outfile= "R:\data\HIPAA\BPCIA_BPCI Advanced\08 - Target Price Data\Target Prices_DEV.csv"*/
-/*	            dbms=csv replace; */
-/*	run;*/
-/**/
-/*	proc export data= All_Target_Prices_CCF*/
-/*	            outfile= "R:\data\HIPAA\BPCIA_BPCI Advanced\08 - Target Price Data\Target Prices_CCF.csv"*/
-/*	            dbms=csv replace; */
-/*	run;*/
-/*%end;*/
-/*%else %if &mode.=base %then %do;*/
-/*	/**/
-/*	proc export data= All_Target_Prices*/
-/*	            outfile= "R:\data\HIPAA\BPCIA_BPCI Advanced\08 - Target Price Data\Baseline Target Prices.csv"*/
-/*	            dbms=csv replace; */
-/*	run;*/
-/*	*/*/
-/*	proc export data= All_Target_Prices_1*/
-/*	            outfile= "R:\data\HIPAA\BPCIA_BPCI Advanced\08 - Target Price Data\Baseline Target Prices_1.csv"*/
-/*	            dbms=csv replace; */
-/*	run;*/
-/*	proc export data= All_Target_Prices_Premier*/
-/*	            outfile= "R:\data\HIPAA\BPCIA_BPCI Advanced\08 - Target Price Data\Baseline Target Prices_PMR.csv"*/
-/*	            dbms=csv replace; */
-/*	run;*/
-/*	proc export data= All_Target_Prices_NonPremier*/
-/*	            outfile= "R:\data\HIPAA\BPCIA_BPCI Advanced\08 - Target Price Data\Baseline Target Prices_MIL.csv"*/
-/*	            dbms=csv replace; */
-/*	run;*/
-/*	proc export data= All_Target_Prices_Dev*/
-/*	            outfile= "R:\data\HIPAA\BPCIA_BPCI Advanced\08 - Target Price Data\Target Prices_DEV.csv"*/
-/*	            dbms=csv replace; */
-/*	run;*/
-/*	proc export data= All_Target_Prices_CCF*/
-/*	            outfile= "R:\data\HIPAA\BPCIA_BPCI Advanced\08 - Target Price Data\Baseline Target Prices_CCF.csv"*/
-/*	            dbms=csv replace; */
-/*	run;*/
-/*%end;*/
-/*%else %if &mode.=recon %then %do;*/
-/*	/**/
-/*	proc export data= All_Target_Prices*/
-/*	            outfile= "R:\data\HIPAA\BPCIA_BPCI Advanced\08 - Target Price Data\Recon Target Prices.csv"*/
-/*	            dbms=csv replace; */
-/*	run;*/
-/*	*/*/
-/*	proc export data= All_Target_Prices_1*/
-/*	            outfile= "R:\data\HIPAA\BPCIA_BPCI Advanced\08 - Target Price Data\Recon Target Prices_1.csv"*/
-/*	            dbms=csv replace; */
-/*	run;*/
-/*	proc export data= All_Target_Prices_Premier*/
-/*	            outfile= "R:\data\HIPAA\BPCIA_BPCI Advanced\08 - Target Price Data\Recon Target Prices_PMR.csv"*/
-/*	            dbms=csv replace; */
-/*	run;*/
-/*	proc export data= All_Target_Prices_NonPremier*/
-/*	            outfile= "R:\data\HIPAA\BPCIA_BPCI Advanced\08 - Target Price Data\Recon Target Prices_MIL.csv"*/
-/*	            dbms=csv replace; */
-/*	run;*/
-/*	proc export data= All_Target_Prices_Dev*/
-/*	            outfile= "R:\data\HIPAA\BPCIA_BPCI Advanced\08 - Target Price Data\Target Prices_DEV.csv"*/
-/*	            dbms=csv replace; */
-/*	run;*/
-/*	proc export data= All_Target_Prices_CCF*/
-/*	            outfile= "R:\data\HIPAA\BPCIA_BPCI Advanced\08 - Target Price Data\Recon Target Prices_CCF.csv"*/
-/*	            dbms=csv replace; */
-/*	run;*/
-/*%end;*/
-/*%mend EXPORT;*/
-*%EXPORT;
-
+%TP(ybase, B);
+%TP(&label., P);
+*%TP(&recon_label, R); 
 
 data All_Target_Prices;
 	format BPID EPI_ID_MILLIMAN EPISODE_ID EPISODE_INITIATOR EPISODE_GROUP_NAME ANCHOR_TYPE ANCHOR_CODE ANCHOR_CCN
@@ -2216,7 +2202,7 @@ run;
 
 /******************DEMO *********************/
 proc format; value $masked_bpid
-'1148-0000'='1111-0000'
+'1634-0000'='1111-0000'
 '1167-0000'='2222-0000'
 '1343-0000'='3333-0000'
 '1368-0000'='4444-0000'
@@ -2253,7 +2239,7 @@ run;
 
 %mend;
 
-%runhosp2(1148,0000);
+%runhosp2(1634,0000);
 %runhosp2(1167,0000);
 %runhosp2(1343,0000);
 %runhosp2(1368,0000);
