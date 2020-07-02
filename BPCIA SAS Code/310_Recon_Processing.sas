@@ -16,17 +16,21 @@ RUN THIS PROGRAM IN ITS OWN SAS SESSION TO PREVENT ANY DATA ROLLUP ISSUES
 Setup 
 ********************;
 
-%let label = pp1Initial; *Recon label;
+%let label = pp1T_pp2I; *Recon label;
 %let Prev_label = pp1Initial; *Previous Recon label;
-%let Perf_label_monthly = y202004; *Most recent performance label;
-%let Perf_label_quarterly = y202002;
+%let Perf_label_monthly = y202005; *Most recent performance label;
+%let Perf_label_quarterly = y202004;
+%let Perf_label_semi_annual = y202004;
 %let Perf_label = &Perf_label_monthly.;
 
 proc printto;run;
 proc printto log="H:\BPCIA_BPCI Advanced\50 - BPCI Advanced Ongoing Reporting - 2020\Work Papers\SAS\logs\310 - Recon Processing_&label._&sysdate..log" print=print new;
 run;
 
-%let norecon = '1209-0000',
+%let norecon_pp1 = '1209-0000',
+'1686-0002', '1688-0002', '1696-0002', '1710-0002', '6049-0002', '6050-0002', '6051-0002', '6052-0002', '6053-0002'
+; 
+%let norecon_pp2 = '1209-0000',
 '1686-0002', '1688-0002', '1696-0002', '1710-0002', '6049-0002', '6050-0002', '6051-0002', '6052-0002', '6053-0002'
 ; 
 %let true_up = ''; /*Performance period for next true-up*/
@@ -61,6 +65,10 @@ libname cjrref "H:\Nonclient\Medicare Bundled Payment Reference\Program - CJR\SA
 %let Perf_label = &Perf_label_quarterly.;
 %end;
 
+%else %if &id. = 1148_0000 %then %do;
+%let Perf_label = &Perf_label_semi_annual.;
+%end;
+
 %else %do;
 %let Perf_label = &Perf_label_monthly.; 
 %end;
@@ -69,7 +77,7 @@ libname cjrref "H:\Nonclient\Medicare Bundled Payment Reference\Program - CJR\SA
 data TP_Components;
 	set tp.TP_Components_all (rename=(EPI_COUNT=EPI_COUNT_Char));
 	format ccn_join $6. epi_period_short $100.;
-	epi_period_short = 'PP1';
+	epi_period_short = Performance_Period;
 	/*
 	if '01OCT2018'd le epi_end le '30JUN2019'd then epi_period_short = "PP1";
 	if '01JUL2019'd le epi_end le '31DEC2019'd then epi_period_short = "PP2";
@@ -96,11 +104,11 @@ data TP_Components;
 run; 
 
 proc sort data=TP_Components;
-	by INITIATOR_BPID EPI_CAT EPI_TYPE ccn_join descending rel_dt descending epi_start descending epi_end;
+	by INITIATOR_BPID EPI_CAT EPI_TYPE ccn_join descending rel_dt descending epi_start descending epi_end epi_period_short;
 run;
 
 proc sort nodupkey data=TP_Components;
-	by INITIATOR_BPID EPI_CAT EPI_TYPE ccn_join rel_dt epi_start epi_end;
+	by INITIATOR_BPID EPI_CAT EPI_TYPE ccn_join rel_dt epi_start epi_end epi_period_short;
 run;
 
 *Pull CMS and Mill calculated totals (in standardized dollars) from 200 code output;
@@ -139,6 +147,10 @@ proc sql;
 		,wage_index as CMS_Ratio_Real_Std
 		,NATURAL_DISASTER_CCN_FLAG as NATURAL_DISASTER_CCN_FLAG_num
 		,PERFORMANCE_PERIOD
+		,PERIOP_EPI_DENOM_FLAG	
+		,PERIOP_EPI_NUM_FLAG	
+		,ACP_EPI_DENOM_FLAG	
+		,ACP_EPI_NUM_FLAG
 		,case when DEATH_DUR_POSTDSCHRG = 1 then 'Yes' else 'No' end as death_flag
 		,case when month(POST_DSCH_END_DT) < 10 then strip(put(year(POST_DSCH_END_DT),4.)||" M0"||strip(put(month(POST_DSCH_END_DT),2.)))
 			 else strip(put(year(POST_DSCH_END_DT),4.)||" M"||strip(put(month(POST_DSCH_END_DT),2.))) 
@@ -356,8 +368,9 @@ quit;
 proc sql;
 	create table recon_pre7_winz as
 	select a.*, b.*
-	from recon_pre7 as a left join bpciaref.BPCIA_Winsorization_PP1Initial as b
-	on a.DRG_APC=b.DRG_APC;
+	from recon_pre7 as a left join /* bpciaref.BPCIA_Winsorization_PP1Initial */ tp.BPCIA_Winsorization as b
+	on a.DRG_APC=b.DRG_APC
+	and A.epi_period_short = B.Performance_period;
 quit;
 
 data recon_pre8;
@@ -433,7 +446,7 @@ proc sql;
 	create table ccn_cms_epis as
 	select epi_period_short, INITIATOR_BPID, EPI_CAT, EPI_TYPE, ccn_join, sum(EPI_COUNT) as CCN_CMS_EPI_COUNT
 	from TP_Components
-	where time_period not in ('Baseline - MY 1&2','10/01/2019 - 12/31/2019')
+	where time_period not in ('Baseline - MY 1&2') and tp_type = 'R'
 	group by epi_period_short, INITIATOR_BPID, EPI_CAT, EPI_TYPE, ccn_join;
 quit;
 
@@ -482,9 +495,27 @@ proc sql;
 	create table clin_cms_epis as
 	select epi_period_short, INITIATOR_BPID, EPI_CAT, EPI_TYPE, sum(EPI_COUNT) as CLIN_CMS_EPI_COUNT
 	from TP_Components
-	where time_period not in ('Baseline - MY 1&2','10/01/2019 - 12/31/2019')
+	where time_period not in ('Baseline - MY 1&2') and tp_type = 'R'
 	group by epi_period_short, INITIATOR_BPID, EPI_CAT, EPI_TYPE;
 quit;
+
+proc sql;
+	create table clin_cms_epistest as
+	select epi_period_short, INITIATOR_BPID, EPI_CAT, EPI_TYPE, (EPI_COUNT) as CLIN_CMS_EPI_COUNT
+	from TP_Components
+	where time_period not in ('Baseline - MY 1&2') and tp_type = 'R' and initiator_BPID = '5263-0000'
+
+;
+quit;
+
+proc sql;
+	create table clin_cms_epistest2 as
+	select epi_period_short, INITIATOR_BPID, EPI_CAT, EPI_TYPE, sum(EPI_COUNT) as CLIN_CMS_EPI_COUNT
+	from TP_Components
+	where time_period not in ('Baseline - MY 1&2') and tp_type = 'R' and initiator_BPID = '5263-0000'
+	group by epi_period_short, INITIATOR_BPID, EPI_CAT, EPI_TYPE;
+quit;
+
 
 proc sql;
 	create table recon_clin_pre as
@@ -529,7 +560,7 @@ proc sql;
 	create table cms_all_epis_pre as
 	select epi_period_short, INITIATOR_BPID, 'All Episodes' as EPI_CAT, sum(EPI_COUNT) as ALLEPI_CMS_EPI_COUNT
 	from TP_Components
-	where time_period not in ('Baseline - MY 1&2','10/01/2019 - 12/31/2019')
+	where time_period not in ('Baseline - MY 1&2') and tp_type = 'R'
 	group by epi_period_short, INITIATOR_BPID;
 quit;
 /*
@@ -578,7 +609,8 @@ proc sql;
 	create table recon_pre12 as
 	select a.*, b.*
 	from recon_pre11 as a left join tp.Recon_Reports_all as b
-	on a.BPID=b.INITIATOR_BPID;
+	on a.BPID=b.INITIATOR_BPID
+	AND A.epi_period_short = B.Performance_period;
 quit;
 
 
@@ -757,10 +789,246 @@ data recon;
 	Capped_Recon = Adjust_Recon * Multiplier;
 run;
 
+proc sql;
+create table recon_prev_combined as
+select 
+coalesce(a.ConvenerID,b.ConvenerID) as ConvenerID,
+coalesce(a.BPID,b.BPID) as BPID,
+coalesce(a.EPI_ID_MILLIMAN,strip("XXX-"||b.EPI_ID_MILLIMAN)) as EPI_ID_MILLIMAN,
+coalesce(a.EPI_ID_MILLIMAN,b.EPI_ID_MILLIMAN) as EPI_ID_MILLIMAN2,
+coalesce(a.ANCHOR_CCN,b.ANCHOR_CCN) as ANCHOR_CCN,
+A.ANCHOR_AT_NPI,
+A.ANCHOR_OP_NPI,
+coalesce(a.BENE_SK,b.BENE_SK) as BENE_SK,
+coalesce(a.MBI_ID,b.MBI_ID) as MBI_ID,
+coalesce(a.PATIENT_NAME,b.PATIENT_NAME) as PATIENT_NAME,
+coalesce(a.BENE_AGE,b.BENE_AGE) as BENE_AGE,
+coalesce(a.BENE_DEATH_DT,b.BENE_DEATH_DT) as BENE_DEATH_DT format=mmddyy10. ,
+A.ANCHOR_TYPE,
+A.anchor_type_upper,
+coalesce(a.EPISODE_GROUP_NAME,b.EPISODE_GROUP_NAME) as EPISODE_GROUP_NAME,
+coalesce(a.ANCHOR_CODE,b.ANCHOR_CODE) as ANCHOR_CODE,
+coalesce(a.ANCHOR_APC,b.ANCHOR_APC) as ANCHOR_APC,
+coalesce(a.ANCHOR_BEG_DT,b.ANCHOR_BEG_DT) as ANCHOR_BEG_DT format=mmddyy10. ,
+coalesce(a.ANCHOR_END_DT,b.ANCHOR_END_DT) as ANCHOR_END_DT format=mmddyy10. ,
+coalesce(a.POST_DSCH_BEG_DT,b.POST_DSCH_BEG_DT) as POST_DSCH_BEG_DT format=mmddyy10. ,
+coalesce(a.POST_DSCH_END_DT,b.POST_DSCH_END_DT) as POST_DSCH_END_DT format=mmddyy10. ,
+A.CMS_STD_ALLOWED,
+A.TOT_RAW_ALLOWED,
+A.EPI_STD_PMT_FCTR,
+A.EPI_STD_PMT_FCTR_WIN_1_99,
+A.CMS_TARGET_PRICE,
+A.CMS_TARGET_PRICE_REAL,
+A.CMS_Ratio_Real_Std,
+A.NATURAL_DISASTER_CCN_FLAG_num,
+coalesce(a.PERFORMANCE_PERIOD,b.PERFORMANCE_PERIOD) as PERFORMANCE_PERIOD,
+coalesce(A.death_flag,b.death_flag) AS death_flag,
+coalesce(A.Episode_End_YearMo, b.Episode_End_YearMo) AS Episode_End_YearMo,
+coalesce(a.timeframe_filter,b.timeframe_filter) as timeframe_filter,
+coalesce(a.epi_period_short,b.epi_period_short) as epi_period_short,
+coalesce(a.MEASURE_YEAR,b.MEASURE_YEAR) as MEASURE_YEAR,
+coalesce(a.DRG_APC,b.DRG_APC) as DRG_APC,
+A.Milliman_STD_ALLOWED,
+A.CMS_MILLIMAN_STD_DIFF,
+A.Milliman_Target_Price,
+A.Milliman_Target_Price_Real,
+A.CMS_STD_ALLOWED_Real,
+A.Prelim_PCMA,
+A.Final_PCMA,
+A.OP_PHYS_COSTS,
+A.AT_PHYS_COSTS,
+A.Low_Pct,
+A.High_Pct,
+A.Milliman_STD_ALLOWED_Real,
+A.DIFF_STD_ALLOWED_Real,
+A.Milliman_NPRA,
+A.CMS_NPRA,
+A.Milliman_CMS_Cost_Match,
+A.Epi_Perf_Data,
+A.CCN_Milliman_EPI_Count,
+A.CCN_CMS_ALLOWED_REAL,
+A.CCN_Milliman_ALLOWED_REAL,
+A.CCN_DIFF_ALLOWED_REAL,
+A.CCN_Milliman_AVG_TP_REAL,
+A.CCN_CMS_TP_REAL,
+A.CCN_Milliman_TP_REAL,
+A.CCN_DIFF_TP_REAL,
+A.CCN_Milliman_NPRA,
+A.CCN_CMS_NPRA,
+A.CCN_AVG_Prelim_PCMA,
+A.CCN_AVG_Final_PCMA,
+A.CCN_CMS_EPI_COUNT,
+A.CLIN_Milliman_EPI_Count,
+A.CLIN_CMS_ALLOWED_REAL,
+A.CLIN_Milliman_ALLOWED_REAL,
+A.CLIN_DIFF_ALLOWED_REAL,
+A.CLIN_Milliman_AVG_TP_REAL,
+A.CLIN_CMS_TP_REAL,
+A.CLIN_Milliman_TP_REAL,
+A.CLIN_DIFF_TP_REAL,
+A.CLIN_Milliman_NPRA,
+A.CLIN_CMS_NPRA,
+A.CLIN_AVG_Prelim_PCMA,
+A.CLIN_AVG_Final_PCMA,
+A.CLIN_CMS_EPI_COUNT,
+A.ALLEPI_CMS_EPI_COUNT,
+A.INDEX,
+A.CONVENER_ID,
+A.INITIATOR_BPID,
+A.PGP_ACH,
+A.Total_Recon_Amount,
+A.CQS,
+A.CQS_Adjustment_Percent,
+A.CQS_Adjustment_Amount,
+A.Adj_Total_Recon_Amount,
+A._20pct_Total_Perf_Target_Amount,
+A.Cap_Adj_Total_Recon_Amount,
+A.EI_Repayment_Amount,
+A.EI_Post_Epi_Spending_Amount,
+A.SRS_Reduction_Agreement_Signed,
+A.Potential_Reduction_Amount,
+A.BPID_Milliman_ALLOWED_REAL,
+A.BPID_Milliman_TP_REAL,
+A.BPID_CMS_ALLOWED_REAL,
+A.BPID_CMS_TP_REAL,
+A.CMS_Recon_Amount,
+A.CMS_CQS_Adj_Pcnt,
+A.CMS_CQS_Adj_Amt,
+A.CMS_Adjusted_Recon_Amount,
+A.Milliman_Recon_Amount,
+A.StopLoss_StopGain,
+A.Capped_Adj_Recon_Amt AS Capped_Adj_Recon_Amt1, 
+A.EI_Repayment_Amt,
+A.SRS_Reduction_Signed_num,
+A.CMS_Potential_Reduction_Amt,
+A.BPCI_Episode_Idx,
+coalesce(a.Clinical_Episode,b.Clinical_Episode) as Clinical_Episode,
+coalesce(a.clinical_episode_abbr,b.clinical_episode_abbr) as clinical_episode_abbr,
+coalesce(a.clinical_episode_abbr2,b.clinical_episode_abbr2) as clinical_episode_abbr2,
+coalesce(a.BPID_ClinicalEp,b.BPID_ClinicalEp) as BPID_ClinicalEp,
+coalesce(a.EI_facility_name,b.EI_facility_name) as EI_facility_name,
+coalesce(a.EI_system_name,b.EI_system_name) as EI_system_name,
+coalesce(a.Anchor_Facility_Name,b.Anchor_Facility_Name) as Anchor_Facility_Name,
+coalesce(a.Provider_Org_Name_op,b.Provider_Org_Name_op) as Provider_Org_Name_op,
+coalesce(a.Provider_First_Name_op,b.Provider_First_Name_op) as Provider_First_Name_op,
+coalesce(a.Provider_Last_Name_op,b.Provider_Last_Name_op) as Provider_Last_Name_op,
+coalesce(a.Provider_First_Name_at,b.Provider_First_Name_at) as Provider_First_Name_at,
+coalesce(a.Provider_Last_Name_at,b.Provider_Last_Name_at) as Provider_Last_Name_at,
+coalesce(a.Provider_Org_Name_at,b.Provider_Org_Name_at) as Provider_Org_Name_at,
+coalesce(a.Anchor_Fac_Code_Name,b.Anchor_Fac_Code_Name) as Anchor_Fac_Code_Name,
+A.at_npi_org_nm,
+A.at_npi_first_nm,
+A.at_npi_last_nm,
+A.op_npi_org_nm,
+A.op_npi_first_nm,
+A.op_npi_last_nm,
+coalesce(A.MDC_Description, b.MDC_Description) AS MDC_Description,
+A.Milliman_Adjusted_Recon_Amount,
+A.DIFF_Adjusted_Recon_Amount,
+A.Milliman_CMS_Episode_Allowed,
+A.Milliman_CMS_Target_Price,
+A.Milliman_CMS_Reconciliation_Amt,
+A.client_type,
+A.NATURAL_DISASTER_CCN_FLAG,
+A.SRS_Reduction_Signed,
+A.operating_npi,
+A.attending_npi,
+coalesce(a.attending_name,b.attending_name) as attending_name,
+coalesce(a.operating_name,b.operating_name) as operating_name,
+coalesce(a.episode_initiator1,b.episode_initiator1) as episode_initiator1,
+coalesce(a.Episode_Initiator_Use,b.Episode_Initiator_Use) as Episode_Initiator_Use,
+A.Multiplier,
+A.stop_loss_stop_gain,
+A.Adjust_Recon,
+A.Capped_Recon,
+B.CMS_NPRA AS CMS_NPRA_PREV,
+((CASE WHEN A.CMS_NPRA =. THEN 0 ELSE A.CMS_NPRA END) - (CASE WHEN B.CMS_NPRA =. THEN 0 ELSE B.CMS_NPRA END)) AS CMS_NPRA_DIFF,
+/*B.CCN_CMS_NPRA AS CCN_CMS_NPRA_PREV,*/
+/*B.CLIN_CMS_NPRA AS CLIN_CMS_NPRA_PREV,*/
+B.Capped_Adj_Recon_Amt AS Capped_Adj_Recon_Amt_PREV1,
+((CASE WHEN A.Capped_Adj_Recon_Amt =. THEN 0 ELSE A.Capped_Adj_Recon_Amt END) - (CASE WHEN B.Capped_Adj_Recon_Amt =. THEN 0 ELSE B.Capped_Adj_Recon_Amt END)) AS Capped_Adj_Recon_Amt_DIFF1,
+B.CMS_STD_ALLOWED_Real AS CMS_STD_ALLOWED_Real_PREV,
+((CASE WHEN A.CMS_STD_ALLOWED_Real =. THEN 0 ELSE A.CMS_STD_ALLOWED_Real END) - (CASE WHEN B.CMS_STD_ALLOWED_Real =. THEN 0 ELSE B.CMS_STD_ALLOWED_Real END)) AS CMS_STD_ALLOWED_Real_DIFF,
+B.Milliman_STD_ALLOWED_Real AS Milliman_STD_ALLOWED_Real_PREV,
+((CASE WHEN A.Milliman_STD_ALLOWED_Real =. THEN 0 ELSE A.Milliman_STD_ALLOWED_Real END) - (CASE WHEN B.Milliman_STD_ALLOWED_Real =. THEN 0 ELSE B.Milliman_STD_ALLOWED_Real END)) AS Milliman_STD_ALLOWED_Real_DIFF,
+B.BPID_CMS_ALLOWED_REAL AS BPID_CMS_ALLOWED_REAL_PREV,
+B.CLIN_CMS_ALLOWED_REAL AS CLIN_CMS_ALWD_REAL_PREV,
+B.CCN_CMS_ALLOWED_REAL AS CCN_CMS_ALWD_REAL_PREV,
+A.PERIOP_EPI_DENOM_FLAG,	
+A.PERIOP_EPI_NUM_FLAG,	
+A.ACP_EPI_DENOM_FLAG,	
+A.ACP_EPI_NUM_FLAG
+
+from recon A
+/*	FULL OUTER join out.Recon_&prev_label._1209_0000 B*/
+	FULL OUTER join out.Recon_&prev_label._&id. B
+		ON a.BPID = B.BPID
+		AND A.EPI_ID_MILLIMAN = B.EPI_ID_MILLIMAN
+		AND A.MEASURE_YEAR = B.MEASURE_YEAR
+	;
+	quit;
+
+proc sql;
+create table capped_amounts as
+select BPID, EPI_PERIOD_SHORT, 
+MAX(Capped_Adj_Recon_Amt1) AS Capped_Adj_Recon_Amt,
+MAX(Capped_Adj_Recon_Amt_PREV1) AS Capped_Adj_Recon_Amt_PREV,
+MAX(Capped_Adj_Recon_Amt1) -MAX(Capped_Adj_Recon_Amt_PREV1) AS Capped_Adj_Recon_Amt_DIFF
+FROM recon_prev_combined
+GROUP BY BPID, EPI_PERIOD_SHORT
+;
+quit;
+
+/*proc sql;*/
+/*UPDATE capped_amounts*/
+/*SET Capped_Adj_Recon_Amt_DIFF = */
+/*(CASE WHEN Capped_Adj_Recon_Amt_DIFF=. AND Capped_Adj_Recon_Amt<>. THEN Capped_Adj_Recon_Amt */
+/*WHEN Capped_Adj_Recon_Amt_DIFF=. AND Capped_Adj_Recon_Amt_PREV<>. THEN Capped_Adj_Recon_Amt_PREV */
+/*ELSE Capped_Adj_Recon_Amt_DIFF END)*/
+/*;*/
+/*quit;*/
+
+proc sql;
+create table recon_prev_combined2 as
+select A.*, 
+B.Capped_Adj_Recon_Amt,
+B.Capped_Adj_Recon_Amt_PREV,
+B.Capped_Adj_Recon_Amt_DIFF
+from recon_prev_combined A
+	LEFT JOIN capped_amounts B
+		ON A.BPID = B.BPID
+		AND A.epi_period_short = B.epi_period_short
+;
+quit;
+
+	proc sql;
+UPDATE recon_prev_combined2
+SET 
+CMS_NPRA_DIFF = (CASE WHEN CMS_NPRA_DIFF=0 and CMS_NPRA_PREV=. and CMS_NPRA=. THEN . ELSE CMS_NPRA_DIFF END),
+CMS_STD_ALLOWED_Real_DIFF = (CASE WHEN CMS_STD_ALLOWED_Real_DIFF=0 and CMS_STD_ALLOWED_Real_PREV=. and CMS_STD_ALLOWED_Real=. THEN . ELSE CMS_STD_ALLOWED_Real_DIFF END),
+Milliman_STD_ALLOWED_Real_DIFF = (CASE WHEN Milliman_STD_ALLOWED_Real_DIFF=0 and (Milliman_STD_ALLOWED_Real_PREV=. or Milliman_STD_ALLOWED_Real=.) THEN . ELSE Milliman_STD_ALLOWED_Real_DIFF END)
+;
+quit;
+
+/*proc sql;*/
+/*create table recon_prev_combined2 as*/
+/*select A.*, */
+/*B.CURRENT AS Capped_Adj_Recon_Amt,*/
+/*B.PREVIOUS AS Capped_Adj_Recon_Amt_PREV,*/
+/*B.DIFFERENCE AS Capped_Adj_Recon_Amt_DIFF*/
+/*from recon_prev_combined A*/
+/*	LEFT JOIN tp.RECON_True_Up_Amt B*/
+/*		ON A.ConvenerID = B.Parent_BPID*/
+/*		AND A.epi_period_short = B.performance_period*/
+/*;*/
+/*quit;*/
+
 data out.Recon_&label._&id.;
-	set recon;
+	set recon_prev_combined2;
+	format join_variable_recon $132.;
+	join_variable_recon = strip(Measure_year)||"_"||strip(EPI_ID_Milliman);
 	No_Recon=0;
-	if BPID in (&norecon.) then do;
+	if BPID in (&norecon_pp1.) and epi_period_short = 'PP1' then do;
 		No_Recon=1;
 		*AT_PHYS_COSTS=.;
 		CCN_DIFF_ALLOWED_REAL=.;
@@ -781,7 +1049,34 @@ data out.Recon_&label._&id.;
 		Milliman_CMS_Episode_Allowed=.;
 		Milliman_CMS_Reconciliation_Amt=.;
 		Milliman_CMS_Target_Price=.;
-		*Milliman_NPRA=.;
+		Milliman_NPRA=.;
+		Milliman_STD_ALLOWED_Real=.;
+		Milliman_Target_Price_Real=.;
+		*OP_PHYS_COSTS=.;
+		Milliman_CMS_Cost_Match='-';
+	end;
+	if BPID in (&norecon_pp2.) and epi_period_short = 'PP2' then do;
+		No_Recon=1;
+		*AT_PHYS_COSTS=.;
+		CCN_DIFF_ALLOWED_REAL=.;
+		CCN_DIFF_TP_REAL=.;
+		CCN_Milliman_ALLOWED_REAL=.;
+		CCN_Milliman_AVG_TP_REAL=.;
+		CCN_Milliman_EPI_Count=.;
+		CCN_Milliman_TP_REAL=.;
+		CLIN_DIFF_ALLOWED_REAL=.;
+		CLIN_DIFF_TP_REAL=.;
+		CLIN_Milliman_ALLOWED_REAL=.;
+		CLIN_Milliman_AVG_TP_REAL=.;
+		CLIN_Milliman_EPI_Count=.;
+		CLIN_Milliman_TP_REAL=.;
+		DIFF_Adjusted_Recon_Amount=.;
+		DIFF_STD_ALLOWED_Real=.;
+		Milliman_Adjusted_Recon_Amount=.;
+		Milliman_CMS_Episode_Allowed=.;
+		Milliman_CMS_Reconciliation_Amt=.;
+		Milliman_CMS_Target_Price=.;
+		Milliman_NPRA=.;
 		Milliman_STD_ALLOWED_Real=.;
 		Milliman_Target_Price_Real=.;
 		*OP_PHYS_COSTS=.;
@@ -789,6 +1084,7 @@ data out.Recon_&label._&id.;
 	end;
 run;
 %end;
+
 data Epi_Join_&label._&id.;
 	format join_variable_recon $132. PERFORMANCE_PERIOD $3.;
 	format clinical_episode_abbr $30.;
@@ -817,7 +1113,7 @@ data Epi_Join_&label._&id.;
 
 		perf_episode=1;
 
-		join_variable_recon = strip(Measure_year)||"_"||strip(EPI_ID_Milliman);
+		join_variable_recon = strip(Measure_year)||"_"||strip(EPI_ID_MILLIMAN);
 	end;
 
 	if timeframe_filter  = "Perf Pd 1 (End by 6/30/2019)" then epi_period_short = "PP1";
@@ -833,10 +1129,11 @@ data Epi_Join_&label._&id.;
 	else epi_period_short = "";
 
 	FR_JOIN = BPID||"_"||epi_period_short;
+		BPID_CCN_Key = BPID||"_"||Anchor_CCN ;
 
 	keep measure_year EPI_ID_Milliman BPID Anchor_Fac_Code_Name ANCHOR_CODE operating_name attending_name client_type Episode_Initiator_Use clinical_episode_abbr timeframe_filter epi_period_short PERFORMANCE_PERIOD 
 			join_variable_recon recon_episode perf_episode 
-			EI_system_name BPID_ClinicalEp MDC_Description death_flag Episode_End_YearMo PATIENT_NAME Bene_SK FR_JOIN;
+			EI_system_name BPID_ClinicalEp MDC_Description death_flag Episode_End_YearMo PATIENT_NAME Bene_SK FR_JOIN BPID_CCN_Key;
 run;
 
 proc sql;
@@ -870,7 +1167,7 @@ run;
 
 ****************************************************************;
 
-*delete work datasets*;
+/**delete work datasets*;*/
 proc datasets lib=work memtype=data kill;
 run;
 quit;
@@ -888,6 +1185,8 @@ quit;
 %ReconDashboard(2607,0000,1);
 %ReconDashboard(5479,0002,1);
 */
+*%ReconDashboard(1075_0000,1);
+%ReconDashboard(1209_0000,1);
 
 %ReconDashboard(1191_0002,1);
 %ReconDashboard(2586_0002,1);
@@ -1018,7 +1317,8 @@ quit;
 %ReconDashboard(2974_0003,0);
 %ReconDashboard(2974_0007,0);
 %ReconDashboard(5916_0002,1);
-
+%ReconDashboard(5916_0002,1);
+%ReconDashboard(1803_0000,0);
 
 
 
@@ -1050,7 +1350,7 @@ run;
 
 ******************* Create Demo Output *************************;
 proc format; value $masked_bpid
-'1148-0000'='1111-0000'
+'1634-0000'='1111-0000'
 '1167-0000'='2222-0000'
 '1343-0000'='3333-0000'
 '1368-0000'='4444-0000'
@@ -1115,6 +1415,33 @@ data Epi_Join_&bpid1._&bpid2.;
 
 		BPID = put(BPID,$masked_bpid.);
 
+	IF BPID = "1111-0000" THEN Anchor_Fac_Code_Name = "Facility 1 (BPID: 1111-0000)";
+	IF BPID = "2222-0000" THEN Anchor_Fac_Code_Name = "Facility 2 (BPID: 2222-0000)";
+	IF BPID = "3333-0000" THEN Anchor_Fac_Code_Name = "Facility 3 (BPID: 3333-0000)";
+	IF BPID = "4444-0000" THEN Anchor_Fac_Code_Name = "Facility 4 (BPID: 4444-0000)";
+	IF BPID = "5555-0000" THEN Anchor_Fac_Code_Name = "Facility 5 (BPID: 5555-0000)";
+	IF BPID = "6666-0000" THEN Anchor_Fac_Code_Name = "Facility 6 (BPID: 6666-0000)";
+	IF BPID = "7777-0000" THEN Anchor_Fac_Code_Name = "Facility 7 (BPID: 7777-0000)";
+	IF BPID = "8888-0000" THEN Anchor_Fac_Code_Name = "Facility 8 (BPID: 8888-0000)";
+
+	IF BPID = "1111-0000" THEN Episode_Initiator_Use = "Episode Initator 1 (BPID: 1111-0000)";
+	IF BPID = "2222-0000" THEN Episode_Initiator_Use = "Episode Initator 2 (BPID: 2222-0000)";
+	IF BPID = "3333-0000" THEN Episode_Initiator_Use = "Episode Initator 3 (BPID: 3333-0000)";
+	IF BPID = "4444-0000" THEN Episode_Initiator_Use = "Episode Initator 4 (BPID: 4444-0000)";
+	IF BPID = "5555-0000" THEN Episode_Initiator_Use = "Episode Initator 5 (BPID: 5555-0000)";
+	IF BPID = "6666-0000" THEN Episode_Initiator_Use = "Episode Initator 6 (BPID: 6666-0000)";
+	IF BPID = "7777-0000" THEN Episode_Initiator_Use = "Episode Initator 7 (BPID: 7777-0000)";
+	IF BPID = "8888-0000" THEN Episode_Initiator_Use = "Episode Initator 8 (BPID: 8888-0000)";
+
+	IF BPID = "1111-0000" THEN EI_system_name = "Episode Initator System 1";
+	IF BPID = "2222-0000" THEN EI_system_name = "Episode Initator System 2";
+	IF BPID = "3333-0000" THEN EI_system_name = "Episode Initator System 3";
+	IF BPID = "4444-0000" THEN EI_system_name = "Episode Initator System 4";
+	IF BPID = "5555-0000" THEN EI_system_name = "Episode Initator System 5";
+	IF BPID = "6666-0000" THEN EI_system_name = "Episode Initator System 6";
+	IF BPID = "7777-0000" THEN EI_system_name = "Episode Initator System 7";
+	IF BPID = "8888-0000" THEN EI_system_name = "Episode Initator System 8";
+
 		if BENE_GENDER="Female" then BENE_GENDER="F";
 		else if BENE_GENDER="Male" then BENE_GENDER="M";
 
@@ -1140,9 +1467,10 @@ data Epi_Join_&bpid1._&bpid2.;
 	
 	else epi_period_short = "";
 	FR_JOIN = BPID||"_"||epi_period_short;
+		BPID_CCN_Key = BPID||"_"||Anchor_CCN ;
 
 	keep FR_JOIN measure_year EPI_ID_Milliman BPID Anchor_Fac_Code_Name ANCHOR_CODE operating_name attending_name client_type Episode_Initiator_Use clinical_episode_abbr timeframe_filter epi_period_short PERFORMANCE_PERIOD 
-			join_variable_recon recon_episode perf_episode
+			join_variable_recon recon_episode perf_episode BPID_CCN_Key
 			EI_system_name BPID_ClinicalEp MDC_Description death_flag Episode_End_YearMo PATIENT_NAME Bene_SK;
 run;
 
@@ -1177,7 +1505,7 @@ proc sort nodupkey data=out3.Epi_Join_&bpid1._&bpid2.;
 
 %mend;
 
-%runhosp(1148,0000);
+%runhosp(1634,0000);
 %runhosp(1167,0000);
 %runhosp(1343,0000);
 %runhosp(1368,0000);
