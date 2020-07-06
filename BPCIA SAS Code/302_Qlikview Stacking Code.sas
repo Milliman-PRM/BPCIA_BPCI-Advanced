@@ -25,8 +25,9 @@ Setup
 ********************;
 ****** USER INPUTS ******************************************************************************************;
 /*%let label = ybase; *Baseline/Performance data label;*/
-%let label_monthly = y202004;
-%let label_quarterly = y202002;
+%let label_monthly = y202005;
+%let label_quarterly = y202004;
+%let label_semi_annual = y202004;
 %let label = &label_monthly.;
 %let mode=main; *Base=Baseline Interface, Main=Main Interface;
 /*
@@ -36,6 +37,7 @@ N if not quarterly
 next quarterly is month 202004
 */
 %let quarterly = N; 
+%let semi_annual = N; 
 ****** REFERENCE PROGRAMS ***********************************************************************************;
 %include "H:\_HealthLibrary\SAS\000 - General SAS Macros.sas";
 %include "H:\_HealthLibrary\SAS\000 - General SAS Macros_64bit.sas";
@@ -76,6 +78,9 @@ libname bench2 "R:\client work\CMS_PAC_Bundle_Processing\Benchmark Releases\v.20
 		set out.A_&file._ybase: out.&file._&label_monthly.: 
 		%if &quarterly. = N %then %do;
 		out.&file._&label_quarterly.:
+		%end;
+		%if &label_quarterly. != &label_semi_annual. %then %do;
+		out.&file._&label_semi_annual.:
 		%end;
 		;
 		%if &file = ccn_enc %then %do;
@@ -120,6 +125,9 @@ data out.all_&file.;
 		%if &quarterly = N %then %do;
 			out.epi_detail_&label_quarterly.:(keep=BPID EPI_ID_MILLIMAN timeframe_filter)
 			%end;
+		%if &label_quarterly. != &label_semi_annual. %then %do;
+			out.epi_detail_&label_semi_annual.:(keep=BPID EPI_ID_MILLIMAN timeframe_filter)
+			%end;
 ;
 	run;
 
@@ -133,6 +141,9 @@ data out.all_&file.;
 		set out.&file._&label_monthly.:
 				%if &quarterly = N %then %do;
 			out.&file._&label_quarterly.:
+			%end;
+				%if &label_quarterly. != &label_semi_annual. %then %do;
+			out.&file._&label_semi_annual.:
 			%end;
 			;
 	run;
@@ -334,9 +345,26 @@ run;
 	%date(ANCHOR_END_DT);
 	%date(DOD);
 	%date(BENE_DOB);
+	%date(BENE_BIRTH_DT);
+	%date(BENE_DEATH_DT);
 	%date(epi_end_date);
-
 	
+	age=99;
+	age = INT((ANCHOR_END_DT-bene_birth_Dt+increment)/365.25)-7;
+	if age>80 then age=age-5;
+	if age>60 then age=age+4;
+	if age<50 then age=age+13;
+	  if age < 65 then Age_Group='Under 65';
+			 if 65 <= AGE <= 70 then Age_Group= '65 - 70';
+			 if 71 <= AGE<= 75 then Age_Group= '71 - 75';
+			 if 76 <= AGE <= 80 then Age_Group= '76 - 80';
+			 if 81 <= AGE <= 85 then Age_Group= '81 - 85';
+			 if 86 <= AGE <= 90 then Age_Group= '86 - 90';
+			 if 91 <= AGE <= 95 then Age_Group='91 - 95';
+			 if 96 <= AGE <= 100 then Age_Group= '96 - 100';
+			 if AGE > 100 then Age_Group= '101 and Older';
+
+
 %date(T0_IP_IDX_STARTDATE);
 %date(T0_IP_IDX_ENDDATE);
 %date(T1_IP_A_FAC_STARTDATE);
@@ -535,6 +563,15 @@ format &date.0  mmddyy10.;
 
 	  	increment = ANCHOR_BEG_DT - ANCHOR_BEG_DT0;
 
+	IF BPID = "1111-0000" THEN Anchor_Fac_Code_Name = "Facility 1 (BPID: 1111-0000)";
+	IF BPID = "2222-0000" THEN Anchor_Fac_Code_Name = "Facility 2 (BPID: 2222-0000)";
+	IF BPID = "3333-0000" THEN Anchor_Fac_Code_Name = "Facility 3 (BPID: 3333-0000)";
+	IF BPID = "4444-0000" THEN Anchor_Fac_Code_Name = "Facility 4 (BPID: 4444-0000)";
+	IF BPID = "5555-0000" THEN Anchor_Fac_Code_Name = "Facility 5 (BPID: 5555-0000)";
+	IF BPID = "6666-0000" THEN Anchor_Fac_Code_Name = "Facility 6 (BPID: 6666-0000)";
+	IF BPID = "7777-0000" THEN Anchor_Fac_Code_Name = "Facility 7 (BPID: 7777-0000)";
+	IF BPID = "8888-0000" THEN Anchor_Fac_Code_Name = "Facility 8 (BPID: 8888-0000)";
+
   	%macro date(date);
 format &date.0  mmddyy10.;
 		 &date.0 = &date. ;
@@ -543,7 +580,25 @@ format &date.0  mmddyy10.;
 
 	%mend date;
 	%date(ANCHOR_END_DT);
+	%date(BENE_BIRTH_DT);
+	%date(BENE_DEATH_DT);
 
+	age=99;
+	age = INT((ANCHOR_END_DT-bene_birth_Dt+increment)/365.25)-7;
+	if age>80 then age=age-5;
+	if age>60 then age=age+4;
+	if age<50 then age=age+13;
+
+	  if age < 65 then Age_Group='Under 65';
+			 if 65 <= AGE <= 70 then Age_Group= '65 - 70';
+			 if 71 <= AGE<= 75 then Age_Group= '71 - 75';
+			 if 76 <= AGE <= 80 then Age_Group= '76 - 80';
+			 if 81 <= AGE <= 85 then Age_Group= '81 - 85';
+			 if 86 <= AGE <= 90 then Age_Group= '86 - 90';
+			 if 91 <= AGE <= 95 then Age_Group='91 - 95';
+			 if 96 <= AGE <= 100 then Age_Group= '96 - 100';
+			 if AGE > 100 then Age_Group= '101 and Older';
+			 bene_age = AGE;
 	%end;
 
 	%end;
@@ -817,7 +872,7 @@ run;
 %stacking_pre_other(R:\data\HIPAA\BPCIA_BPCI Advanced\80 - Qlikview\Outfiles\CCF, CCF);
 
 *** DEMO RUN ***;
-%stackingdemo(R:\data\HIPAA\BPCIA_BPCI Advanced\80 - Qlikview\Outfiles\Demo,1148,1167,1343,1368,2379,2587,2607,5479);
+%stackingdemo(R:\data\HIPAA\BPCIA_BPCI Advanced\80 - Qlikview\Outfiles\Demo,1634,1167,1343,1368,2379,2587,2607,5479);
 
 *** BASELINE DEMO RUN ***;
 /*%stackingdemo(R:\data\HIPAA\BPCIA_BPCI Advanced\80 - Qlikview\Outfiles\Baseline Demo,1148,1167,1343,1368,2379,2587,2607,5479);*/
