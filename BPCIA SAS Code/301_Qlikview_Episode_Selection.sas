@@ -18,8 +18,9 @@ options minoperator mlogic;
 
 ****** USER INPUTS ******************************************************************************************;
 %let mode = main; *main = main interface, base = baseline interface;
-%let label_monthly = y202004; 
-%let label_quarterly = y202002; 
+%let label_monthly = y202005; 
+%let label_quarterly = y202004; 
+%let label_semi_annual = y202004; 
 %let label = &label_monthly.; 
 
 %include "H:\Nonclient\Medicare Bundled Payment Reference\Program - BPCIA\SAS Code\000 - BPCIA_Interface_BPIDs.sas";
@@ -45,6 +46,10 @@ Calculation of Monthly Reports Datasets
 
 %if &bpid1. = 1075 or &bpid1. = 2048 or &bpid1. = 2049 or &bpid1. = 2589 or &bpid1. = 5037 %then %do;
 %let label = &label_quarterly.;
+%end;
+
+%else %if &bpid1. = 1148 %then %do;
+%let label = &label_semi_annual.;
 %end;
 
 %else %do;
