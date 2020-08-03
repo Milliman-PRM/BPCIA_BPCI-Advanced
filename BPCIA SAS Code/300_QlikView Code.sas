@@ -34,14 +34,18 @@ SET UP
 *%let mode = main; *main=main interface, base = baseline interface;
 
 * TURN ON FOR PERFORMANCE / TURN OFF FOR BASELINE *****;
-%let label_monthly = y202004; *Update with change in period;
-%let prevlabel_monthly = y202003; *Update with the prior period;
-%let reporting_period_monthly =202005;*Change for every Update*; 
-%let transmit_date_monthly = '17APR2020'd;*Change for every Update*; 
-%let label_quarterly = y202002; *Update with change in period;
-%let prevlabel_quarterly = y202001; *Update with the prior period;
-%let reporting_period_quarterly =202003;*Change for every QUARTERLY Update*; 
-%let transmit_date_quarterly = '07FEB2020'd;*Change for every QUARTERLY Update*; 
+%let label_monthly = y202005; *Update with change in period;
+%let prevlabel_monthly = y202004; *Update with the prior period;
+%let reporting_period_monthly =202006;*Change for every Update*; 
+%let transmit_date_monthly = '15MAY2020'd;*Change for every Update*; 
+%let label_quarterly = y202004; *Update with change in period;
+%let prevlabel_quarterly = y202003; *Update with the prior period;
+%let reporting_period_quarterly =202005;*Change for every QUARTERLY Update*; 
+%let transmit_date_quarterly = '17APR2020'd;*Change for every QUARTERLY Update*; 
+%let label_semi_annual = y202004; *Update with change in period;
+%let prevlabel_semi_annual = y202003; *Update with the prior period;
+%let reporting_period_semi_annual =202005;*Change for every QUARTERLY Update*; 
+%let transmit_date_semi_annual = '17APR2020'd;*Change for every QUARTERLY Update*; 
 %let label = &label_monthly.;
 %let vers = P;
 %let mode = main; *main=main interface, base = baseline interface;
@@ -49,7 +53,7 @@ SET UP
 
 proc printto;run;
 
-****** REFERENCE PROGRAMS ***********************************************************************************;
+/******* REFERENCE PROGRAMS ***********************************************************************************;*/
 %include "H:\_HealthLibrary\SAS\000 - General SAS Macros.sas";
 %include "H:\_HealthLibrary\SAS\000 - General SAS Macros_64bit.sas";
 
@@ -399,7 +403,7 @@ create table report6_1 as
 			  ,max(T4_RADIOLOGY_ALLOWED),max(T4_OP_REHAB_ALLOWED),max(T4_OTHER_ALLOWED),sum(T0_IP_IDX_ALLOWED),max(T0_AMBULANCE_ALLOWED)
 			  ,max(T0_ANESTHESIA_ALLOWED),max(T0_CARDIO_ALLOWED),max(T0_DME_ALLOWED)
 			  ,sum(T0_OTHER_ALLOWED),max(T0_PATHOLOGY_ALLOWED),max(T0_PROF_IP_ALLOWED)
-			  ,max(T0_PROF_SURG_ALLOWED),max(T0_RADIOLOGY_ALLOWED),max(T0_EMERGENCY_ALLOWED)) as T4_TOTAL_ALLOWED
+			  ,max(T0_PROF_SURG_ALLOWED),max(T0_RADIOLOGY_ALLOWED),sum(T0_EMERGENCY_ALLOWED)) as T4_TOTAL_ALLOWED
 
 	from report6
 	group by measure_year, EPI_ID_MILLIMAN
@@ -476,6 +480,13 @@ quit;
 %let prevlabel = &prevlabel_quarterly.; 
 %let reporting_period =&reporting_period_quarterly.;
 %let transmit_date = &transmit_date_quarterly.;
+%end;
+
+%else %if &vers. = P and &mode. = main AND (&bpid1. = 1148) %then %do;
+%let label = &label_semi_annual.;
+%let prevlabel = &prevlabel_semi_annual.; 
+%let reporting_period =&reporting_period_semi_annual.;
+%let transmit_date = &transmit_date_semi_annual.;
 %end;
 
 %else %if &vers. = P and &mode. = main %then %do;
@@ -1313,6 +1324,15 @@ create table Episode_Detail_6 as
 ;
 quit;
 
+data epi_orig_with_ACP_Periop;
+/*set out.epi_y202005_1209_0000;*/
+set out.epi_&label._&bpid1._&bpid2.; 
+if MEASURE_YEAR = 'MY1 & MY2' THEN PERIOP_EPI_DENOM_FLAG = .;
+if MEASURE_YEAR = 'MY1 & MY2' THEN PERIOP_EPI_NUM_FLAG= .;
+if MEASURE_YEAR = 'MY1 & MY2' THEN ACP_EPI_DENOM_FLAG= .;
+if MEASURE_YEAR = 'MY1 & MY2' THEN ACP_EPI_NUM_FLAG= .;
+			run;
+
 /*Added the Clinical Episode Names to Episode_Detail */
 proc sql;
 create table Episode_Detail_7 as
@@ -1338,6 +1358,22 @@ create table Episode_Detail_7 as
 			%end;
 			,b.WINSORIZE_EPI_1_99
 			,b.EPI_STD_PMT_FCTR_WIN_1_99
+			,PERIOP_EPI_DENOM_FLAG
+			,PERIOP_EPI_NUM_FLAG
+			,ACP_EPI_DENOM_FLAG
+			,ACP_EPI_NUM_FLAG
+			,(CASE WHEN PERIOP_EPI_DENOM_FLAG = 0 THEN 'No' 
+					WHEN PERIOP_EPI_DENOM_FLAG = 1 THEN 'Yes' 
+					ELSE '-' END) AS PERIOP_EPI_DENOM_FLAG_DESC
+			,(CASE WHEN PERIOP_EPI_NUM_FLAG = 0 THEN 'No' 
+					WHEN PERIOP_EPI_NUM_FLAG = 1 THEN 'Yes' 
+					ELSE '-' END) AS PERIOP_EPI_NUM_FLAG_DESC
+			,(CASE WHEN ACP_EPI_DENOM_FLAG = 0 THEN 'No' 
+					WHEN ACP_EPI_DENOM_FLAG = 1 THEN 'Yes' 
+					ELSE '-' END) AS ACP_EPI_DENOM_FLAG_DESC
+			,(CASE WHEN ACP_EPI_NUM_FLAG = 0 THEN 'No' 
+					WHEN ACP_EPI_NUM_FLAG = 1 THEN 'Yes' 
+					ELSE '-' END) AS ACP_EPI_NUM_FLAG_DESC
 			,b.ref_year
 			,case when a.BPID in (&PMR_EI_lst.)
 					then 1 else 0 end as client_type
@@ -1378,7 +1414,7 @@ create table Episode_Detail_7 as
 			,b.BPID || "_" || b.BENE_SK as BPID_Member
 			,a.clinical_episode_abbr as episode_description
 			from episode_detail_7 as a 
-			left join out.epi_&label._&bpid1._&bpid2. as b
+			left join epi_orig_with_ACP_Periop as b
 			on a.epi_id_milliman = b.epi_id_milliman
 			and a.measure_year=b.measure_year
 ;
@@ -1387,7 +1423,7 @@ quit ;
 /*/*********************************************************************************************/*/
 /*/*Code to create a CCN-level observational dataset********************************************/*/
 /*/*********************************************************************************************/*/;
-data ccn_enc_ip (keep=BPID anchor_ccn claimno EPISODE_INITIATOR measure_year epi_id_milliman drg_cd type allowed std_allowed_wage provider_ccn0 admsn_dt DSCHRGDT util_day dos timeframe GEO_BENE_SK pdgns_cd pproc_cd transfer_stay admitting_diag_code DGNSCD02-DGNSCD25 edac_flag);
+data ccn_enc_ip (keep=BPID anchor_ccn claimno EPISODE_INITIATOR measure_year epi_id_milliman drg_cd type allowed std_allowed_wage provider_ccn0 admsn_dt DSCHRGDT util_day dos timeframe GEO_BENE_SK pdgns_cd pproc_cd transfer_stay admitting_diag_code DGNSCD02-DGNSCD25 edac_flag COVID_Flag);
 	set		out.ipr_&label._&bpid1._&bpid2.;
 /*	where timeframe ^=0 ; */
 	format DRG_CD $3.;
@@ -1426,6 +1462,7 @@ proc sql;
 			  ,admitting_diag_code
 			  ,DGNSCD02,DGNSCD03,DGNSCD04,DGNSCD05,DGNSCD06,DGNSCD07,DGNSCD08,DGNSCD09,DGNSCD10,DGNSCD11,DGNSCD12,DGNSCD13,DGNSCD14,DGNSCD15,DGNSCD16,DGNSCD17,DGNSCD18,DGNSCD19,DGNSCD20,DGNSCD21,DGNSCD22,DGNSCD23,DGNSCD24,DGNSCD25
 			  ,edac_flag
+			  ,COVID_FLAG
 		from ccn_enc_ip
 		group by 
 			  GEO_BENE_SK
@@ -1447,36 +1484,37 @@ proc sql;
 			  ,admitting_diag_code
 			  ,DGNSCD02,DGNSCD03,DGNSCD04,DGNSCD05,DGNSCD06,DGNSCD07,DGNSCD08,DGNSCD09,DGNSCD10,DGNSCD11,DGNSCD12,DGNSCD13,DGNSCD14,DGNSCD15,DGNSCD16,DGNSCD17,DGNSCD18,DGNSCD19,DGNSCD20,DGNSCD21,DGNSCD22,DGNSCD23,DGNSCD24,DGNSCD25
 			  ,edac_flag
+			  ,COVID_FLAG
 		; 
 quit; 
 
 *!! JL BPCIA update: Temporary - to fix formats and rename variables to get them all to stack;
 data ccn_enc_snf;
-set out.snf_&label._&bpid1._&bpid2. (keep= EPISODE_INITIATOR claimno BPID measure_year epi_id_milliman type allowed std_allowed_wage PROVIDER admsn_dt DSCHRGDT THRU_DT util_day dos timeframe DGNSCD01-DGNSCD25 rename=(PROVIDER=provider_ccn0 DGNSCD01=pdgns_cd /*util_day = util_day_pre*/)) ;
+set out.snf_&label._&bpid1._&bpid2. (keep= COVID_FLAG EPISODE_INITIATOR claimno BPID measure_year epi_id_milliman type allowed std_allowed_wage PROVIDER admsn_dt DSCHRGDT THRU_DT util_day dos timeframe DGNSCD01-DGNSCD25 rename=(PROVIDER=provider_ccn0 DGNSCD01=pdgns_cd /*util_day = util_day_pre*/)) ;
 /*	util_day = min(util_day_pre,90);*/
 run;
 
 data ccn_enc_hha;
-set out.hha_&label._&bpid1._&bpid2.(keep=BENE_SK  claimno anchor_ccn EPISODE_INITIATOR BPID measure_year epi_id_milliman type allowed std_allowed_wage PROVIDER dos timeframe DGNSCD01-DGNSCD25 FROM_DT THRU_DT util_day
+set out.hha_&label._&bpid1._&bpid2.(keep=COVID_FLAG BENE_SK  claimno anchor_ccn EPISODE_INITIATOR BPID measure_year epi_id_milliman type allowed std_allowed_wage PROVIDER dos timeframe DGNSCD01-DGNSCD25 FROM_DT THRU_DT util_day
 											 rename=(BENE_SK=GEO_BENE_SK DGNSCD01=pdgns_cd FROM_DT=admsn_dt THRU_DT=DSCHRGDT) in=d) ;
 	provider_ccn0 = strip(provider);
 run;
 
 data ccn_enc_op;
-	set out.op_&label._&bpid1._&bpid2. (keep= bene_sk claimno anchor_ccn EPISODE_INITIATOR BPID measure_year epi_id_milliman type allowed std_allowed_wage PROVIDER dos timeframe DGNSCD01-DGNSCD25 at_npi HCPCS_CD  REV_CNTR edac_flag in=c rename=(PROVIDER=provider_ccn0 bene_sk = geo_bene_sk DGNSCD01=pdgns_cd)) ;
+	set out.op_&label._&bpid1._&bpid2. (keep=COVID_FLAG bene_sk claimno anchor_ccn EPISODE_INITIATOR BPID measure_year epi_id_milliman type allowed std_allowed_wage PROVIDER dos timeframe DGNSCD01-DGNSCD25 at_npi HCPCS_CD  REV_CNTR edac_flag in=c rename=(PROVIDER=provider_ccn0 bene_sk = geo_bene_sk DGNSCD01=pdgns_cd)) ;
 	ADMSN_DT = dos;
 	DSCHRGDT = dos;
 run;
 
 data ccn_enc_hs (drop=provider);
-	set out.hs_&label._&bpid1._&bpid2. (keep= bene_sk claimno anchor_ccn EPISODE_INITIATOR BPID measure_year epi_id_milliman type allowed std_allowed_wage PROVIDER dos timeframe DGNSCD01-DGNSCD25 thru_dt util_day in=c rename=(bene_sk=geo_bene_sk dos = admsn_dt DGNSCD01=pdgns_cd thru_dt = dschrgdt));
+	set out.hs_&label._&bpid1._&bpid2. (keep= COVID_FLAG bene_sk claimno anchor_ccn EPISODE_INITIATOR BPID measure_year epi_id_milliman type allowed std_allowed_wage PROVIDER dos timeframe DGNSCD01-DGNSCD25 thru_dt util_day in=c rename=(bene_sk=geo_bene_sk dos = admsn_dt DGNSCD01=pdgns_cd thru_dt = dschrgdt));
 	provider_ccn0 = input(provider,$20.);
 run;
 *;
 
 data ccn_enc(drop=provider_ccn0);
 set		
-		ccn_enc_ip_a (keep=GEO_BENE_SK anchor_ccn EPISODE_INITIATOR BPID measure_year epi_id_milliman drg_cd type allowed std_allowed_wage provider_ccn0 admsn_dt DSCHRGDT util_day  pdgns_cd pproc_cd dos timeframe admitting_diag_code DGNSCD02-DGNSCD25 edac_flag)
+		ccn_enc_ip_a (keep=COVID_FLAG GEO_BENE_SK anchor_ccn EPISODE_INITIATOR BPID measure_year epi_id_milliman drg_cd type allowed std_allowed_wage provider_ccn0 admsn_dt DSCHRGDT util_day  pdgns_cd pproc_cd dos timeframe admitting_diag_code DGNSCD02-DGNSCD25 edac_flag)
 		ccn_enc_snf
 		ccn_enc_hha
 		ccn_enc_op
@@ -1512,6 +1550,7 @@ proc sql;
 			  ,sum(allowed) as allowed
 			  ,sum(std_allowed_wage) as std_allowed_wage
 			  ,edac_flag
+			  ,COVID_FLAG
 		from ccn_enc
 		group by GEO_BENE_SK, claimno
 			  ,anchor_CCN
@@ -1532,6 +1571,7 @@ proc sql;
 			  ,admitting_diag_code
 			  ,DGNSCD02,DGNSCD03,DGNSCD04,DGNSCD05,DGNSCD06,DGNSCD07,DGNSCD08,DGNSCD09,DGNSCD10,DGNSCD11,DGNSCD12,DGNSCD13,DGNSCD14,DGNSCD15,DGNSCD16,DGNSCD17,DGNSCD18,DGNSCD19,DGNSCD20,DGNSCD21,DGNSCD22,DGNSCD23,DGNSCD24,DGNSCD25
 			  ,edac_flag
+			  ,COVID_FLAG
 		order by BPID, epi_id_milliman,type,admsn_dt;
 	quit;
 
@@ -1602,6 +1642,7 @@ proc sql;
 			  ,sum(std_allowed_wage) as std_allowed_wage
 			  ,sum(util_day) as util_day
 			  ,edac_flag
+			  ,COVID_FLAG
 	from ccn_enc3a
 	group by episode
 			,anchor_ccn
@@ -1624,6 +1665,7 @@ proc sql;
 			  ,DGNSCD02,DGNSCD03,DGNSCD04,DGNSCD05,DGNSCD06,DGNSCD07,DGNSCD08,DGNSCD09,DGNSCD10,DGNSCD11,DGNSCD12,DGNSCD13,DGNSCD14,DGNSCD15,DGNSCD16,DGNSCD17,DGNSCD18,DGNSCD19,DGNSCD20,DGNSCD21,DGNSCD22,DGNSCD23,DGNSCD24,DGNSCD25
 			  ,counter
 			  ,edac_flag
+			  ,COVID_FLAG
 ;
 quit; 
 
@@ -2028,6 +2070,7 @@ proc sql;
 		,a.type
 		,a.timeframe
 		,edac_flag
+		,COVID_FLAG
 		,strip(put(a.PRFNPI,15.)) as PRFNPI_A
 		,a.HCPCS_CD as HCPCS_CD_A
 		,a.DGNSCD01 as primary_diag_cd
@@ -2041,6 +2084,7 @@ proc sql;
 			,a.type
 			,a.timeframe
 			,edac_flag
+			,COVID_FLAG
 			,PRFNPI_A
 			,HCPCS_CD_A
 			,primary_diag_cd
@@ -2128,6 +2172,7 @@ proc sql;
 					else 0
 					end as prov_timeframe_all	
 			  ,a.edac_flag
+			  ,a.COVID_FLAG
 	from npi_level_b_formats as a
 	;
 quit;
@@ -3346,6 +3391,7 @@ create table patient_detail1 as
 	,admitting_diag_code
     ,DGNSCD02,DGNSCD03,DGNSCD04,DGNSCD05,DGNSCD06,DGNSCD07,DGNSCD08,DGNSCD09,DGNSCD10,DGNSCD11,DGNSCD12,DGNSCD13,DGNSCD14,DGNSCD15,DGNSCD16,DGNSCD17,DGNSCD18,DGNSCD19,DGNSCD20,DGNSCD21,DGNSCD22,DGNSCD23,DGNSCD24,DGNSCD25
 	,edac_flag
+	,COVID_FLAG
 	,UNPLANNED_READMIT_FLAG
 	,HAS_READMISSION
 	,'' as provider_specialty
@@ -3431,6 +3477,7 @@ union all
 		,DGNSCD24
 		,DGNSCD25
 		,edac_flag
+		,COVID_FLAG
 		,. as UNPLANNED_READMIT_FLAG
 		,. as HAS_READMISSION
 		,'' as provider_specialty
@@ -3515,6 +3562,7 @@ union all
 		,'' as DGNSCD24
 		,'' as DGNSCD25
 		,edac_flag
+		,COVID_FLAG
 		,. as UNPLANNED_READMIT_FLAG
 		,. as HAS_READMISSION
 		,provider_specialty
@@ -3575,6 +3623,7 @@ union all
 		,admitting_diag_code
 		,DGNSCD02,DGNSCD03,DGNSCD04,DGNSCD05,DGNSCD06,DGNSCD07,DGNSCD08,DGNSCD09,DGNSCD10,DGNSCD11,DGNSCD12,DGNSCD13,DGNSCD14,DGNSCD15,DGNSCD16,DGNSCD17,DGNSCD18,DGNSCD19,DGNSCD20,DGNSCD21,DGNSCD22,DGNSCD23,DGNSCD24,DGNSCD25
 		,edac_flag
+		,COVID_FLAG
 		,UNPLANNED_READMIT_FLAG
 		,HAS_READMISSION
 		,'' as provider_specialty
@@ -3616,6 +3665,10 @@ quit;
 data patient_Detail2;
 	set patient_Detail2_pre;
 	end_date_drop = end_date;
+	format COVID_FLAG_DESC $3.;
+	COVID_FLAG_DESC = .;
+	if COVID_FLAG > 0 THEN COVID_FLAG_DESC = 'Yes';
+	if COVID_FLAG = 0 THEN COVID_FLAG_DESC = 'No';
 	if end_date_drop=. then end_date_drop=mdy(12,31,2099);
 	if end_date_drop=mdy(12,31,2099) and (substr(Caretype,1,7) = 'Prof_ER' or substr(Caretype,1,2) = 'Em') then end_date_drop=mdy(12,30,2099);
 	if end_date_drop=mdy(12,31,2099) and substr(Caretype,1,10) = 'Outpatient' then end_date_drop=mdy(12,29,2099);
@@ -4660,7 +4713,7 @@ by epi_id_milliman measure_year;
 run ; 
 
 proc sql ;
-	create table out.epi_detail_&label._&bpid1._&bpid2. as
+	create table episode_detail_17 as
 	select distinct a.*
 					, case when b.Er_start_flag ^= '' then 'Yes'
 						else 'No'
@@ -4677,13 +4730,33 @@ proc sql ;
 
 quit;
 
+proc sql;
+create table epi_detail_Covid as
+select epi_id_milliman, max(Covid_Flag) as COVID_Flag
+from out.pat_detail_&label._&bpid1._&bpid2.
+group by epi_id_milliman
+;
+quit;
+
+proc sql;
+create table epi_detail_with_Covid as
+select A.*, b.Covid_flag
+from episode_detail_17 A
+	left join epi_detail_Covid B
+		on A.epi_id_milliman = b.epi_id_milliman
+		;
+		quit;
+
 data out.epi_detail_&label._&bpid1._&bpid2.;
-	set out.epi_detail_&label._&bpid1._&bpid2.;
+	set epi_detail_with_Covid;
+	format COVID_Flag_Desc $100. Milliman_CMS_Match $3.;
 	Milliman_CMS_Match='Yes';
 	if Milliman_CMS_Discrepancy='Yes' then Milliman_CMS_Match='No';
+	if COVID_Flag = 0 then COVID_Flag_Desc='No COVID-19 diagnoses';
+	if COVID_Flag = 1 then COVID_Flag_Desc='Professional claim(s) with COVID-19 diagnosis';
+	if COVID_Flag = 2 then COVID_Flag_Desc='Post-anchor facility claim(s) with COVID-19 diagnosis';
+	if COVID_Flag = 3 then COVID_Flag_Desc='Anchor facility claim with COVID-19 diagnosis';
 run;
-
-
 
 /*********************************************************************************************/
 /*Code to create exclusions dataset********************************************/
@@ -4898,7 +4971,7 @@ run;
 /*	*/
 /*run ; */
 
-*delete work datasets;
+/*delete work datasets; */
 proc datasets lib=work memtype=data kill;
 run;
 quit;
@@ -4906,6 +4979,9 @@ quit;
 %mend dashboard;
 
 *MACRO RUNS;
+%Dashboard(6055,0002,1);
+
+%Dashboard(1191,0002,1);
 
 %Dashboard(2586,0002,1);
 %Dashboard(2586,0005,1);
